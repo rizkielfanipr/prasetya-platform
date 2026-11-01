@@ -1,0 +1,12 @@
+vendor
+public
+storage
+bootstrap/cache
+node_modules
+resources/js/components/ui
+docs
+*.md
+composer.lock
+package-lock.json
+playwright-report
+test-results

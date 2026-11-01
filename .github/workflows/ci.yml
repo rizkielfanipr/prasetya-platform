@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, bcmath, intl, mbstring
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Create databases
+        run: mysql -h 127.0.0.1 -uroot -e "CREATE DATABASE prasetya_platform; CREATE DATABASE prasetya_platform_testing; CREATE DATABASE prasetya_platform_e2e;"
+      - run: composer install --no-interaction --prefer-dist
+      - run: npm ci --ignore-scripts
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+      - name: PHP formatter
+        run: vendor/bin/pint --test
+      - name: PHP static analysis
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: ESLint
+        run: npm run lint
+      - name: Prettier
+        run: npm run format:check
+      - name: Type check
+        run: npm run typecheck
+      - name: Component tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Fresh migration and seed on MySQL
+        run: php artisan migrate:fresh --seed --force --no-interaction
+      - name: Backend tests
+        run: vendor/bin/pest
+      - name: Production configuration
+        env:
+          APP_ENV: production
+          APP_DEBUG: 'false'
+          PAYMENT_GATEWAY: doku
+        run: php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan config:clear && php artisan route:clear && php artisan view:clear
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results

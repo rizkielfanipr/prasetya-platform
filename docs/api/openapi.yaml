@@ -1,0 +1,273 @@
+openapi: 3.1.0
+info:
+  title: Prasetya Platform Public API
+  version: 1.0.0
+  description: See docs/api/README.md for conventions. Amounts are integer rupiah; timestamps are UTC.
+servers:
+  - url: https://platform.prasetyawebworks.web.id/api/v1
+    description: Proposed production host
+paths:
+  /health:
+    get:
+      summary: Application and dependency health
+      responses:
+        '200': { description: Healthy, content: { application/json: { schema: { $ref: '#/components/schemas/HealthEnvelope' } } } }
+        '503': { description: Dependency unavailable, content: { application/json: { schema: { $ref: '#/components/schemas/HealthEnvelope' } } } }
+  /packages:
+    get:
+      summary: Active package catalogue
+      parameters:
+        - { name: application_code, in: query, required: false, schema: { $ref: '#/components/schemas/ApplicationCode' } }
+      responses:
+        '200':
+          description: Packages
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/Package' } }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /orders:
+    post:
+      summary: Create an unpaid order, priced by the catalogue
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrder' }
+      responses:
+        '201':
+          description: Created, or an idempotent replay
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /orders/{reference}:
+    get:
+      summary: Read an order
+      parameters:
+        - $ref: '#/components/parameters/Reference'
+      responses:
+        '200':
+          description: Order
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/Error' }
+  /orders/{reference}/checkout:
+    post:
+      summary: Get a checkout URL; reuses the open attempt
+      parameters:
+        - $ref: '#/components/parameters/Reference'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Checkout ready
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Checkout' }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '502': { $ref: '#/components/responses/Error' }
+  /orders/{reference}/payment-status:
+    get:
+      summary: Backend-verified payment state. The only thing a site should display after a DOKU return
+      parameters:
+        - $ref: '#/components/parameters/Reference'
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/PaymentStatusView' }
+        '404': { $ref: '#/components/responses/Error' }
+  /webhooks/doku:
+    post:
+      summary: DOKU HTTP notification. Called by DOKU only; see docs/api/doku-contract.md
+      parameters:
+        - { name: Client-Id, in: header, required: true, schema: { type: string } }
+        - { name: Request-Id, in: header, required: true, schema: { type: string } }
+        - { name: Request-Timestamp, in: header, required: true, schema: { type: string } }
+        - { name: Signature, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, description: Parsed non-strictly. Unknown fields are ignored and never stored. }
+      responses:
+        '200': { description: 'Acknowledged: processed, ignored, duplicate, or authentic but rejected. Evidence is stored.' }
+        '401': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, maxLength: 128 }
+    Reference:
+      name: reference
+      in: path
+      required: true
+      schema: { type: string, description: ULID }
+  responses:
+    Error:
+      description: Error envelope
+      headers:
+        X-Request-Id: { schema: { type: string } }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  schemas:
+    ApplicationCode: { type: string, enum: [WEBWORKS, SATAMU] }
+    OrderStatus: { type: string, enum: [DRAFT, PENDING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED] }
+    PaymentStatus: { type: string, enum: [CREATED, PENDING, PAID, FAILED, EXPIRED, CANCELLED] }
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: integer, description: Whole rupiah }
+        currency: { type: string, example: IDR }
+    SuccessEnvelope:
+      type: object
+      required: [success, data, meta, requestId]
+      properties:
+        success: { const: true }
+        data: {}
+        meta: { type: object, properties: { idempotentReplay: { type: boolean } } }
+        requestId: { type: string }
+    ErrorEnvelope:
+      type: object
+      required: [success, data, error, requestId]
+      properties:
+        success: { const: false }
+        data: { type: 'null' }
+        error:
+          type: object
+          required: [code, message, fields]
+          properties:
+            code: { type: string, description: Machine-readable. Listed in docs/api/README.md }
+            message: { type: string }
+            fields: { type: object, additionalProperties: { type: array, items: { type: string } } }
+        requestId: { type: string }
+    HealthEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                status: { type: string, enum: [ok, degraded] }
+                checks: { type: object, properties: { application: { type: string }, database: { type: string } } }
+    Package:
+      type: object
+      required: [code, application_code, name, price]
+      properties:
+        code: { type: string, example: PW-LANDING-STARTER }
+        application_code: { $ref: '#/components/schemas/ApplicationCode' }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        price: { $ref: '#/components/schemas/Money' }
+    CreateOrder:
+      type: object
+      required: [application_code, package_code, customer]
+      description: Any price field sent is ignored.
+      properties:
+        application_code: { $ref: '#/components/schemas/ApplicationCode' }
+        package_code: { type: string, maxLength: 64 }
+        customer:
+          type: object
+          required: [name, email]
+          properties:
+            name: { type: string, maxLength: 255 }
+            email: { type: string, format: email }
+            phone: { type: [string, 'null'], maxLength: 32 }
+        details:
+          type: object
+          description: Only the fields for the order's brand are kept.
+          properties:
+            notes: { type: [string, 'null'], maxLength: 2000 }
+            template_code: { type: [string, 'null'], description: Webworks }
+            business_name: { type: [string, 'null'], description: Webworks }
+            domain_preference: { type: [string, 'null'], description: Webworks }
+            theme_code: { type: [string, 'null'], description: Satamu }
+            event_type: { type: [string, 'null'], description: Satamu }
+            event_date: { type: [string, 'null'], format: date, description: Satamu }
+    Order:
+      type: object
+      required: [reference, invoice_number, application_code, status, total, items, created_at]
+      properties:
+        reference: { type: string }
+        invoice_number: { type: string, example: PW-202611-000128 }
+        application_code: { $ref: '#/components/schemas/ApplicationCode' }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        total: { $ref: '#/components/schemas/Money' }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              package_code: { type: string }
+              package_name: { type: string }
+              quantity: { type: integer }
+              unit_amount: { type: integer }
+              line_amount: { type: integer }
+        payment_status: { oneOf: [{ $ref: '#/components/schemas/PaymentStatus' }, { type: 'null' }] }
+        expires_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+    Checkout:
+      type: object
+      required: [order_reference, payment_reference, payment_status, checkout_url]
+      properties:
+        order_reference: { type: string }
+        payment_reference: { type: string }
+        payment_status: { $ref: '#/components/schemas/PaymentStatus' }
+        checkout_url: { type: string, format: uri }
+        expires_at: { type: [string, 'null'], format: date-time }
+    PaymentStatusView:
+      type: object
+      required: [order_reference, invoice_number, order_status]
+      properties:
+        order_reference: { type: string }
+        invoice_number: { type: string }
+        order_status: { $ref: '#/components/schemas/OrderStatus' }
+        payment_status: { oneOf: [{ $ref: '#/components/schemas/PaymentStatus' }, { type: 'null' }] }
+        paid_at: { type: [string, 'null'], format: date-time }
+        expires_at: { type: [string, 'null'], format: date-time }
+        checkout_url: { type: [string, 'null'], format: uri, description: Present only while the attempt can be paid }

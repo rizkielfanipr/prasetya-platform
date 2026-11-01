@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    // doku or fake. The fake gateway refuses to boot in production (see AppServiceProvider).
+    'payment_gateway' => env('PAYMENT_GATEWAY', 'fake'),
+
+    // Dates are stored in UTC and presented in this zone.
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'Asia/Jakarta'),
+
+    'order_expiry_hours' => (int) env('ORDER_EXPIRY_HOURS', 72),
+    'payment_expiry_grace_minutes' => (int) env('PAYMENT_EXPIRY_GRACE_MINUTES', 15),
+    'stranded_checkout_minutes' => (int) env('STRANDED_CHECKOUT_MINUTES', 2),
+    'idempotency_lock_seconds' => (int) env('IDEMPOTENCY_LOCK_SECONDS', 30),
+
+    'reconciliation' => [
+        'pending_too_long_minutes' => (int) env('RECONCILIATION_PENDING_MINUTES', 120),
+        'no_attempt_after_minutes' => (int) env('RECONCILIATION_NO_ATTEMPT_MINUTES', 30),
+    ],
+
+    'cors_allowed_origins' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('CORS_ALLOWED_ORIGINS', 'https://prasetyawebworks.web.id,https://satamu.prasetyawebworks.web.id')),
+    ))),
+
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Super Admin'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+];
