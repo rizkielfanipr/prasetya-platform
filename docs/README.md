@@ -9,10 +9,11 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 | [`design.md`](design.md) | Design system, component contracts, accessibility, and frontend quality baseline | Approved for implementation |
 | [`architecture.md`](architecture.md) | System context, module boundaries, data ownership, and engineering constraints | Proposed |
 | [`implementation-plan.md`](implementation-plan.md) | Delivery milestones, dependencies, exit criteria, quality gates, and risks | Draft for approval |
+| [`satamu-payment-activation-plan.md`](satamu-payment-activation-plan.md) | Satamu catalogue, shared Duitku integration, tests, rollout, and rollback | Draft for approval |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) for consequential technical choices | Active |
 | [`assets/`](assets/) | Approved visual references used by design documentation | Reference |
 | [`api/README.md`](api/README.md), [`api/openapi.yaml`](api/openapi.yaml) | Public REST API conventions and contract | Active |
-| [`api/doku-contract.md`](api/doku-contract.md) | DOKU contract as implemented, and what sandbox must confirm | Active, unverified against live sandbox |
+| [`api/duitku-contract.md`](api/duitku-contract.md) | Duitku contract as implemented, and what sandbox must confirm | Active, payment flow verified against live sandbox |
 | [`data-dictionary.md`](data-dictionary.md) | Tables, state machines, and data rules | Active |
 | [`testing/strategy.md`](testing/strategy.md) | What each test layer proves and how to run it | Active |
 | [`security/threat-model.md`](security/threat-model.md) | Threats, controls, and gaps before production payments | Proposed |

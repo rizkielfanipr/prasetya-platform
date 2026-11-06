@@ -112,7 +112,7 @@ it('filters by latest payment status', function (): void {
 
 it('shows a complete sanitised transaction detail', function (): void {
     $payment = pendingPayment();
-    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'SUCCESS', ['card_payment' => ['card_masked' => '411111******1111']]))->assertOk();
+    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'SUCCESS', ['maskedNumber' => '411111******1111']))->assertOk();
 
     $response = $this->actingAs(admin())->get("/transactions/{$payment->order->public_id}")->assertOk();
     $response->assertInertia(fn (AssertableInertia $page) => $page
@@ -124,7 +124,7 @@ it('shows a complete sanitised transaction detail', function (): void {
         ->has('webhooks', 1)
         ->has('audit', 1));
 
-    expect($response->getContent())->not->toContain('411111')->not->toContain('HMACSHA256')->not->toContain('test-secret-key');
+    expect($response->getContent())->not->toContain('411111')->not->toContain('fake-key-not-real');
 });
 
 it('returns 404 for numeric ids: orders are addressed by public id', function (): void {
@@ -177,7 +177,8 @@ it('classifies webhook problems into their own groups', function (): void {
     $good = notificationBody($payment->gateway_invoice_number, $payment->amount);
     sendNotification($good);
     sendNotification($good);
-    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'REFUNDED'));
+    $cancelled = pendingPayment([], ['status' => PaymentStatus::Cancelled]);
+    sendNotification(notificationBody($cancelled->gateway_invoice_number, $cancelled->amount));
 
     expect(reconciliationCounts())->toMatchArray([
         'unmatched_payments' => 1,
@@ -214,13 +215,13 @@ it('never changes data when viewed', function (): void {
 });
 
 it('never exposes a secret on the settings page', function (): void {
-    config(['doku.secret_key' => 'never-show-this-value']);
+    config(['duitku.api_key' => 'never-show-this-value']);
 
     $content = $this->actingAs(admin())->get('/settings')->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page->has('admin.gateway.configured')->missing('admin.gateway.secret'))
         ->getContent();
 
-    expect($content)->not->toContain('never-show-this-value')->not->toContain('test-secret-key');
+    expect($content)->not->toContain('never-show-this-value')->not->toContain('fake-key-not-real');
 });
 
 it('lists audit entries with search', function (): void {

@@ -52,6 +52,8 @@ How will the decision be verified in implementation and operation?
 | [0001](0001-modular-monolith.md) | Use a Laravel modular monolith with Vue/Inertia | Proposed |
 | [0002](0002-mvp-payment-monitoring-scope.md) | First release is a payment monitoring back office | Proposed |
 | [0003](0003-accessible-colour-tokens.md) | Derived colour tokens for WCAG AA and chart separation | Proposed |
-| [0004](0004-doku-checkout-contract.md) | How the platform applies the DOKU Checkout contract | Proposed |
+| [0004](0004-doku-checkout-contract.md) | How the platform applied the DOKU Checkout contract | Superseded by ADR-0007 |
 | [0005](0005-laravel-skeleton-and-tooling.md) | Plain Laravel skeleton with explicit tooling | Proposed |
 | [0006](0006-money-identifiers-idempotency.md) | Integer rupiah, public ULIDs, and reference-based idempotency | Proposed |
+| [0007](0007-duitku-gateway.md) | Use Duitku Pop as the only payment gateway | Proposed |
+| [0008](0008-satamu-payment-activation.md) | Activate Satamu on the shared order and payment core | Proposed |

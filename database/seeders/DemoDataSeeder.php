@@ -13,18 +13,15 @@ use App\Domain\Orders\Models\Order;
 use App\Domain\Packages\Models\Package;
 use App\Domain\Payments\Actions\ProcessGatewayNotification;
 use App\Domain\Payments\Actions\StartCheckout;
-use App\Domain\Payments\Contracts\NotificationVerifier;
 use App\Domain\Payments\Data\InboundNotification;
-use App\Domain\Payments\Models\Payment;
-use App\Integrations\Doku\DokuConfig;
-use App\Integrations\Doku\DokuSignature;
+use App\Integrations\Duitku\FakeNotificationSender;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Local and test data, built through the real actions and the real webhook path so the demo cannot show a state
+ * Local and test data, built through the real actions and the real callback path so the demo cannot show a state
  * the application could not reach. Deterministic: fixed seed and synthetic @example.test addresses only.
  */
 class DemoDataSeeder extends Seeder
@@ -37,15 +34,18 @@ class DemoDataSeeder extends Seeder
             throw new RuntimeException('Demo data is for local and testing environments only.');
         }
 
+        // Checkouts below would otherwise call the real gateway.
+        if (config('platform.payment_gateway') !== 'fake') {
+            $this->command?->warn('Demo data dilewati: butuh PAYMENT_GATEWAY=fake.');
+
+            return;
+        }
+
         if (Order::query()->exists()) {
             return;
         }
 
-        config(['doku.client_id' => 'DEMO-CLIENT', 'doku.secret_key' => 'demo-secret-not-real']);
-        app()->forgetInstance(DokuConfig::class);
-        app()->forgetInstance(NotificationVerifier::class);
-        $config = app(DokuConfig::class);
-        $process = app(ProcessGatewayNotification::class);
+        $sender = app(FakeNotificationSender::class);
 
         foreach ([['demo.admin', 'Admin Demo', Role::SuperAdmin], ['demo.finance', 'Finance Demo', Role::Finance], ['demo.ops', 'Operasional Demo', Role::Operations]] as [$local, $name, $role]) {
             User::query()->firstOrCreate(['email' => "{$local}@example.test"], ['name' => $name, 'password' => self::PASSWORD, 'role' => $role]);
@@ -80,41 +80,22 @@ class DemoDataSeeder extends Seeder
             }
 
             $payment = $startCheckout($order);
-            $send = fn (string $status, ?int $amount = null, string $channel = 'VIRTUAL_ACCOUNT_BCA') => $this->notify($process, $config, $payment, $status, $amount ?? $payment->amount, $channel);
 
             match ($i % 6) {
-                0, 1, 3 => $send('SUCCESS', null, ['VIRTUAL_ACCOUNT_BCA', 'QRIS', 'EMONEY_SHOPEEPAY'][$i % 3]),
+                0, 1, 3 => $sender->pay($payment, ['SP', 'NQ', 'SQ'][$i % 3]),
                 2 => null, // Left pending.
-                4 => $send('EXPIRED'),
-                5 => $send('SUCCESS', $payment->amount - 1000), // Amount mismatch evidence.
+                4 => $sender->expire($payment),
+                5 => $sender->pay($payment, 'SP', $payment->amount - 1000), // Amount mismatch evidence.
             };
 
             if ($i === 0) {
-                $send('SUCCESS'); // Same content again: a duplicate delivery.
+                $sender->pay($payment, 'SP'); // Same content again: a duplicate delivery.
             }
 
             Carbon::setTestNow();
         }
 
-        $process(new InboundNotification('DEMO-CLIENT', (string) Str::uuid(), gmdate('Y-m-d\TH:i:s\Z'), 'HMACSHA256=bm90LXZhbGlk', '{"order":{"invoice_number":"PW-000000-000000"}}'));
-        $this->notifyRaw($process, $config, 'PW-199901-000001', 750000, 'SUCCESS', 'QRIS');
-    }
-
-    private function notify(ProcessGatewayNotification $process, DokuConfig $config, Payment $payment, string $status, int $amount, string $channel): void
-    {
-        $this->notifyRaw($process, $config, $payment->gateway_invoice_number, $amount, $status, $channel, $payment->gateway_request_id);
-    }
-
-    private function notifyRaw(ProcessGatewayNotification $process, DokuConfig $config, string $invoice, int $amount, string $status, string $channel, ?string $originalRequestId = null): void
-    {
-        $body = (string) json_encode([
-            'order' => ['invoice_number' => $invoice, 'amount' => $amount],
-            'transaction' => ['status' => $status, 'date' => now()->format('Y-m-d\TH:i:s\Z'), 'original_request_id' => $originalRequestId ?? 'demo-unmatched'],
-            'channel' => ['id' => $channel],
-        ]);
-        $requestId = (string) Str::uuid();
-        $timestamp = gmdate('Y-m-d\TH:i:s\Z');
-
-        $process(new InboundNotification($config->clientId, $requestId, $timestamp, DokuSignature::sign($config->secretKey, $config->clientId, $requestId, $timestamp, $config->notificationPath, $body), $body));
+        app(ProcessGatewayNotification::class)(new InboundNotification((string) Str::uuid(), 'merchantCode=FAKE-MERCHANT&amount=1000&merchantOrderId=PW-000000-000000&signature=not-valid'));
+        $sender->send('PW-199901-000001', 750000, '00', 'NQ', 'demo-unmatched');
     }
 }

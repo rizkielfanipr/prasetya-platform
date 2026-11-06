@@ -11,6 +11,12 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+        <testsuite name="Architecture">
+            <directory>tests/Architecture</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
@@ -26,10 +32,6 @@
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_DATABASE" value="prasetya_platform_testing"/>
         <env name="PAYMENT_GATEWAY" value="fake"/>
-        <env name="DOKU_CLIENT_ID" value="TEST-CLIENT"/>
-        <env name="DOKU_SECRET_KEY" value="test-secret-key"/>
-        <env name="DOKU_ENVIRONMENT" value="sandbox"/>
-        <env name="DOKU_NOTIFICATION_MAX_AGE_SECONDS" value="0"/>
         <env name="ADMIN_EMAIL" value=""/>
         <env name="ADMIN_PASSWORD" value=""/>
         <env name="CORS_ALLOWED_ORIGINS" value="https://prasetyawebworks.web.id,https://satamu.prasetyawebworks.web.id"/>

@@ -58,7 +58,7 @@ Prasetya Platform is an internal application for:
 
 - Prasetya Webworks orders and website projects.
 - Satamu Invitation orders and invitation projects.
-- DOKU payment monitoring and reconciliation.
+- Duitku payment monitoring and reconciliation.
 - Customer, package, domain, and operational status management.
 
 The customer-facing Astro websites keep their own brand identities. The platform uses the parent visual language and introduces orange or coral only when identifying a brand or chart series.
@@ -257,7 +257,7 @@ Columns:
 7. Tanggal
 8. Row actions
 
-The complete transaction page may add payment method and DOKU reference. On small screens, use horizontal scrolling with a sticky invoice column or switch to compact transaction cards; never compress every column until text is unreadable.
+The complete transaction page may add payment method and Duitku reference. On small screens, use horizontal scrolling with a sticky invoice column or switch to compact transaction cards; never compress every column until text is unreadable.
 
 ## Core components
 
@@ -418,6 +418,6 @@ Every reusable interactive component must define, when relevant:
 - Use a dark main canvas; navy is reserved for the sidebar and key structure.
 - Use excessive gradients, glassmorphism, or heavy shadows.
 - Hide labels in favour of placeholders.
-- Treat the DOKU callback page as proof of payment; verified backend state is authoritative.
+- Treat the Duitku callback page as proof of payment; verified backend state is authoritative.
 - Mix Webworks and Satamu colours without a semantic brand purpose.
 

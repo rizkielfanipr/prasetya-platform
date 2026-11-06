@@ -38,7 +38,7 @@ return new class extends Migration
             $table->string('code', 64)->unique();
             $table->string('name');
             $table->text('description')->nullable();
-            // Whole rupiah: IDR has no minor unit in DOKU Checkout (order.amount has no decimals).
+            // Whole rupiah: IDR has no minor unit at the gateway (paymentAmount has no decimals).
             $table->unsignedBigInteger('price_amount');
             $table->char('currency', 3)->default('IDR');
             $table->boolean('is_active')->default(true);

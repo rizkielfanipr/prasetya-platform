@@ -58,7 +58,7 @@ jobs:
         env:
           APP_ENV: production
           APP_DEBUG: 'false'
-          PAYMENT_GATEWAY: doku
+          PAYMENT_GATEWAY: duitku
         run: php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan config:clear && php artisan route:clear && php artisan view:clear
       - name: Install browser
         run: npx playwright install --with-deps chromium

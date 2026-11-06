@@ -3,8 +3,16 @@
 declare(strict_types=1);
 
 return [
-    // doku or fake. The fake gateway refuses to boot in production (see AppServiceProvider).
+    // duitku or fake. The fake gateway refuses to boot in production (see AppServiceProvider).
     'payment_gateway' => env('PAYMENT_GATEWAY', 'fake'),
+
+    // Customer return pages. A return is never evidence of payment.
+    'return_urls' => [
+        'WEBWORKS' => env('PAYMENT_RETURN_URL_WEBWORKS', 'https://prasetyawebworks.web.id/order/status/'),
+        'SATAMU' => env('PAYMENT_RETURN_URL_SATAMU', 'https://satamu.prasetyawebworks.web.id/order/status/'),
+    ],
+
+    'payment_due_minutes' => (int) env('PAYMENT_DUE_MINUTES', 60),
 
     // Dates are stored in UTC and presented in this zone.
     'business_timezone' => env('BUSINESS_TIMEZONE', 'Asia/Jakarta'),

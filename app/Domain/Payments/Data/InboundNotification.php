@@ -8,10 +8,8 @@ namespace App\Domain\Payments\Data;
 final readonly class InboundNotification
 {
     public function __construct(
-        public ?string $clientId,
         public ?string $requestId,
-        public ?string $requestTimestamp,
-        public ?string $signature,
         public string $rawBody,
+        public ?string $sourceIp = null,
     ) {}
 }

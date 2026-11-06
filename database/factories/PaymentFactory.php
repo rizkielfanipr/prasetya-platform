@@ -21,13 +21,13 @@ class PaymentFactory extends Factory
         return [
             'order_id' => Order::factory(),
             'attempt_number' => 1,
-            'provider' => 'DOKU',
+            'provider' => 'DUITKU',
             'status' => PaymentStatus::Pending,
             'amount' => fn (array $attributes) => Order::query()->whereKey($attributes['order_id'])->value('total_amount'),
             'currency' => 'IDR',
             'gateway_invoice_number' => fn (array $attributes) => Order::query()->whereKey($attributes['order_id'])->value('invoice_number'),
             'gateway_request_id' => (string) Str::uuid(),
-            'checkout_url' => 'https://fake-doku.invalid/checkout/token',
+            'checkout_url' => 'https://fake-duitku.invalid/checkout/token',
             'expires_at' => now()->addHour(),
         ];
     }

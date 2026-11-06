@@ -7,10 +7,13 @@ namespace App\Domain\Payments\Actions;
 use App\Domain\Orders\Enums\TransitionSource;
 use App\Domain\Payments\Contracts\NotificationVerifier;
 use App\Domain\Payments\Contracts\PaymentGateway;
+use App\Domain\Payments\Data\GatewayEvidence;
 use App\Domain\Payments\Data\InboundNotification;
 use App\Domain\Payments\Data\VerifiedNotification;
+use App\Domain\Payments\Enums\GatewayStatus;
 use App\Domain\Payments\Enums\WebhookRejection;
 use App\Domain\Payments\Enums\WebhookStatus;
+use App\Domain\Payments\Exceptions\GatewayException;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\WebhookEvent;
 use App\Support\Logging\OperationLog;
@@ -87,9 +90,9 @@ final class ProcessGatewayNotification
 
         $duplicate = $this->store($inbound, [...$attributes, 'status' => WebhookStatus::Duplicate, 'duplicate_of_id' => $original->id, 'payment_id' => $original->payment_id, 'processed_at' => now()]);
 
-        // The first delivery crashed before finishing: this retry is what DOKU's retry schedule is for.
+        // The first delivery crashed before finishing: this retry is what the gateway's retry schedule is for.
         if ($original->status === WebhookStatus::Failed && $this->process($original, $notification)->status === WebhookStatus::Failed) {
-            return $original; // Still failing: the caller must keep asking DOKU to retry.
+            return $original; // Still failing: the caller must keep asking the gateway to retry.
         }
 
         return $duplicate;
@@ -108,7 +111,7 @@ final class ProcessGatewayNotification
         $event->update(['payment_id' => $payment->id]);
 
         try {
-            $outcome = ($this->applyEvidence)($payment->id, $notification->evidence, TransitionSource::GatewayNotification, $event->id);
+            $outcome = ($this->applyEvidence)($payment->id, $this->confirmedEvidence($notification), TransitionSource::GatewayNotification, $event->id);
         } catch (Throwable $e) {
             $event->update(['status' => WebhookStatus::Failed, 'processed_at' => now()]);
             report($e);
@@ -119,6 +122,26 @@ final class ProcessGatewayNotification
         $event->update(['status' => $outcome->status, 'rejection_reason' => $outcome->rejection, 'processed_at' => now()]);
 
         return $event;
+    }
+
+    /**
+     * Network call, deliberately outside any transaction. Throwing marks the event failed, so the gateway retries.
+     *
+     * @throws GatewayException
+     */
+    private function confirmedEvidence(VerifiedNotification $notification): GatewayEvidence
+    {
+        if (! $notification->requiresConfirmation || $notification->evidence->status !== GatewayStatus::Success) {
+            return $notification->evidence;
+        }
+
+        $checked = $this->gateway->checkStatus($notification->invoiceNumber);
+
+        if ($checked?->status !== GatewayStatus::Success) {
+            throw new GatewayException('The gateway did not confirm a success notification.', 'NOTIFICATION_UNCONFIRMED');
+        }
+
+        return new GatewayEvidence($checked->status, $checked->rawStatus, $checked->amount, $notification->evidence->channel, $notification->evidence->occurredAt);
     }
 
     /** @param array<string, mixed> $attributes */

@@ -1,6 +1,6 @@
 # Prasetya Platform
 
-Laravel modular monolith that takes orders and monitors payments for Prasetya Webworks and Satamu Invitation: a versioned REST API, a Vue/Inertia back office, MySQL, and DOKU Checkout.
+Laravel modular monolith that takes orders and monitors payments for Prasetya Webworks and Satamu Invitation: a versioned REST API, a Vue/Inertia back office, MySQL, and Duitku Pop.
 
 Start with [`docs/README.md`](docs/README.md). What is done and what is blocked is in the [delivery status](docs/implementation-plan.md#delivery-status).
 
@@ -53,18 +53,22 @@ In `local`, seeding adds demo data and these accounts, password `demo-password-o
 
 ## Trying a payment locally
 
-With `PAYMENT_GATEWAY=fake` nothing leaves your machine. Set `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` to any local values, then:
+With `PAYMENT_GATEWAY=fake` nothing leaves your machine and no credentials are needed:
 
 ```sh
 curl -s localhost:8000/api/v1/orders -H 'Content-Type: application/json' -H 'Idempotency-Key: try-1' \
   -d '{"application_code":"WEBWORKS","package_code":"PW-LANDING-STARTER","customer":{"name":"Coba","email":"coba@example.test"}}'
 curl -s -X POST localhost:8000/api/v1/orders/REFERENCE/checkout -H 'Idempotency-Key: try-2'
-php artisan doku:simulate-notification INVOICE 499000
+php artisan platform:simulate-notification INVOICE 499000
 ```
 
-The last command sends a correctly signed notification through the real webhook path. It refuses to run in production or with the real gateway.
+The last command sends a correctly signed callback through the real verification path. It refuses to run in production or with the real gateway.
 
-## Real DOKU
+## Trying checkout from prasetya-webworks
 
-Set `PAYMENT_GATEWAY=doku` with sandbox credentials and work through the checklist in [`docs/api/doku-contract.md`](docs/api/doku-contract.md). The integration has not yet run against DOKU.
+Without a gateway account, `PAYMENT_GATEWAY=fake` sends customers to a clearly marked simulated pay page at `/dev/fake-checkout/{invoice}`. It signs a notification and sends it through the real verification path, then returns to the site. The route does not exist in production or with the real gateway. In `.env`, set `PAYMENT_RETURN_URL_WEBWORKS=http://localhost:4321/order/status/`; see that repository's `.env.example` for its side.
+
+## Real gateway
+
+Set `PAYMENT_GATEWAY=duitku` with sandbox credentials and work through the checklist in [`docs/api/duitku-contract.md`](docs/api/duitku-contract.md). The integration has not yet run against Duitku.
 # prasetya-platform

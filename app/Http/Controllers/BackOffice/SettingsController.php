@@ -8,7 +8,7 @@ use App\Domain\Audit\Actions\RecordAudit;
 use App\Domain\Auth\Enums\Permission;
 use App\Domain\Auth\Models\User;
 use App\Domain\Payments\Contracts\PaymentGateway;
-use App\Integrations\Doku\DokuConfig;
+use App\Integrations\Duitku\DuitkuConfig;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Failed\CountableFailedJobProvider;
@@ -20,7 +20,7 @@ use Inertia\Response;
 
 final class SettingsController
 {
-    public function index(Request $request, PaymentGateway $gateway, DokuConfig $doku, FailedJobProviderInterface $failedJobs): Response
+    public function index(Request $request, PaymentGateway $gateway, DuitkuConfig $duitku, FailedJobProviderInterface $failedJobs): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -38,9 +38,9 @@ final class SettingsController
                 // Whether and where, never what: no credential value is read into this array.
                 'gateway' => [
                     'driver' => (string) config('platform.payment_gateway'),
-                    'environment' => $doku->environment,
+                    'environment' => $duitku->environment,
                     'configured' => $gateway->isConfigured(),
-                    'notificationPath' => $doku->notificationPath,
+                    'notificationPath' => (string) parse_url(route('api.webhooks.duitku'), PHP_URL_PATH),
                 ],
                 'application' => [
                     'environment' => (string) config('app.env'),

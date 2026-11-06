@@ -41,7 +41,8 @@ test('password can be shown and hidden with an accessible control', async ({ pag
 
 test('login can be completed with the keyboard alone', async ({ page }) => {
     await page.goto('/login');
-    await page.keyboard.type(USERS.admin); // Email is autofocused.
+    await expect(page.getByLabel('Email')).toBeFocused(); // The form mounts after load; keys sent earlier are lost.
+    await page.keyboard.type(USERS.admin);
     await page.keyboard.press('Tab');
     await page.keyboard.type(PASSWORD);
     await page.keyboard.press('Enter');

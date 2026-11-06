@@ -25,10 +25,10 @@ APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://platform.prasetyawebworks.web.id
 SESSION_SECURE_COOKIE=true
-PAYMENT_GATEWAY=doku
-DOKU_ENVIRONMENT=production
-DOKU_CLIENT_ID=...
-DOKU_SECRET_KEY=...
+PAYMENT_GATEWAY=duitku
+DUITKU_ENVIRONMENT=production
+DUITKU_MERCHANT_CODE=...
+DUITKU_API_KEY=...
 CORS_ALLOWED_ORIGINS=https://prasetyawebworks.web.id,https://satamu.prasetyawebworks.web.id
 ADMIN_EMAIL=...
 ADMIN_PASSWORD=...                         # remove after first seed
@@ -46,9 +46,9 @@ The demo seeder refuses to run here, and Satamu's dummy packages stay inactive u
 
 Schedules `platform:expire-stale` every five minutes and `platform:prune-idempotency` daily. No queue worker is needed in this release: password reset mail is sent inline, and webhook processing is synchronous.
 
-## DOKU Back Office
+## Duitku
 
-Notification URL: `https://platform.prasetyawebworks.web.id/api/v1/webhooks/doku`. Its path must equal `DOKU_NOTIFICATION_PATH`.
+The callback address is sent on each invoice: `APP_URL` plus `/api/v1/webhooks/duitku`, or `DUITKU_CALLBACK_URL`. It must be public HTTPS on port 443. Follow [`duitku-contract.md`](../api/duitku-contract.md).
 
 ## Verify
 
@@ -79,4 +79,4 @@ gunzip -c backup-YYYY-MM-DD.sql.gz | mysql prasetya_platform_restore_test
 
 Daily, kept off the server. **Restoration has not been proven yet.** M11 requires a restore into a scratch database, followed by checking counts of `payments`, `webhook_events`, and `audit_logs` and opening one transaction.
 
-After restoring production, payments confirmed since the backup are missing. Use DOKU's report and manual notification resend to replay them: duplicates are safe.
+After restoring production, payments confirmed since the backup are missing. Use Duitku's report and manual callback resend to replay them: duplicates are safe.

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('status', 32);
             $table->unsignedBigInteger('amount');
             $table->char('currency', 3)->default('IDR');
-            // Sent to DOKU as order.invoice_number; a retry gets a suffix so each attempt maps to one notification stream.
+            // Sent to Duitku as merchantOrderId; a retry gets a suffix so each attempt maps to one notification stream.
             $table->string('gateway_invoice_number', 30)->unique();
             $table->string('gateway_request_id', 64)->unique();
             $table->string('gateway_reference', 128)->nullable()->unique();

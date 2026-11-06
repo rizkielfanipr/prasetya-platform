@@ -8,17 +8,20 @@ use App\Domain\Orders\Enums\TransitionSource;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Orders\Models\OrderStatusHistory;
 use App\Domain\Payments\Actions\ApplyPaymentEvidence;
-use App\Domain\Payments\Contracts\NotificationVerifier;
+use App\Domain\Payments\Enums\GatewayStatus;
 use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Enums\WebhookStatus;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\PaymentEvent;
 use App\Domain\Payments\Models\WebhookEvent;
-use App\Integrations\Doku\DokuConfig;
-use App\Integrations\Doku\DokuPayload;
-use App\Integrations\Doku\DokuSignature;
+use App\Integrations\Duitku\DuitkuSignature;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+
+function applyCheckedEvidence(Payment $payment, GatewayStatus $status): void
+{
+    app(ApplyPaymentEvidence::class)($payment->id, gatewayEvidence($payment->amount, $status), TransitionSource::GatewayCheck);
+}
 
 it('marks payment paid and order confirmed from a valid notification', function (): void {
     $payment = pendingPayment();
@@ -29,8 +32,8 @@ it('marks payment paid and order confirmed from a valid notification', function 
     $event = WebhookEvent::query()->sole();
 
     expect($payment->status)->toBe(PaymentStatus::Paid)
-        ->and($payment->paid_at?->toIso8601ZuluString())->toBe('2026-11-01T03:24:23Z')
-        ->and($payment->payment_method)->toBe('VIRTUAL_ACCOUNT_BCA')
+        ->and($payment->paid_at)->not->toBeNull()
+        ->and($payment->payment_method)->toBe('SP')
         ->and($payment->order->status)->toBe(OrderStatus::Confirmed)
         ->and($event->status)->toBe(WebhookStatus::Processed)
         ->and($event->signature_valid)->toBeTrue()
@@ -52,39 +55,23 @@ it('does not trust an invalid signature', function (): void {
         ->and($event->invoice_number)->toBeNull();
 });
 
-it('rejects a body altered after signing', function (): void {
+it('rejects a callback altered after signing', function (): void {
     $payment = pendingPayment();
-    $raw = (string) json_encode(notificationBody($payment->gateway_invoice_number, $payment->amount));
-    $timestamp = gmdate('Y-m-d\TH:i:s\Z');
-    $signature = DokuSignature::sign('test-secret-key', 'TEST-CLIENT', 'r1', $timestamp, '/api/v1/webhooks/doku', $raw);
+    $signature = DuitkuSignature::sign('fake-key-not-real', 'FAKE-MERCHANT', (string) $payment->amount, $payment->gateway_invoice_number);
 
-    $this->call('POST', '/api/v1/webhooks/doku', server: [
-        'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_CLIENT_ID' => 'TEST-CLIENT', 'HTTP_REQUEST_ID' => 'r1',
-        'HTTP_REQUEST_TIMESTAMP' => $timestamp, 'HTTP_SIGNATURE' => $signature,
-    ], content: str_replace((string) $payment->amount, '1', $raw))->assertStatus(401);
+    sendNotification(notificationBody($payment->gateway_invoice_number, 1, 'SUCCESS', ['signature' => $signature]))->assertStatus(401);
 
     expect($payment->refresh()->status)->toBe(PaymentStatus::Pending);
 });
 
-it('rejects missing headers and a foreign client id', function (): void {
+it('rejects a missing signature and a foreign merchant code', function (): void {
     $payment = pendingPayment();
 
-    $this->postJson('/api/v1/webhooks/doku', notificationBody($payment->gateway_invoice_number, $payment->amount))->assertStatus(401);
-    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount), clientId: 'OTHER')->assertStatus(401);
+    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'SUCCESS', ['signature' => '']))->assertStatus(401);
+    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount), merchantCode: 'OTHER')->assertStatus(401);
 
     expect(WebhookEvent::query()->pluck('rejection_reason')->map->value->all())->toEqualCanonicalizing(['MISSING_HEADERS', 'CLIENT_MISMATCH'])
         ->and($payment->refresh()->status)->toBe(PaymentStatus::Pending);
-});
-
-it('cannot be satisfied with an empty secret when unconfigured', function (): void {
-    $payment = pendingPayment();
-    config(['doku.client_id' => '', 'doku.secret_key' => '']);
-    app()->forgetInstance(DokuConfig::class);
-    app()->forgetInstance(NotificationVerifier::class);
-
-    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount), secret: '', clientId: '')->assertStatus(401);
-
-    expect($payment->refresh()->status)->toBe(PaymentStatus::Pending);
 });
 
 it('records an unknown invoice and acknowledges it', function (): void {
@@ -113,7 +100,7 @@ it('produces no duplicate side effect from a duplicate delivery', function (): v
     sendNotification($body)->assertOk();
     $paidAt = $payment->refresh()->paid_at;
 
-    sendNotification($body)->assertOk(); // New Request-Id, same event, as a DOKU retry may be.
+    sendNotification($body)->assertOk(); // Same event again, as a Duitku retry is.
     sendNotification($body)->assertOk();
 
     $events = WebhookEvent::query()->orderBy('id')->get();
@@ -126,30 +113,7 @@ it('produces no duplicate side effect from a duplicate delivery', function (): v
         ->and($payment->refresh()->paid_at?->equalTo($paidAt))->toBeTrue();
 });
 
-it('treats a replay of the identical signed request as a duplicate', function (): void {
-    $payment = pendingPayment();
-    $body = notificationBody($payment->gateway_invoice_number, $payment->amount);
-
-    sendNotification($body, requestId: 'same', timestamp: '2026-11-01T03:24:30Z')->assertOk();
-    sendNotification($body, requestId: 'same', timestamp: '2026-11-01T03:24:30Z')->assertOk();
-
-    expect(WebhookEvent::query()->where('status', WebhookStatus::Duplicate)->count())->toBe(1)
-        ->and(AuditLog::query()->where('action', 'payment.paid')->count())->toBe(1);
-});
-
-it('rejects stale timestamps only when the age check is enabled', function (): void {
-    $payment = pendingPayment();
-    config(['doku.notification_max_age_seconds' => 300]);
-    app()->forgetInstance(DokuConfig::class);
-    app()->forgetInstance(NotificationVerifier::class);
-
-    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount), timestamp: gmdate('Y-m-d\TH:i:s\Z', time() - 3600))->assertStatus(401);
-
-    expect(WebhookEvent::query()->sole()->rejection_reason->value)->toBe('STALE_TIMESTAMP')
-        ->and($payment->refresh()->status)->toBe(PaymentStatus::Pending);
-});
-
-it('ignores FAILED on Checkout, per the DOKU contract', function (): void {
+it('ignores a failure callback', function (): void {
     $payment = pendingPayment();
 
     sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'FAILED'))->assertOk();
@@ -162,7 +126,7 @@ describe('out-of-order delivery', function (): void {
     it('keeps PAID when FAILED arrives after SUCCESS', function (): void {
         $payment = pendingPayment();
         sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount))->assertOk();
-        sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'FAILED', ['transaction' => ['date' => '2026-11-01T02:00:00Z']]))->assertOk();
+        sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'FAILED'))->assertOk();
 
         expect($payment->refresh()->status)->toBe(PaymentStatus::Paid);
     });
@@ -170,7 +134,7 @@ describe('out-of-order delivery', function (): void {
     it('keeps PAID when EXPIRED arrives after SUCCESS', function (): void {
         $payment = pendingPayment();
         sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount))->assertOk();
-        sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'EXPIRED'))->assertOk();
+        applyCheckedEvidence($payment, GatewayStatus::Expired);
 
         expect($payment->refresh()->status)->toBe(PaymentStatus::Paid)
             ->and($payment->order->status)->toBe(OrderStatus::Confirmed);
@@ -178,7 +142,7 @@ describe('out-of-order delivery', function (): void {
 
     it('accepts SUCCESS after EXPIRED: verified money beats expiry', function (): void {
         $payment = pendingPayment();
-        sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'EXPIRED'))->assertOk();
+        applyCheckedEvidence($payment, GatewayStatus::Expired);
         expect($payment->refresh()->status)->toBe(PaymentStatus::Expired);
 
         sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount))->assertOk();
@@ -214,44 +178,38 @@ it('rejects SUCCESS on a cancelled payment as an invalid transition', function (
         ->and(WebhookEvent::query()->sole()->rejection_reason->value)->toBe('INVALID_TRANSITION');
 });
 
-it('surfaces REFUNDED without changing state', function (): void {
+it('surfaces an unsupported status from a check without changing state', function (): void {
     $payment = pendingPayment([], ['status' => PaymentStatus::Paid, 'paid_at' => now()]);
 
-    sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'REFUNDED'))->assertOk();
+    applyCheckedEvidence($payment, GatewayStatus::Unsupported);
 
     expect($payment->refresh()->status)->toBe(PaymentStatus::Paid)
-        ->and(WebhookEvent::query()->sole()->rejection_reason->value)->toBe('UNSUPPORTED_STATUS');
+        ->and(PaymentEvent::query()->where('type', 'EVIDENCE_REJECTED')->sole()->metadata['reason'])->toBe('UNSUPPORTED_STATUS');
 });
 
 it('stores only allow-listed fields', function (): void {
     $payment = pendingPayment();
 
     sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount, 'SUCCESS', [
-        'card_payment' => ['card_masked' => '411111******1111'],
-        'customer' => ['name' => 'Secret Person', 'email' => 'secret@example.test'],
-        'virtual_account_info' => ['virtual_account_number' => '1900600000000046'],
+        'maskedNumber' => '411111******1111',
+        'customerName' => 'Secret Person',
+        'merchantUserId' => 'secret@example.test',
+        'bankOrderId' => '1900600000000046',
     ]))->assertOk();
 
     $stored = (string) json_encode(WebhookEvent::query()->sole()->getAttributes());
 
-    expect($stored)->not->toContain('411111')->not->toContain('Secret Person')->not->toContain('secret@example')->not->toContain('1900600000000046')->not->toContain('HMACSHA256')
+    expect($stored)->not->toContain('411111')->not->toContain('Secret Person')->not->toContain('secret@example')->not->toContain('1900600000000046')
         ->toContain($payment->gateway_invoice_number);
 });
 
-it('acknowledges an authentic but malformed body without changing anything', function (): void {
-    $raw = 'not json';
-    $timestamp = gmdate('Y-m-d\TH:i:s\Z');
-
-    $this->call('POST', '/api/v1/webhooks/doku', server: [
-        'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_CLIENT_ID' => 'TEST-CLIENT', 'HTTP_REQUEST_ID' => 'r2',
-        'HTTP_REQUEST_TIMESTAMP' => $timestamp,
-        'HTTP_SIGNATURE' => DokuSignature::sign('test-secret-key', 'TEST-CLIENT', 'r2', $timestamp, '/api/v1/webhooks/doku', $raw),
-    ], content: $raw)->assertOk();
+it('acknowledges an authentic but unusable callback without changing anything', function (): void {
+    sendNotification(notificationBody(str_repeat('X', 65), 1000))->assertOk();
 
     expect(WebhookEvent::query()->sole()->rejection_reason->value)->toBe('MALFORMED_PAYLOAD');
 });
 
-it('asks DOKU to retry after a processing failure, then succeeds on the retry', function (): void {
+it('asks Duitku to retry after a processing failure, then succeeds on the retry', function (): void {
     $payment = pendingPayment();
     $body = notificationBody($payment->gateway_invoice_number, $payment->amount);
 
@@ -271,7 +229,7 @@ it('asks DOKU to retry after a processing failure, then succeeds on the retry', 
         ->and(WebhookEvent::query()->orderBy('id')->first()->status)->toBe(WebhookStatus::Processed);
 });
 
-it('keeps asking DOKU to retry while the retry also fails', function (): void {
+it('keeps asking Duitku to retry while the retry also fails', function (): void {
     $payment = pendingPayment();
     $body = notificationBody($payment->gateway_invoice_number, $payment->amount);
 
@@ -291,7 +249,7 @@ it('rolls back the whole evidence transaction when the order write fails', funct
 
     try {
         DB::transaction(function () use ($payment): void {
-            app(ApplyPaymentEvidence::class)($payment->id, DokuPayload::evidence(notificationBody('x', $payment->amount)), TransitionSource::GatewayNotification);
+            app(ApplyPaymentEvidence::class)($payment->id, gatewayEvidence($payment->amount), TransitionSource::GatewayNotification);
 
             throw new RuntimeException('boom');
         });

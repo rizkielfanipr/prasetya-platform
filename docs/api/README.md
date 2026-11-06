@@ -40,7 +40,7 @@ For the Prasetya Webworks and Satamu Invitation integrations. The full contract 
 | Same key, first request still running | 409 `IDEMPOTENCY_IN_PROGRESS` |
 | First request failed | The key is released; retry with it |
 
-A checkout is also safe across different keys: while an attempt is open, the same checkout is returned and DOKU is not called again.
+A checkout is also safe across different keys: while an attempt is open, the same checkout is returned and Duitku is not called again.
 
 ## Price
 
@@ -62,7 +62,7 @@ POST /orders/{reference}/checkout    -> data.checkout_url, redirect the customer
 GET  /orders/{reference}/payment-status   poll until PAID, or show the state
 ```
 
-**A return from DOKU proves nothing.** Show the state from `payment-status` only. Notifications can arrive after the customer returns, so keep polling briefly on a pending result.
+**A return from Duitku proves nothing.** Show the state from `payment-status` only. Notifications can arrive after the customer returns, so keep polling briefly on a pending result.
 
 A reference can read the order, so the response leaves out customer contact details.
 

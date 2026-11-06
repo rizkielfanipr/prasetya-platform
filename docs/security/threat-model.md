@@ -2,13 +2,14 @@
 
 Status: Proposed. Must be reviewed before production payments are enabled.
 
-**Assets:** correctness of payment state, DOKU secret, customer contact data, admin accounts, audit integrity.
+**Assets:** correctness of payment state, gateway keys, customer contact data, admin accounts, audit integrity.
 
-**Trust boundaries:** browser to public API (untrusted), DOKU to webhook (untrusted until verified), admin browser to back office (authenticated), platform to DOKU (TLS, signed).
+**Trust boundaries:** browser to public API (untrusted), gateway to webhook (untrusted until verified), admin browser to back office (authenticated), platform to gateway (TLS, signed).
 
 | Threat | Control | Evidence | Residual risk |
 |---|---|---|---|
 | Forged notification marks an order paid | HMAC over the raw body, Client-Id match, constant-time compare, empty secret rejected | `WebhookProcessingTest` | Secret compromise defeats it: rotate per runbook |
+| Forged Duitku callback: the signature does not cover `resultCode` and is fixed per order | Server-to-server check decides status and amount before `ApplyPaymentEvidence`, source address allow-list | `DuitkuCallbackTest` | Check outage delays `PAID`. The address check is weak until `trustProxies('*')` is narrowed |
 | Replay of a captured notification | Content-based duplicate key, `PAID` final, no side effect on repeat | Duplicate and replay tests | Replaying a first-seen `EXPIRED` for an open payment is possible only with a valid signature |
 | Tampered price from the browser | Price only from catalogue, ignored in input, snapshot on order | `OrderApiTest` | |
 | Notification with the wrong amount | Rejected, state unchanged, shown in reconciliation | Mismatch tests | |

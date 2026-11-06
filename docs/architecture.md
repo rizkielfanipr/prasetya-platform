@@ -22,7 +22,7 @@ Satamu Invitation (Astro) ─┘                    ├── Laravel REST API
 Admin browser ───────── HTTPS/session ──────────┤
                                                 ├── MySQL
                                                 ├── Queue / scheduler
-DOKU ───────────── signed webhook / checkout ──┘
+Duitku ─────────── signed webhook / checkout ──┘
 ```
 
 ## Architectural drivers
@@ -38,7 +38,7 @@ DOKU ───────────── signed webhook / checkout ──┘
 1. **Modular monolith first:** one deployable application with explicit domain boundaries.
 2. **Backend authority:** Laravel owns price, authorisation, payment state, and invariants.
 3. **Thin delivery layers:** controllers and Inertia pages coordinate; domain actions implement rules.
-4. **External systems behind adapters:** DOKU-specific code stays outside the core payment domain.
+4. **External systems behind adapters:** gateway-specific code stays outside the core payment domain.
 5. **Idempotency at every payment boundary:** duplicate requests and callbacks must be safe.
 6. **Observability without leakage:** structured logs identify events without exposing secrets or full sensitive payloads.
 7. **Accessible reusable UI:** pages compose typed, tested component contracts.
@@ -60,7 +60,7 @@ app/
 │   ├── Controllers/BackOffice/
 │   ├── Requests/
 │   └── Resources/
-├── Integrations/Doku/
+├── Integrations/Duitku/
 ├── Jobs/
 ├── Notifications/
 ├── Policies/
@@ -73,11 +73,11 @@ app/
 - Form Requests validate transport input; policies authorise actions.
 - API Resources define external response contracts.
 - Domain actions/services own state transitions and database transactions.
-- Eloquent models must not call DOKU or other network services.
+- Eloquent models must not call a gateway or other network services.
 - Cross-module changes use explicit actions or contracts, not hidden model side effects.
 - Payment and order status are separate state machines; fulfilment is a future third ([ADR-0002](decisions/0002-mvp-payment-monitoring-scope.md)).
 - `tests/Architecture/BoundariesTest.php` enforces the prohibited dependencies.
-- `ApplyPaymentEvidence` is the only path to `PAID` ([ADR-0004](decisions/0004-doku-checkout-contract.md)).
+- `ApplyPaymentEvidence` is the only path to `PAID` ([ADR-0007](decisions/0007-duitku-gateway.md)). A gateway whose signature does not cover the status is confirmed with a server-to-server check first ([ADR-0007](decisions/0007-duitku-gateway.md)).
 
 ## Frontend module boundaries
 
@@ -112,7 +112,7 @@ resources/js/
 
 ## Data ownership
 
-MySQL is the system of record for applications, customers, packages, orders, payment attempts, payment events, webhook events, fulfilment state, and audit history. DOKU remains authoritative for gateway-side transaction evidence, while the platform stores verified events and its own resulting state.
+MySQL is the system of record for applications, customers, packages, orders, payment attempts, payment events, webhook events, fulfilment state, and audit history. The gateway remains authoritative for gateway-side transaction evidence, while the platform stores verified events and its own resulting state.
 
 Core integrity controls:
 
@@ -134,7 +134,7 @@ Core integrity controls:
 
 ## Security boundaries
 
-- DOKU secret, database credentials, and application keys exist only in server environment configuration.
+- Gateway keys, database credentials, and application keys exist only in server environment configuration.
 - Logs redact secrets, authorisation headers, personal data, and raw signed payloads.
 - Permissions are enforced server-side through policies; hidden UI is not an authorisation control.
 - Administrative state changes produce an actor, timestamp, previous state, new state, and reason where applicable.
@@ -155,7 +155,7 @@ Core integrity controls:
 |---|---|
 | Unit | Pure domain rules, formatters, signatures, state-transition policies |
 | Feature | Routes, validation, policies, persistence, API envelopes |
-| Integration | DOKU adapter contracts, webhook verification, database constraints |
+| Integration | Gateway adapter contracts, webhook verification, database constraints |
 | Component | Reusable Vue variants, states, keyboard interactions |
 | Browser | Login, order search, payment inspection, critical operational paths |
 | Contract | API compatibility with both Astro consumers |
@@ -168,5 +168,5 @@ The initial release uses one Laravel/Vue deployment and one MySQL database. Sche
 
 - Add a new domain module when ownership and invariants are distinct, not merely because a folder is large.
 - Extract a service only after operational evidence shows an independent scaling, ownership, or deployment need.
-- Replace DOKU through the integration adapter without rewriting order-domain rules.
+- Replace the gateway through the integration adapter without rewriting order-domain rules.
 - Record material changes in an ADR and update this document when the accepted architecture changes.

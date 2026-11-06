@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 // ADR-0001 required control: prohibited dependencies are checked, not just reviewed.
-arch('the domain does not depend on the DOKU adapter or HTTP')
+arch('the domain does not depend on the Duitku adapter or HTTP')
     ->expect('App\Domain')
     ->not->toUse(['App\Integrations', 'App\Http']);
 
-arch('only the DOKU adapter makes outbound HTTP calls')
+arch('only the Duitku adapter makes outbound HTTP calls')
     ->expect('Illuminate\Support\Facades\Http')
-    ->toOnlyBeUsedIn('App\Integrations\Doku');
+    ->toOnlyBeUsedIn('App\Integrations\Duitku');
 
 arch('models do not call gateways')
     ->expect('App\Domain\Payments\Contracts\PaymentGateway')

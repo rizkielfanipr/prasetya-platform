@@ -6,7 +6,6 @@ use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Auth\Enums\Role;
 use App\Domain\Orders\Models\AdminNote;
 use App\Domain\Payments\Enums\PaymentStatus;
-use App\Integrations\Doku\DokuPayload;
 use Inertia\Testing\AssertableInertia;
 
 it('applies the role matrix to pages', function (Role $role, string $uri, int $status): void {
@@ -56,7 +55,7 @@ it('refuses a gateway check from operations and audits one from finance', functi
 
 it('only moves a payment to paid on verified gateway evidence from a check', function (): void {
     $payment = pendingPayment();
-    fakeGateway()->statusResult = DokuPayload::evidence(notificationBody($payment->gateway_invoice_number, $payment->amount));
+    fakeGateway()->statusResult = gatewayEvidence($payment->amount);
 
     $this->actingAs(admin(Role::Finance))->post("/reconciliation/payments/{$payment->public_id}/check-status")->assertSessionHas('success');
 
@@ -65,7 +64,7 @@ it('only moves a payment to paid on verified gateway evidence from a check', fun
 
 it('refuses gateway evidence with the wrong amount from a check', function (): void {
     $payment = pendingPayment();
-    fakeGateway()->statusResult = DokuPayload::evidence(notificationBody($payment->gateway_invoice_number, $payment->amount - 1));
+    fakeGateway()->statusResult = gatewayEvidence($payment->amount - 1);
 
     $this->actingAs(admin(Role::Finance))->post("/reconciliation/payments/{$payment->public_id}/check-status");
 

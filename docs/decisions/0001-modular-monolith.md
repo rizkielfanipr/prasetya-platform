@@ -7,7 +7,7 @@
 
 ## Context
 
-Prasetya Webworks and Satamu Invitation need shared order, payment, customer, and operational capabilities. The team must maintain the platform on a cPanel-compatible environment while avoiding duplicated DOKU logic and the operational cost of multiple backend services.
+Prasetya Webworks and Satamu Invitation need shared order, payment, customer, and operational capabilities. The team must maintain the platform on a cPanel-compatible environment while avoiding duplicated Duitku logic and the operational cost of multiple backend services.
 
 ## Decision
 
@@ -17,7 +17,7 @@ Build one Laravel modular monolith containing:
 - a Vue 3 and Inertia back office in the same repository;
 - MySQL persistence;
 - explicit domain modules for orders, payments, customers, packages, brands, and fulfilment;
-- DOKU behind a dedicated integration adapter.
+- Duitku behind a dedicated integration adapter.
 
 Module boundaries are enforced through code organisation, contracts, tests, and review rather than separate network deployments.
 
@@ -55,13 +55,13 @@ Required controls:
 
 - no business logic in controllers;
 - explicit domain actions and state-transition rules;
-- DOKU isolated under an integration adapter;
+- Duitku isolated under an integration adapter;
 - architecture tests or review checks for prohibited dependencies;
 - future service extraction only with measured operational justification.
 
 ## Validation
 
 - Both brands complete contract tests against the same versioned API.
-- Payment and order modules remain testable without live DOKU access.
+- Payment and order modules remain testable without live Duitku access.
 - A clean deployment serves both API and back-office routes.
 - Code review confirms controllers and Vue pages remain thin orchestration layers.

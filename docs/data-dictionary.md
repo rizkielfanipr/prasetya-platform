@@ -48,7 +48,7 @@ CREATED -> PENDING -> PAID
    +-> PAID, FAILED, EXPIRED, CANCELLED
 ```
 
-`PAID` and `CANCELLED` are final. `FAILED` means a checkout could not be created, not that a customer's attempt was declined ([ADR-0004](decisions/0004-doku-checkout-contract.md)). Nothing in this release moves a payment to `CANCELLED`.
+`PAID` and `CANCELLED` are final. `FAILED` means a checkout could not be created, not that a customer's attempt was declined ([ADR-0007](decisions/0007-duitku-gateway.md)). Nothing in this release moves a payment to `CANCELLED`.
 
 ## Webhook processing states
 
@@ -58,8 +58,8 @@ CREATED -> PENDING -> PAID
 | `PROCESSED` | Caused a state change |
 | `IGNORED` | Authentic, deliberately no change |
 | `DUPLICATE` | Same event as an earlier delivery, linked by `duplicate_of_id` |
-| `REJECTED` | See `rejection_reason`: `MISSING_HEADERS`, `INVALID_SIGNATURE`, `CLIENT_MISMATCH`, `STALE_TIMESTAMP`, `MALFORMED_PAYLOAD`, `UNKNOWN_INVOICE`, `AMOUNT_MISMATCH`, `INVALID_TRANSITION`, `UNSUPPORTED_STATUS` |
-| `FAILED` | Exception during processing; 500 sent so DOKU retries |
+| `REJECTED` | See `rejection_reason`: `SOURCE_NOT_ALLOWED`, `MISSING_HEADERS`, `INVALID_SIGNATURE`, `CLIENT_MISMATCH`, `MALFORMED_PAYLOAD`, `UNKNOWN_INVOICE`, `AMOUNT_MISMATCH`, `INVALID_TRANSITION`, `UNSUPPORTED_STATUS` |
+| `FAILED` | Exception during processing; 500 sent so Duitku retries |
 
 `RECEIVED` exists in the enum for the documented model, and is not currently written.
 

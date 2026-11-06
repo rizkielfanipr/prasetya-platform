@@ -20,7 +20,7 @@ Navigation for this release is Dashboard, Transaksi, Event Pembayaran, Rekonsili
 | Order paid state | `CONFIRMED`, not `PAID` | "Paid" belongs to the payment. A second `PAID` would blur the two state machines the architecture keeps separate |
 | Roles | Super Admin, Finance, Operations | Read Only was conditional ("if needed") and nothing needs it yet |
 | Public order identifier | ULID, exposed as `reference` | Not guessable by counting; route parameter is the ULID |
-| Notification route | `POST /api/v1/webhooks/doku` | DOKU has no fixed path: the merchant sets the Notification URL |
+| Notification route | `POST /api/v1/webhooks/duitku` | Duitku takes the callback address on each invoice |
 | Reconciliation | Observational. The only action is a status check against the gateway | One brief allowed audited corrective actions, the other excluded overrides. A check satisfies both because it asserts nothing itself |
 | Reconciliation groups | Union of both briefs, nine groups | Each brief named groups the other did not |
 

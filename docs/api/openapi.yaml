@@ -99,7 +99,7 @@ paths:
         '502': { $ref: '#/components/responses/Error' }
   /orders/{reference}/payment-status:
     get:
-      summary: Backend-verified payment state. The only thing a site should display after a DOKU return
+      summary: Backend-verified payment state. The only thing a site should display after a gateway return
       parameters:
         - $ref: '#/components/parameters/Reference'
       responses:
@@ -114,25 +114,31 @@ paths:
                     properties:
                       data: { $ref: '#/components/schemas/PaymentStatusView' }
         '404': { $ref: '#/components/responses/Error' }
-  /webhooks/doku:
+  /webhooks/duitku:
     post:
-      summary: DOKU HTTP notification. Called by DOKU only; see docs/api/doku-contract.md
-      parameters:
-        - { name: Client-Id, in: header, required: true, schema: { type: string } }
-        - { name: Request-Id, in: header, required: true, schema: { type: string } }
-        - { name: Request-Timestamp, in: header, required: true, schema: { type: string } }
-        - { name: Signature, in: header, required: true, schema: { type: string } }
+      summary: Duitku callback. Called by Duitku only; see docs/api/duitku-contract.md
       requestBody:
         required: true
         content:
-          application/json:
-            schema: { type: object, description: Parsed non-strictly. Unknown fields are ignored and never stored. }
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [merchantCode, amount, merchantOrderId, signature]
+              description: Unknown fields are ignored and never stored.
+              properties:
+                merchantCode: { type: string }
+                amount: { type: string }
+                merchantOrderId: { type: string }
+                paymentCode: { type: string }
+                resultCode: { type: string }
+                reference: { type: string }
+                signature: { type: string }
       responses:
         '200': { description: 'Acknowledged: processed, ignored, duplicate, or authentic but rejected. Evidence is stored.' }
         '401': { $ref: '#/components/responses/Error' }
         '413': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
-        '500': { $ref: '#/components/responses/Error' }
+        '500': { description: 'Not confirmed by the gateway yet, or processing failed. Duitku retries.', content: { application/json: { schema: { type: object } } } }
 components:
   parameters:
     IdempotencyKey:

@@ -6,10 +6,11 @@ use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Contracts\PaymentGateway;
+use App\Domain\Payments\Data\GatewayEvidence;
+use App\Domain\Payments\Enums\GatewayStatus;
 use App\Domain\Payments\Models\Payment;
-use App\Integrations\Doku\DokuSignature;
-use App\Integrations\Doku\FakeGateway;
-use Illuminate\Support\Str;
+use App\Integrations\Duitku\DuitkuSignature;
+use App\Integrations\Duitku\FakeGateway;
 use Illuminate\Testing\TestResponse;
 
 function fakeGateway(): FakeGateway
@@ -41,32 +42,39 @@ function pendingPayment(array $orderAttributes = [], array $paymentAttributes = 
     return Payment::factory()->create(['order_id' => $order->id, ...$paymentAttributes]);
 }
 
-/** @return array<string, mixed> */
-function notificationBody(string $invoice, int $amount, string $status = 'SUCCESS', array $extra = []): array
+/** What a status check reports, or what a gateway check hands to the evidence path. */
+function gatewayEvidence(?int $amount, GatewayStatus $status = GatewayStatus::Success): GatewayEvidence
 {
-    return array_replace_recursive([
-        'service' => ['id' => 'VIRTUAL_ACCOUNT'],
-        'acquirer' => ['id' => 'BCA'],
-        'channel' => ['id' => 'VIRTUAL_ACCOUNT_BCA'],
-        'transaction' => ['status' => $status, 'date' => '2026-11-01T03:24:23Z', 'original_request_id' => 'orig-1'],
-        'order' => ['invoice_number' => $invoice, 'amount' => $amount],
-    ], $extra);
+    return new GatewayEvidence($status, $status->value, $amount, null, null);
 }
 
-/** Sends a notification signed exactly as DOKU signs it, over the raw JSON body. */
-function sendNotification(array $body, ?string $secret = null, ?string $clientId = null, ?string $timestamp = null, ?string $requestId = null): TestResponse
+/** @return array<string, string> */
+function notificationBody(string $invoice, int $amount, string $status = 'SUCCESS', array $extra = []): array
 {
-    $raw = (string) json_encode($body);
-    $clientId ??= 'TEST-CLIENT';
-    $requestId ??= (string) Str::uuid();
-    $timestamp ??= gmdate('Y-m-d\TH:i:s\Z');
+    return [
+        'merchantCode' => 'FAKE-MERCHANT',
+        'amount' => (string) $amount,
+        'merchantOrderId' => $invoice,
+        'paymentCode' => 'SP',
+        'resultCode' => $status === 'SUCCESS' ? '00' : '01',
+        'reference' => 'REF-1',
+        ...$extra,
+    ];
+}
 
-    return test()->call('POST', '/api/v1/webhooks/doku', server: [
-        'CONTENT_TYPE' => 'application/json',
+/**
+ * Sends a callback signed exactly as Duitku signs it. By default the status check agrees with its amount;
+ * pass $checked for a different answer.
+ */
+function sendNotification(array $fields, ?string $secret = null, ?string $merchantCode = null, ?GatewayEvidence $checked = null): TestResponse
+{
+    $fields['merchantCode'] = $merchantCode ?? $fields['merchantCode'];
+    $fields['signature'] ??= DuitkuSignature::sign($secret ?? 'fake-key-not-real', $fields['merchantCode'], $fields['amount'], $fields['merchantOrderId']);
+
+    fakeGateway()->statusResult = $checked ?? gatewayEvidence((int) $fields['amount']);
+
+    return test()->call('POST', '/api/v1/webhooks/duitku', server: [
+        'CONTENT_TYPE' => 'application/x-www-form-urlencoded',
         'HTTP_ACCEPT' => 'application/json',
-        'HTTP_CLIENT_ID' => $clientId,
-        'HTTP_REQUEST_ID' => $requestId,
-        'HTTP_REQUEST_TIMESTAMP' => $timestamp,
-        'HTTP_SIGNATURE' => DokuSignature::sign($secret ?? 'test-secret-key', $clientId, $requestId, $timestamp, '/api/v1/webhooks/doku', $raw),
-    ], content: $raw);
+    ], content: http_build_query($fields));
 }

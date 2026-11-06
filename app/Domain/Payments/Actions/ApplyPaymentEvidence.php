@@ -20,7 +20,6 @@ use App\Domain\Payments\Enums\WebhookStatus;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\PaymentEvent;
 use App\Support\RequestContext;
-use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -46,8 +45,8 @@ class ApplyPaymentEvidence
                 GatewayStatus::Success => $this->applySuccess($payment, $order, $evidence, $source, $webhookEventId, $actor),
                 GatewayStatus::Expired => $this->applyOpenOnly($payment, PaymentStatus::Expired, $evidence, $source, $webhookEventId),
                 GatewayStatus::Pending => $this->applyOpenOnly($payment, PaymentStatus::Pending, $evidence, $source, $webhookEventId),
-                // DOKU contract: Checkout integrations must ignore FAILED, the customer can still switch method.
-                GatewayStatus::Failed, GatewayStatus::NotFinal => $this->ignore($payment, $evidence, $source, $webhookEventId),
+                // A failed attempt closes nothing: the customer can still pay, and a failure is not a verified fact (ADR-0007).
+                GatewayStatus::Failed => $this->ignore($payment, $evidence, $source, $webhookEventId),
                 GatewayStatus::Unsupported => $this->reject($payment, WebhookRejection::UnsupportedStatus, $evidence, $source, $webhookEventId),
             };
         });
@@ -70,7 +69,7 @@ class ApplyPaymentEvidence
         $previous = ['payment_status' => $payment->status->value, 'order_status' => $order->status->value];
         $payment->payment_method ??= $evidence->channel;
 
-        ($this->transitionPayment)($payment, PaymentStatus::Paid, $source, $webhookEventId, $evidence->occurredAt ?? new DateTimeImmutable, ['channel' => $evidence->channel]);
+        ($this->transitionPayment)($payment, PaymentStatus::Paid, $source, $webhookEventId, $evidence->occurredAt ?? now(), ['channel' => $evidence->channel]);
 
         // A paid payment against a cancelled or already confirmed order stays visible in reconciliation; it is not repaired here.
         if ($order->status->canTransitionTo(OrderStatus::Confirmed)) {

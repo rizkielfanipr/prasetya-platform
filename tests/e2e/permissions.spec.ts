@@ -26,5 +26,5 @@ test('finance can reconcile but not manage settings', async ({ page }) => {
     await page.goto('/reconciliation');
     await expect(page.getByRole('heading', { level: 1, name: 'Rekonsiliasi' })).toBeVisible();
     await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: 'Koneksi DOKU' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Koneksi gateway' })).toHaveCount(0);
 });

@@ -11,6 +11,5 @@ enum GatewayStatus: string
     case Pending = 'PENDING';
     case Failed = 'FAILED';
     case Expired = 'EXPIRED';
-    case NotFinal = 'NOT_FINAL';
     case Unsupported = 'UNSUPPORTED';
 }

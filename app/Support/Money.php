@@ -7,7 +7,7 @@ namespace App\Support;
 use InvalidArgumentException;
 
 /**
- * IDR amount in whole rupiah. DOKU Checkout sends order.amount without decimals,
+ * IDR amount in whole rupiah. Duitku takes paymentAmount without decimals,
  * so rupiah is the smallest unit this platform ever handles.
  */
 final readonly class Money

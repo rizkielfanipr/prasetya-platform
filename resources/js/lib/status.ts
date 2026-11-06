@@ -45,10 +45,10 @@ export const webhookStatuses: Record<WebhookStatus, StatusDefinition> = {
 };
 
 export const rejectionLabels: Record<string, string> = {
-    MISSING_HEADERS: 'Header tanda tangan tidak lengkap',
+    SOURCE_NOT_ALLOWED: 'Alamat pengirim tidak diizinkan',
+    MISSING_HEADERS: 'Data tanda tangan tidak lengkap',
     INVALID_SIGNATURE: 'Tanda tangan tidak valid',
-    CLIENT_MISMATCH: 'Client-Id tidak cocok',
-    STALE_TIMESTAMP: 'Timestamp terlalu lama',
+    CLIENT_MISMATCH: 'Kode merchant tidak cocok',
     MALFORMED_PAYLOAD: 'Isi notifikasi tidak dapat dibaca',
     UNKNOWN_INVOICE: 'Invoice tidak dikenal',
     AMOUNT_MISMATCH: 'Jumlah tidak cocok',

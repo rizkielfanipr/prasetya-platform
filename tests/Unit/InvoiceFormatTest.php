@@ -10,6 +10,6 @@ it('formats invoices with brand prefix, period, and padding', function (): void 
         ->and(InvoiceNumberGenerator::format(ApplicationCode::Satamu->invoicePrefix(), '202611', 1))->toBe('SAT-202611-000001');
 });
 
-it('fits DOKU invoice_number limit when cards are enabled, retries included', function (): void {
-    expect(strlen(InvoiceNumberGenerator::format('SAT', '202611', 999999).'-999'))->toBeLessThanOrEqual(30);
+it('fits the merchantOrderId limit of Duitku, retries included', function (): void {
+    expect(strlen(InvoiceNumberGenerator::format('SAT', '202611', 999999).'-999'))->toBeLessThanOrEqual(50);
 });

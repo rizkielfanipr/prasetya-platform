@@ -6,12 +6,12 @@
 | Delivery model | Incremental, milestone-based |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-01 |
-| Target release | To be scheduled after DOKU sandbox access is confirmed |
+| Target release | To be scheduled after Duitku sandbox access is confirmed |
 | Related documents | [`design.md`](design.md), [`architecture.md`](architecture.md) |
 
 ## Executive summary
 
-Prasetya Platform will be delivered as a modular monolith: one Laravel repository containing REST APIs and a Vue/Inertia back office. MySQL is the system of record and DOKU provides checkout and payment notification capabilities. Delivery starts with product decisions and engineering foundations, validates the reusable UI using fixtures, then introduces business data and payment risk incrementally.
+Prasetya Platform will be delivered as a modular monolith: one Laravel repository containing REST APIs and a Vue/Inertia back office. MySQL is the system of record and Duitku provides checkout and payment notification capabilities. Delivery starts with product decisions and engineering foundations, validates the reusable UI using fixtures, then introduces business data and payment risk incrementally.
 
 ## Delivery status
 
@@ -19,14 +19,14 @@ Updated 2026-11-01. A milestone is marked done only when its exit criteria have 
 
 | ID | Status | Outstanding |
 |---|---|---|
-| M0 | Partly done | Satamu catalogue is dummy content on the site and inactive in production. One or two DOKU merchant accounts undecided. Refund and renewal rules not finalised |
-| M1 | Done locally | CI workflow is written but has not run: the repository has no remote yet |
+| M0 | Partly done | Satamu catalogue is dummy content on the site and inactive in production. One or two Duitku merchant accounts undecided. Refund and renewal rules not finalised |
+| M1 | Done locally | The repository now has a GitHub remote; a passing CI run is not yet confirmed |
 | M2 | Done | Delivered together with M8, see below |
 | M3 | Done | |
 | M4 | Done | Migrations and seeders verified on fresh MySQL 8.0 |
 | M5 | Done for the API | Consumer sites not connected, see M7 and M9 |
-| M6 | **Blocked on sandbox credentials** | Adapter, webhook, and idempotency complete and tested against the documented contract and a fake gateway. "Sandbox checkout completes" is not met. See [`api/doku-contract.md`](api/doku-contract.md) |
-| M7 | Not started | Webworks still orders through WhatsApp |
+| M6 | Done in sandbox | A Webworks order was paid by virtual account on 2026-11-01: the callback passed verification and the status check, and the payment became `PAID`. Duplicate and forged callbacks are proven by tests, not live. A QR payment on the hosted page is still open: see [`api/duitku-contract.md`](api/duitku-contract.md) |
+| M7 | In progress | Choice dialog and status page built on `prasetya-webworks` branch `feat/platform-checkout`, verified locally with the simulated pay page. A sandbox order was paid end to end on 2026-11-01. Needs deployment; catalogue prices on the site are not yet read from the API at build time |
 | M8 | Done on fake-gateway data | Export deferred. "Webworks operations no longer require database access" depends on M7 |
 | M9 | Not started | Needs the real Satamu catalogue |
 | M10 | Scheduler only | Expiry and pruning are scheduled. No customer or internal notifications yet |
@@ -42,7 +42,7 @@ Build one Laravel platform that provides:
 - REST APIs for `prasetya-webworks` and `satamu-invitation`.
 - A custom Vue/Inertia back office in the same repository.
 - MySQL persistence for multi-brand orders and payments.
-- DOKU Checkout creation, webhook verification, and payment monitoring.
+- Duitku Pop creation, webhook verification, and payment monitoring.
 
 The sequence deliberately establishes the approved UI and operational model before connecting real payment flows.
 
@@ -53,7 +53,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Shared multi-brand order and payment platform.
 - REST APIs consumed by Prasetya Webworks and Satamu Invitation.
 - Admin authentication, authorisation, audit history, and operational back office.
-- DOKU checkout creation, signed webhook verification, and reconciliation data.
+- Duitku checkout creation, signed webhook verification, and reconciliation data.
 - Responsive, accessible, reusable Vue/Inertia interface.
 - Deployment to the existing cPanel-compatible environment.
 
@@ -61,7 +61,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 
 - Customer account portal.
 - Automatic domain registration.
-- Split payment or instalment management outside DOKU Checkout capabilities.
+- Split payment or instalment management outside Duitku Pop capabilities.
 - Automated WordPress invitation provisioning.
 - Advanced accounting or tax reporting.
 - Native mobile application.
@@ -69,7 +69,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 ## Assumptions and constraints
 
 - MySQL remains available in the target hosting environment.
-- DOKU sandbox and production credentials are provided separately and never committed.
+- Duitku sandbox and production credentials are provided separately and never committed.
 - Both Astro sites communicate with versioned Laravel APIs.
 - Laravel is authoritative for price, package availability, payment state, and authorisation.
 - Production payment state changes only after verified backend notification.
@@ -93,7 +93,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 | M3 | Authentication foundation | M1, M2 | Protected admin application |
 | M4 | Multi-brand domain model | M1, M3 | Valid persistent business model |
 | M5 | Order API | M4 | Safe unpaid-order lifecycle |
-| M6 | DOKU sandbox core | M5 | Verified, idempotent payment lifecycle |
+| M6 | Duitku sandbox core | M5 | Verified, idempotent payment lifecycle |
 | M7 | Webworks pilot | M6 | First end-to-end consumer integration |
 | M8 | Operational back office | M7 | Real monitoring and reconciliation workflow |
 | M9 | Satamu integration | M6, M8 | Second brand on shared payment core |
@@ -109,7 +109,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Establish `docs/design.md` as the UI source of truth.
 - Finalise package codes, prices, inclusions, renewal rules, revisions, refund rules, and domain handling for both brands.
 - Define payment and fulfilment state machines.
-- Decide whether both brands use one DOKU merchant account.
+- Decide whether both brands use one Duitku merchant account.
 - Define API error envelope, invoice format, and idempotency policy.
 
 ### Exit criteria
@@ -161,7 +161,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Navigation and responsive behaviour work with fixture data.
 - Pages reuse documented components instead of copying page-specific markup.
 - Type checking, component tests, accessibility checks, and production build pass.
-- No DOKU or production database dependency exists yet.
+- No Duitku or production database dependency exists yet.
 
 ## M3 — Laravel foundation and authentication
 
@@ -225,13 +225,13 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Frontend-supplied prices are ignored.
 - Admin can find and inspect orders in the Vue back office.
 
-## M6 — DOKU sandbox payment core
+## M6 — Duitku sandbox payment core
 
 ### Work
 
-- Build a dedicated DOKU service for signature generation and checkout creation.
+- Build a dedicated Duitku service for signature generation and checkout creation.
 - Store each payment attempt separately from its order.
-- Return a DOKU Checkout URL only for a valid payable order.
+- Return a Duitku Pop URL only for a valid payable order.
 - Implement the public webhook endpoint.
 - Verify webhook signature, invoice, amount, and payment transition.
 - Make webhook processing idempotent and audit every received event.
@@ -251,7 +251,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Finalise Webworks package data and modal steps.
 - Collect package, template, customer, business, and domain preferences.
 - Create the order through Laravel, then request checkout.
-- Open DOKU through redirect or approved popup flow.
+- Open Duitku through redirect or approved popup flow.
 - Add pending, success, and failure pages that query backend status.
 - Prevent refresh and repeat click from creating duplicate orders.
 - Add the Webworks order and project workflow to back office.
@@ -275,7 +275,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 
 ### Exit criteria
 
-- Admin can reconcile DOKU payment to invoice and customer.
+- Admin can reconcile Duitku payment to invoice and customer.
 - Every manual status change is authorised and recorded.
 - Webworks operations no longer require direct database access.
 
@@ -322,7 +322,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Test admin authorisation, CSRF, session expiry, rate limits, and CORS.
 - Add secret handling, log redaction, MySQL backup, and restore procedure.
 - Run accessibility and responsive checks against the design system.
-- Document incident response and DOKU reconciliation procedure.
+- Document incident response and Duitku reconciliation procedure.
 
 ### Exit criteria
 
@@ -336,9 +336,9 @@ The sequence deliberately establishes the approved UI and operational model befo
 
 - Deploy Laravel/Inertia to the platform subdomain.
 - Configure MySQL, SSL, storage, cron, queue, and production secrets.
-- Register the public HTTPS DOKU notification URL.
+- Register the public HTTPS Duitku notification URL.
 - Run a small controlled production transaction.
-- Reconcile the payment in DOKU and Prasetya Platform.
+- Reconcile the payment in Duitku and Prasetya Platform.
 - Roll out Webworks first, monitor, then enable Satamu.
 
 ### Exit criteria
@@ -356,7 +356,7 @@ Design baseline
 → Authentication
 → MySQL domain model
 → Order API
-→ DOKU sandbox core
+→ Duitku sandbox core
 → Webworks pilot
 → Operational back office
 → Satamu integration
@@ -402,7 +402,7 @@ A work item is done when:
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| DOKU credentials or merchant setup delayed | Payment milestones blocked | Complete M0–M5 with adapters and fixtures; confirm access before M6 |
+| Duitku credentials or merchant setup delayed | Payment milestones blocked | Complete M0–M5 with adapters and fixtures; confirm access before M6 |
 | Duplicate or out-of-order webhooks | Incorrect payment state | Database constraints, idempotent event storage, transition rules, replay tests |
 | Shared platform leaks brand data | Operational/privacy issue | Explicit application scope, policies, filtered queries, cross-brand tests |
 | cPanel queue limitations | Delayed notifications | Validate cron/worker strategy early; keep notification failure independent of payment |

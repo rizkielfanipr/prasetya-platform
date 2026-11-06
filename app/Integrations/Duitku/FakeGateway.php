@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Integrations\Doku;
+namespace App\Integrations\Duitku;
 
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Data\CheckoutRequest;
@@ -12,7 +12,7 @@ use App\Domain\Payments\Exceptions\GatewayException;
 use DateTimeImmutable;
 
 /**
- * Deterministic gateway for local work and tests, no network. It reports as DOKU so that the
+ * Deterministic gateway for local work and tests, no network. It reports as Duitku so that the
  * notification path is identical to production; AppServiceProvider refuses it in production.
  */
 final class FakeGateway implements PaymentGateway
@@ -26,7 +26,7 @@ final class FakeGateway implements PaymentGateway
 
     public function name(): string
     {
-        return 'DOKU';
+        return 'DUITKU';
     }
 
     public function isConfigured(): bool
@@ -46,7 +46,8 @@ final class FakeGateway implements PaymentGateway
         $this->checkouts[] = $request;
 
         return new CheckoutSession(
-            url: 'https://fake-doku.invalid/checkout/'.$request->invoiceNumber,
+            // Resolved through the gateway invoice number: the payment row is committed before this call.
+            url: url('/dev/fake-checkout/'.$request->invoiceNumber),
             reference: 'FAKE-'.$request->requestId,
             expiresAt: new DateTimeImmutable("+{$request->dueInMinutes} minutes"),
         );

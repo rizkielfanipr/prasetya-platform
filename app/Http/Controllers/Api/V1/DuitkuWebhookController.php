@@ -12,13 +12,13 @@ use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-final class DokuWebhookController
+final class DuitkuWebhookController
 {
     private const int MAX_BODY_BYTES = 65536;
 
     /**
-     * DOKU needs a 2xx to stop retrying. Authentic deliveries are acknowledged even when rejected: the evidence is
-     * stored and a retry cannot change the answer. Only a processing failure asks DOKU to retry.
+     * Duitku retries until it gets a 200, up to 5 times. A 500 is how an unconfirmed success asks for that retry.
+     * The verifier reads the raw body, so the signature is checked over exactly what was received.
      */
     public function __invoke(Request $request, ProcessGatewayNotification $process): JsonResponse
     {
@@ -28,12 +28,12 @@ final class DokuWebhookController
             return ApiResponse::error(ApiErrorCode::WebhookRejected, 'Notifikasi ditolak.', 413);
         }
 
+        $reference = $request->input('reference');
+
         $event = $process(new InboundNotification(
-            clientId: $request->header('Client-Id'),
-            requestId: $request->header('Request-Id'),
-            requestTimestamp: $request->header('Request-Timestamp'),
-            signature: $request->header('Signature'),
+            requestId: is_string($reference) ? $reference : null,
             rawBody: $rawBody,
+            sourceIp: $request->ip(),
         ));
 
         if (! $event->signature_valid) {

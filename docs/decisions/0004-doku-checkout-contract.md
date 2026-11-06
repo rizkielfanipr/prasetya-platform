@@ -1,9 +1,9 @@
 # ADR-0004: How the platform applies the DOKU Checkout contract
 
-- Status: Proposed
+- Status: Superseded by ADR-0007
 - Date: 2026-11-01
 - Decision owners: Prasetya Group
-- Related: [`../api/doku-contract.md`](../api/doku-contract.md), [`../security/threat-model.md`](../security/threat-model.md)
+- Related: [ADR-0007](0007-duitku-gateway.md), [`../security/threat-model.md`](../security/threat-model.md)
 
 ## Context
 
@@ -33,7 +33,7 @@ DOKU's documentation settles the request shape and signature, and leaves some be
 
 - The "failed" dashboard figure counts checkout creation failures, not declined customer attempts.
 - An invalid-signature flood writes rows; it is bounded by the webhook rate limit and body size cap.
-- Points 4 to 6 must be confirmed in sandbox: see the checklist in `doku-contract.md`.
+- Points 4 to 6 must be confirmed in sandbox: the contract document was removed with the adapter.
 
 ## Validation
 

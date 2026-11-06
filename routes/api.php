@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\CheckoutController;
-use App\Http\Controllers\Api\V1\DokuWebhookController;
+use App\Http\Controllers\Api\V1\DuitkuWebhookController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PackageController;
@@ -24,6 +24,5 @@ Route::prefix('v1')->group(function (): void {
         Route::post('orders/{order:public_id}/checkout', CheckoutController::class)->name('api.orders.checkout');
     });
 
-    // Must equal DOKU_NOTIFICATION_PATH: it is the Request-Target of the signature.
-    Route::post('webhooks/doku', DokuWebhookController::class)->middleware('throttle:webhooks')->name('api.webhooks.doku');
+    Route::post('webhooks/duitku', DuitkuWebhookController::class)->middleware('throttle:webhooks')->name('api.webhooks.duitku');
 });

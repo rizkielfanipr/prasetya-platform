@@ -23,7 +23,7 @@ const inactive: StatusDefinition = { label: 'Nonaktif', tone: 'neutral', icon: B
 
 const gatewayStatus = computed<StatusDefinition>(() => {
     if (props.admin.gateway.driver === 'fake') {
-        return { label: 'Gateway fake (bukan DOKU asli)', tone: 'warning', icon: Clock };
+        return { label: 'Gateway fake (bukan pembayaran asli)', tone: 'warning', icon: Clock };
     }
 
     return props.admin.gateway.configured
@@ -33,7 +33,7 @@ const gatewayStatus = computed<StatusDefinition>(() => {
 </script>
 
 <template>
-    <PanelCard title="Koneksi DOKU" description="Hanya status. Kredensial tidak pernah ditampilkan.">
+    <PanelCard title="Koneksi gateway" description="Hanya status. Kredensial tidak pernah ditampilkan.">
         <dl class="grid gap-4 sm:grid-cols-3">
             <div>
                 <dt class="text-xs font-semibold text-muted-foreground">Status</dt>

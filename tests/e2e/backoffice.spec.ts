@@ -70,7 +70,7 @@ test('open transaction detail: payment and order status are separate', async ({ 
     await expect(page.getByText(/Status berubah: Menunggu → Berhasil/)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Riwayat webhook' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Riwayat audit' })).toBeVisible();
-    await expect(page.locator('body')).not.toContainText('HMACSHA256');
+    await expect(page.locator('body')).not.toContainText('fake-key-not-real');
 
     await page.getByLabel('Tambah catatan').fill('Catatan dari browser test');
     await page.getByRole('button', { name: 'Simpan' }).click();
@@ -88,8 +88,8 @@ test('inspect payment events with sanitised diagnostics', async ({ page }) => {
 
     await page.goto('/payment-events?status=PROCESSED');
     await page.getByText('Lihat', { exact: true }).first().click();
-    await expect(page.locator('pre').first()).toContainText('invoice_number');
-    await expect(page.locator('body')).not.toContainText('HMACSHA256');
+    await expect(page.locator('pre').first()).toContainText('merchantOrderId');
+    await expect(page.locator('body')).not.toContainText('fake-key-not-real');
 });
 
 test('view a reconciliation issue and run an audited gateway check', async ({ page }) => {

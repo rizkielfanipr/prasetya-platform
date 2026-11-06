@@ -12,10 +12,10 @@ use App\Domain\Payments\Contracts\NotificationVerifier;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\WebhookEvent;
-use App\Integrations\Doku\DokuClient;
-use App\Integrations\Doku\DokuConfig;
-use App\Integrations\Doku\DokuWebhookVerifier;
-use App\Integrations\Doku\FakeGateway;
+use App\Integrations\Duitku\DuitkuClient;
+use App\Integrations\Duitku\DuitkuConfig;
+use App\Integrations\Duitku\DuitkuWebhookVerifier;
+use App\Integrations\Duitku\FakeGateway;
 use App\Policies\AuditLogPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\PaymentPolicy;
@@ -37,15 +37,17 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(RequestContext::class);
-        $this->app->singleton(DokuConfig::class, static fn (): DokuConfig => DokuConfig::fromConfig());
-        $this->app->singleton(NotificationVerifier::class, DokuWebhookVerifier::class);
+        $this->app->singleton(DuitkuConfig::class, static fn ($app): DuitkuConfig => config('platform.payment_gateway') === 'duitku' || $app->isProduction()
+            ? DuitkuConfig::fromConfig()
+            : DuitkuConfig::forFakeGateway());
+        $this->app->singleton(NotificationVerifier::class, DuitkuWebhookVerifier::class);
         $this->app->singleton(PaymentGateway::class, function ($app): PaymentGateway {
-            if (config('platform.payment_gateway') === 'doku') {
-                return $app->make(DokuClient::class);
+            if (config('platform.payment_gateway') === 'duitku') {
+                return $app->make(DuitkuClient::class);
             }
 
             if ($app->isProduction()) {
-                throw new RuntimeException('The fake payment gateway cannot run in production. Set PAYMENT_GATEWAY=doku.');
+                throw new RuntimeException('The fake payment gateway cannot run in production. Set PAYMENT_GATEWAY=duitku.');
             }
 
             return new FakeGateway;

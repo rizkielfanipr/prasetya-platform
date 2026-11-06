@@ -11,6 +11,7 @@ use App\Http\Controllers\BackOffice\PaymentEventController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
 use App\Http\Controllers\BackOffice\SettingsController;
 use App\Http\Controllers\BackOffice\TransactionController;
+use App\Http\Controllers\Dev\FakeCheckoutController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -43,3 +44,9 @@ Route::middleware('auth')->group(function (): void {
     Route::put('settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
 });
+
+// Stand-in for Duitku's hosted page. Never registered in production or with the real gateway.
+if (config('platform.payment_gateway') === 'fake' && ! app()->isProduction()) {
+    Route::get('dev/fake-checkout/{payment:gateway_invoice_number}', [FakeCheckoutController::class, 'show'])->name('dev.fake-checkout.show');
+    Route::post('dev/fake-checkout/{payment:gateway_invoice_number}', [FakeCheckoutController::class, 'pay'])->name('dev.fake-checkout.pay');
+}

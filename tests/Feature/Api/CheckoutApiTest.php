@@ -6,7 +6,7 @@ use App\Domain\Orders\Enums\OrderStatus;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Models\Payment;
-use App\Integrations\Doku\Exceptions\DokuException;
+use App\Integrations\Duitku\Exceptions\DuitkuException;
 use Illuminate\Testing\TestResponse;
 
 function checkout(Order $order, string $key = 'c-1'): TestResponse
@@ -19,7 +19,7 @@ it('opens a checkout and persists the attempt first', function (): void {
 
     checkout($order)->assertCreated()
         ->assertJsonPath('data.payment_status', 'PENDING')
-        ->assertJsonPath('data.checkout_url', 'https://fake-doku.invalid/checkout/PW-202611-000001');
+        ->assertJsonPath('data.checkout_url', url('/dev/fake-checkout/PW-202611-000001'));
 
     $payment = Payment::query()->sole();
     expect($payment->attempt_number)->toBe(1)
@@ -46,12 +46,12 @@ it('makes one gateway call for repeat clicks, even with new keys', function (): 
 
 it('records a gateway failure and allows a new attempt', function (): void {
     $order = Order::factory()->create(['invoice_number' => 'PW-202611-000002']);
-    fakeGateway()->failNextWith = new DokuException('down', 'DOKU_HTTP_500');
+    fakeGateway()->failNextWith = new DuitkuException('down', 'DUITKU_HTTP_500');
 
     checkout($order)->assertStatus(502)->assertJsonPath('error.code', 'GATEWAY_UNAVAILABLE');
 
     $failed = Payment::query()->sole();
-    expect($failed->status)->toBe(PaymentStatus::Failed)->and($failed->failure_code)->toBe('DOKU_HTTP_500');
+    expect($failed->status)->toBe(PaymentStatus::Failed)->and($failed->failure_code)->toBe('DUITKU_HTTP_500');
 
     checkout($order)->assertCreated();
     $retry = Payment::query()->where('attempt_number', 2)->sole();
