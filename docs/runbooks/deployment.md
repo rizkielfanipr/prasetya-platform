@@ -1,12 +1,51 @@
 # Deployment
 
-Status: Draft. These steps have not yet been executed on the target cPanel host, so check PHP version, cron, and SSH availability there first.
+Status: Draft. These steps have not yet been executed on the target cPanel host, so check PHP version, cron, and SSH availability there first. Deploys run from CI; see **Continuous deployment**.
 
 ## Requirements
 
 PHP 8.3 or newer with `pdo_mysql`, `mbstring`, `openssl`, `bcmath`, `intl`; MySQL 8; HTTPS; document root pointing at `public/`. Build assets on CI or locally if the host has no Node.
 
-## First deploy
+## Continuous deployment
+
+`.github/workflows/ci.yml` has two jobs. `quality` runs every gate. `deploy` runs only on `main` (push or **Run workflow**), only after `quality` passes, and follows the prasetya-webworks and satamu-invitation pattern: `rsync` over SSH to `prasetya@server.griv.co.id`, with the host key pinned in the workflow.
+
+### GitHub settings
+
+Repo → **Settings → Secrets and variables → Actions**.
+
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `SSH_PRIVATE_KEY` | The same deploy key as prasetya-webworks and satamu-invitation |
+| Variable (optional) | `SERVER_PHP` | PHP CLI on the server when plain `php` is not the site's version, for example `/opt/cpanel/ea-php84/root/usr/bin/php` |
+| Variable (optional) | `DEPLOY_PATH` | Defaults to `public_html/platform.prasetyawebworks.web.id` |
+
+### What a deploy does
+
+1. Builds `vendor/` (`composer install --no-dev`) and `public/build` (Vite) on GitHub.
+2. Preflight over SSH: stops before copying anything if `.env` is missing, PHP is older than 8.3, or a required extension is missing.
+3. `php artisan down --retry=30` (skipped on the first deploy). Duitku callbacks in this window get 503 and are retried by Duitku.
+4. `rsync --delete` of the release. Never touched on the server: `.env`, `storage/`, `bootstrap/cache/`, and cPanel's `public/.user.ini`, `public/php.ini`, `public/.well-known/`. `public/.htaccess` is copied only when it does not exist yet, because cPanel may add its PHP handler there.
+5. `migrate --force`, the `ApplicationSeeder` and `PackageSeeder` (names and prices; availability is never changed), `optimize`, `up`.
+6. `GET /api/v1/health` must answer 200.
+
+If a step after maintenance mode fails, the site **stays in maintenance mode** so a half-migrated release never serves traffic. Fix the cause and run the workflow again, or check the release by hand and run `php artisan up`.
+
+### First-time server setup
+
+Once, before the first deploy:
+
+1. cPanel → **MySQL Databases**: create the database and a user with all privileges on it.
+2. cPanel → **MultiPHP Manager**: PHP 8.3 or newer for `platform.prasetyawebworks.web.id`, with the extensions under Requirements. Over SSH, check `php -v`; if it differs, find the right binary (`ls /opt/cpanel/ea-php8*/root/usr/bin/php`) and set the `SERVER_PHP` variable.
+3. Document root: `/home/prasetya/public_html/platform.prasetyawebworks.web.id/public`.
+4. Create `~/public_html/platform.prasetyawebworks.web.id/.env` with the values under **Production environment**, the database credentials, and an `APP_KEY` made locally with `php artisan key:generate --show`. Keep it `chmod 600`.
+5. Run the workflow (**Actions → CI → Run workflow**, or push to `main`).
+6. After the first successful deploy, over SSH in the release folder: `php artisan platform:create-admin <email> "<name>"`, then add the cron entry below.
+7. Verify as under **Verify**, including that `https://platform.prasetyawebworks.web.id/.env` answers 404 or 403.
+
+## First deploy by hand
+
+Only if CI cannot be used.
 
 ```sh
 composer install --no-dev --optimize-autoloader
@@ -105,7 +144,7 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 php artisan up
 ```
 
-Roll back by redeploying the previous release. Do not run `migrate:rollback` on production without a fresh backup: it can destroy payment evidence. Prefer a forward fix.
+With CI, roll back by opening the last good run in **Actions** and choosing **Re-run all jobs**: it deploys that run's commit. Migrations are not reversed by this. Otherwise roll back by redeploying the previous release. Do not run `migrate:rollback` on production without a fresh backup: it can destroy payment evidence. Prefer a forward fix.
 
 ## Backup and restore
 

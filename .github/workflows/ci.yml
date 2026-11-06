@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -69,3 +70,105 @@ jobs:
         with:
           name: playwright-traces
           path: test-results
+
+  # Deploys main to cPanel after every quality gate above has passed. Same pattern as prasetya-webworks and
+  # satamu-invitation (SSH_PRIVATE_KEY, pinned host key, rsync), plus the Laravel steps. The server owns .env,
+  # storage/, and bootstrap/cache/; nothing is copied until the preflight finds .env and a suitable PHP there.
+  # See docs/runbooks/deployment.md, "Continuous deployment".
+  deploy:
+    needs: quality
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-cpanel-platform
+      cancel-in-progress: false
+    env:
+      DEPLOY_HOST: prasetya@server.griv.co.id
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || 'public_html/platform.prasetyawebworks.web.id' }}
+      # PHP CLI on the server. cPanel's default `php` can differ from the site's MultiPHP version,
+      # for example /opt/cpanel/ea-php84/root/usr/bin/php.
+      SERVER_PHP: ${{ vars.SERVER_PHP || 'php' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, bcmath, intl, mbstring
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Production dependencies
+        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction --no-scripts
+      - name: Build assets
+        run: npm ci --ignore-scripts && npm run build
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "::error::Secret SSH_PRIVATE_KEY is missing or empty"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null; then
+            echo "::error::SSH_PRIVATE_KEY is not a valid private key (copy the whole file, BEGIN to END lines)"
+            exit 1
+          fi
+          echo "server.griv.co.id ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC2d7PWQgD63Asf8MmFPp7ViTz3QGWHX1b+7l8hU/XCZ" > ~/.ssh/known_hosts
+          echo "SSH=ssh -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ConnectTimeout=30" >> "$GITHUB_ENV"
+      # Nothing is copied unless the server is ready: a deploy before the first manual setup changes nothing.
+      - name: Preflight on the server
+        run: |
+          $SSH "$DEPLOY_HOST" "DEPLOY_PATH='$DEPLOY_PATH' SERVER_PHP='$SERVER_PHP' bash -s" <<'REMOTE'
+          set -e
+          if [ ! -f "$HOME/$DEPLOY_PATH/.env" ]; then
+            echo "::error::$DEPLOY_PATH/.env does not exist. Do the first-time setup in docs/runbooks/deployment.md."
+            exit 1
+          fi
+          "$SERVER_PHP" -r 'exit(version_compare(PHP_VERSION, "8.3.0", ">=") ? 0 : 1);' || { echo "::error::$SERVER_PHP is older than 8.3: set the SERVER_PHP variable"; exit 1; }
+          missing=$("$SERVER_PHP" -r 'echo implode(" ", array_diff(["pdo_mysql","mbstring","openssl","bcmath","intl","ctype","fileinfo","tokenizer","xml"], array_map("strtolower", get_loaded_extensions())));')
+          if [ -n "$missing" ]; then echo "::error::Missing PHP extensions on the server: $missing"; exit 1; fi
+          echo "Server ready: PHP $("$SERVER_PHP" -r 'echo PHP_VERSION;')"
+          REMOTE
+      # Callbacks during the short maintenance window get 503, and Duitku retries them.
+      - name: Maintenance mode
+        run: $SSH "$DEPLOY_HOST" "cd '$DEPLOY_PATH' && if [ -f vendor/autoload.php ]; then '$SERVER_PHP' artisan down --retry=30 || true; fi"
+      - name: Upload release
+        run: |
+          rsync -rlz --delete --chmod=D755,F644 \
+            --exclude='/.git/' --exclude='/.github/' --exclude='/node_modules/' --exclude='/tests/' \
+            --exclude='/test-results/' --exclude='/playwright-report/' \
+            --exclude='/.env' --exclude='/.env.*' --exclude='/storage/' --exclude='/bootstrap/cache/' \
+            --exclude='/public/.htaccess' --exclude='/public/.user.ini' --exclude='/public/php.ini' \
+            --exclude='/public/.well-known/' --exclude='/public/hot' --exclude='/public/storage' \
+            -e "$SSH" ./ "$DEPLOY_HOST:$DEPLOY_PATH/"
+          # cPanel may add its PHP handler to public/.htaccess, so Laravel's copy is installed only once.
+          rsync -z --ignore-existing --chmod=F644 -e "$SSH" public/.htaccess "$DEPLOY_HOST:$DEPLOY_PATH/public/.htaccess"
+      # Stays in maintenance mode if a step fails, so a half-migrated release never serves traffic.
+      - name: Migrate and cache
+        run: |
+          $SSH "$DEPLOY_HOST" "DEPLOY_PATH='$DEPLOY_PATH' SERVER_PHP='$SERVER_PHP' bash -s" <<'REMOTE'
+          set -e
+          cd "$HOME/$DEPLOY_PATH"
+          mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          "$SERVER_PHP" artisan package:discover --ansi
+          "$SERVER_PHP" artisan migrate --force --no-interaction
+          # Catalogue from code: names and prices. Availability is never changed by a seed.
+          "$SERVER_PHP" artisan db:seed --class=ApplicationSeeder --force --no-interaction
+          "$SERVER_PHP" artisan db:seed --class=PackageSeeder --force --no-interaction
+          "$SERVER_PHP" artisan optimize
+          "$SERVER_PHP" artisan up
+          REMOTE
+      - name: Health check
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://platform.prasetyawebworks.web.id/api/v1/health)
+            if [ "$code" = 200 ]; then echo "Healthy"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::Health check returned $code"
+          exit 1
