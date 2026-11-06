@@ -27,7 +27,9 @@ Repo → **Settings → Secrets and variables → Actions**.
 3. `php artisan down --retry=30` (skipped on the first deploy). Duitku callbacks in this window get 503 and are retried by Duitku.
 4. `rsync --delete` of the release. Never touched on the server: `.env`, `storage/`, `bootstrap/cache/`, and cPanel's `public/.user.ini`, `public/php.ini`, `public/.well-known/`. `public/.htaccess` is copied only when it does not exist yet, because cPanel may add its PHP handler there.
 5. `migrate --force`, the `ApplicationSeeder` and `PackageSeeder` (names and prices; availability is never changed), `optimize`, `up`.
-6. `GET /api/v1/health` must answer 200.
+6. `/.env`, `/composer.json`, and `/vendor/autoload.php` must not answer 200, and `GET /api/v1/health` must answer 200.
+
+The root `.htaccess` sends every request into `public/` and denies dotfiles, as a safety net if the document root is ever the project folder instead of `public/`.
 
 If a step after maintenance mode fails, the site **stays in maintenance mode** so a half-migrated release never serves traffic. Fix the cause and run the workflow again, or check the release by hand and run `php artisan up`.
 

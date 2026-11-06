@@ -166,6 +166,11 @@ jobs:
           REMOTE
       - name: Health check
         run: |
+          # The server must never serve the environment file or the source.
+          for path in .env .env.example composer.json vendor/autoload.php; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://platform.prasetyawebworks.web.id/$path")
+            if [ "$code" = 200 ]; then echo "::error::/$path is publicly readable: fix the document root (docs/runbooks/deployment.md)"; exit 1; fi
+          done
           for i in 1 2 3 4 5; do
             code=$(curl -s -o /dev/null -w '%{http_code}' https://platform.prasetyawebworks.web.id/api/v1/health)
             if [ "$code" = 200 ]; then echo "Healthy"; exit 0; fi

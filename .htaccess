@@ -1,0 +1,12 @@
+# Safety net for shared hosting: if the document root is this project folder instead of public/,
+# every request goes into public/, so .env, vendor/, and the source are never served.
+# With the document root on public/ (the intended setup) the rewrite here is not used:
+# public/.htaccess has its own RewriteEngine and takes over.
+Options -Indexes
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
