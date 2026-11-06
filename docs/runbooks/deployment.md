@@ -17,8 +17,8 @@ Repo → **Settings → Secrets and variables → Actions**.
 | Kind | Name | Value |
 |---|---|---|
 | Secret | `SSH_PRIVATE_KEY` | The same deploy key as prasetya-webworks and satamu-invitation |
-| Variable (optional) | `SERVER_PHP` | PHP CLI on the server when plain `php` is not the site's version, for example `/opt/cpanel/ea-php84/root/usr/bin/php` |
-| Variable (optional) | `DEPLOY_PATH` | Defaults to `public_html/platform.prasetyawebworks.web.id` |
+
+The release folder (`DEPLOY_PATH`, `public_html/platform.prasetyawebworks.web.id`) and the server's PHP CLI (`SERVER_PHP`, `/opt/cpanel/ea-php84/root/usr/bin/php`) are set in the `deploy` job of `ci.yml`. Change them there when the PHP version in MultiPHP Manager changes.
 
 ### What a deploy does
 
@@ -38,7 +38,7 @@ If a step after maintenance mode fails, the site **stays in maintenance mode** s
 Once, before the first deploy:
 
 1. cPanel → **MySQL Databases**: create the database and a user with all privileges on it.
-2. cPanel → **MultiPHP Manager**: PHP 8.4 for `platform.prasetyawebworks.web.id`, with the extensions under Requirements. Over SSH, check `php -v`; if it differs, find the right binary (`ls /opt/cpanel/ea-php8*/root/usr/bin/php`, use ea-php84 or newer) and set the `SERVER_PHP` variable.
+2. cPanel → **MultiPHP Manager**: PHP 8.4 for `platform.prasetyawebworks.web.id`, with the extensions under Requirements. Over SSH, check `php -v`; if it differs, find the right binary (`ls /opt/cpanel/ea-php8*/root/usr/bin/php`, use ea-php84 or newer) and set `SERVER_PHP` in `ci.yml`.
 3. Document root: `/home/prasetya/public_html/platform.prasetyawebworks.web.id/public`.
 4. Create `~/public_html/platform.prasetyawebworks.web.id/.env` with the values under **Production environment**, the database credentials, and an `APP_KEY` made locally with `php artisan key:generate --show`. Keep it `chmod 600`.
 5. Run the workflow (**Actions → CI → Run workflow**, or push to `main`).
@@ -118,12 +118,12 @@ Satamu uses the same order and Duitku core ([ADR-0008](../decisions/0008-satamu-
    ```
 
    The command shows code, brand, name, and price and asks for confirmation; the audit log records `package.activated` with the reason.
-7. Set the Satamu repository variable `PUBLIC_PLATFORM_API_URL=https://platform.prasetyawebworks.web.id` and redeploy Satamu.
+7. In satamu-invitation, set `PUBLIC_PLATFORM_API_URL: 'https://platform.prasetyawebworks.web.id'` in `.github/workflows/deploy.yml` and push to `main`.
 8. Watch the first orders: Transaksi filtered by Satamu, Event Pembayaran, Rekonsiliasi, failed jobs, and the `operations` log.
 
 ### Rollback
 
-1. Frontend first: clear `PUBLIC_PLATFORM_API_URL` in the Satamu repository and redeploy. The order form returns to WhatsApp only.
+1. Frontend first: set `PUBLIC_PLATFORM_API_URL: ''` in satamu-invitation's `deploy.yml` (or revert the commit that enabled it) and push to `main`. The order form returns to WhatsApp only.
 2. Stop new orders: `php artisan platform:package-deactivate <code> --reason="..."` for each Satamu package.
 3. Do not delete orders, payments, or webhook events. Callbacks, status checks, and reconciliation keep working for attempts already issued.
 4. Roll back a platform release only as described under **Update and rollback**.

@@ -84,10 +84,9 @@ jobs:
       cancel-in-progress: false
     env:
       DEPLOY_HOST: prasetya@server.griv.co.id
-      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || 'public_html/platform.prasetyawebworks.web.id' }}
-      # PHP CLI on the server. cPanel's default `php` can differ from the site's MultiPHP version,
-      # for example /opt/cpanel/ea-php84/root/usr/bin/php.
-      SERVER_PHP: ${{ vars.SERVER_PHP || 'php' }}
+      DEPLOY_PATH: public_html/platform.prasetyawebworks.web.id
+      # PHP CLI on the server, matching the site's MultiPHP version (cPanel's plain `php` is older).
+      SERVER_PHP: /opt/cpanel/ea-php84/root/usr/bin/php
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
