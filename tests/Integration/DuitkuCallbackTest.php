@@ -5,70 +5,15 @@ declare(strict_types=1);
 use App\Domain\Orders\Enums\OrderStatus;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Contracts\NotificationVerifier;
-use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Enums\WebhookStatus;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\WebhookEvent;
 use App\Integrations\Duitku\DuitkuConfig;
-use App\Integrations\Duitku\DuitkuSignature;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Testing\TestResponse;
 
-const DUITKU_IP = '182.23.85.11';
-const STATUS_URL = 'sandbox.duitku.com/webapi/api/merchant/transactionStatus';
-
-beforeEach(function (): void {
-    config([
-        'platform.payment_gateway' => 'duitku',
-        'duitku.merchant_code' => 'DTEST',
-        'duitku.api_key' => 'unit-key',
-        'duitku.environment' => 'sandbox',
-        'duitku.enforce_callback_ip' => true,
-    ]);
-
-    foreach ([DuitkuConfig::class, NotificationVerifier::class, PaymentGateway::class] as $service) {
-        app()->forgetInstance($service);
-    }
-});
-
-/** @return array<string, string> */
-function duitkuCallback(Payment $payment, array $overrides = [], ?string $key = 'unit-key'): array
-{
-    $fields = [
-        'merchantCode' => 'DTEST',
-        'amount' => (string) $payment->amount,
-        'merchantOrderId' => $payment->gateway_invoice_number,
-        'productDetail' => 'Landing Starter',
-        'paymentCode' => 'SP',
-        'resultCode' => '00',
-        'merchantUserId' => 'budi@example.test',
-        'reference' => 'DTESTREF1',
-        'customerName' => 'Budi Santoso',
-        'issuerCode' => '93600523',
-        'settlementDate' => '2026-11-03',
-        ...$overrides,
-    ];
-
-    $fields['signature'] ??= DuitkuSignature::sign((string) $key, $fields['merchantCode'], $fields['amount'], $fields['merchantOrderId']);
-
-    return $fields;
-}
-
-function sendDuitkuCallback(array $fields, string $ip = DUITKU_IP): TestResponse
-{
-    return test()->call('POST', '/api/v1/webhooks/duitku', server: [
-        'CONTENT_TYPE' => 'application/x-www-form-urlencoded',
-        'HTTP_ACCEPT' => 'application/json',
-        'REMOTE_ADDR' => $ip,
-    ], content: http_build_query($fields));
-}
-
-function fakeDuitkuCheck(string $statusCode, ?int $amount = null): void
-{
-    Http::fake([STATUS_URL => Http::response(['statusCode' => $statusCode, 'amount' => (string) $amount])]);
-}
+beforeEach(fn () => useDuitkuSandbox());
 
 it('marks the payment paid only after the check confirms it', function (): void {
     $payment = pendingPayment();
