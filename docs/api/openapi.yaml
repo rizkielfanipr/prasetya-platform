@@ -16,6 +16,7 @@ paths:
   /packages:
     get:
       summary: Active package catalogue
+      description: Only active packages are listed. Availability is catalogue state changed with platform:package-activate / platform:package-deactivate; Satamu packages start inactive, so SATAMU returns an empty list until they are activated. Frontends read display prices here by package code.
       parameters:
         - { name: application_code, in: query, required: false, schema: { $ref: '#/components/schemas/ApplicationCode' } }
       responses:
@@ -213,7 +214,12 @@ components:
     CreateOrder:
       type: object
       required: [application_code, package_code, customer]
-      description: Any price field sent is ignored.
+      description: Any price, amount, total, currency, or status field sent is ignored. The package must be active and belong to application_code.
+      example:
+        application_code: SATAMU
+        package_code: SAT-SPESIAL
+        customer: { name: Nama pelanggan, email: pelanggan@example.com, phone: '628123456789' }
+        details: { theme_code: T01, event_type: wedding, event_date: '2027-02-20', notes: null }
       properties:
         application_code: { $ref: '#/components/schemas/ApplicationCode' }
         package_code: { type: string, maxLength: 64 }
@@ -232,9 +238,9 @@ components:
             template_code: { type: [string, 'null'], description: Webworks }
             business_name: { type: [string, 'null'], description: Webworks }
             domain_preference: { type: [string, 'null'], description: Webworks }
-            theme_code: { type: [string, 'null'], description: Satamu }
-            event_type: { type: [string, 'null'], description: Satamu }
-            event_date: { type: [string, 'null'], format: date, description: Satamu }
+            theme_code: { type: [string, 'null'], maxLength: 64, description: Satamu }
+            event_type: { type: [string, 'null'], maxLength: 64, description: 'Satamu, for example wedding' }
+            event_date: { type: [string, 'null'], format: date, description: 'Satamu, Y-m-d' }
     Order:
       type: object
       required: [reference, invoice_number, application_code, status, total, items, created_at]

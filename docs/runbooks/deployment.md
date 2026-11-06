@@ -50,6 +50,43 @@ Schedules `platform:expire-stale` every five minutes and `platform:prune-idempot
 
 The callback address is sent on each invoice: `APP_URL` plus `/api/v1/webhooks/duitku`, or `DUITKU_CALLBACK_URL`. It must be public HTTPS on port 443. Follow [`duitku-contract.md`](../api/duitku-contract.md).
 
+## Satamu online payment
+
+Satamu uses the same order and Duitku core ([ADR-0008](../decisions/0008-satamu-payment-activation.md)). Its frontend switches online payment on with the build variable `PUBLIC_PLATFORM_API_URL` (`satamu-invitation/docs/deployment.md`).
+
+### Configuration checklist
+
+| Setting | Production value |
+|---|---|
+| `PAYMENT_RETURN_URL_SATAMU` | `https://satamu.prasetyawebworks.web.id/order/status/` |
+| `CORS_ALLOWED_ORIGINS` | includes `https://satamu.prasetyawebworks.web.id`, never a `localhost` origin |
+| `PAYMENT_GATEWAY` / `DUITKU_*` | unchanged: Satamu shares the merchant project and callback URL |
+| Satamu packages | inactive until the business approves names and prices |
+
+### Rollout
+
+1. Back up the database (see below).
+2. Deploy the platform. Satamu packages stay inactive: check `curl -s 'https://platform.prasetyawebworks.web.id/api/v1/packages?application_code=SATAMU'` returns an empty `data`.
+3. Deploy Satamu with `PUBLIC_PLATFORM_API_URL` unset and confirm the order form offers WhatsApp only.
+4. Check CORS from the Satamu origin: `curl -si -X OPTIONS https://platform.prasetyawebworks.web.id/api/v1/orders -H 'Origin: https://satamu.prasetyawebworks.web.id' -H 'Access-Control-Request-Method: POST' | grep -i access-control-allow-origin`.
+5. Staging or local with the fake gateway, then one Duitku sandbox payment from Satamu: callback, transaction check, return, status page, back office.
+6. With the owner's approval only, activate each approved package and confirm the price:
+
+   ```sh
+   php artisan platform:package-activate SAT-SPESIAL --reason="Harga disetujui <tanggal, oleh>"
+   ```
+
+   The command shows code, brand, name, and price and asks for confirmation; the audit log records `package.activated` with the reason.
+7. Set the Satamu repository variable `PUBLIC_PLATFORM_API_URL=https://platform.prasetyawebworks.web.id` and redeploy Satamu.
+8. Watch the first orders: Transaksi filtered by Satamu, Event Pembayaran, Rekonsiliasi, failed jobs, and the `operations` log.
+
+### Rollback
+
+1. Frontend first: clear `PUBLIC_PLATFORM_API_URL` in the Satamu repository and redeploy. The order form returns to WhatsApp only.
+2. Stop new orders: `php artisan platform:package-deactivate <code> --reason="..."` for each Satamu package.
+3. Do not delete orders, payments, or webhook events. Callbacks, status checks, and reconciliation keep working for attempts already issued.
+4. Roll back a platform release only as described under **Update and rollback**.
+
 ## Verify
 
 ```sh

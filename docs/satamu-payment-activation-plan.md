@@ -57,6 +57,15 @@ Satamu clients send no price or total. `CreateOrder` resolves the amount from th
 - Record manual fulfilment notes until invitation provisioning is automated.
 - Use the existing expiry, reconciliation, incident, backup, and rollback processes.
 
+## Progress (2026-11-06)
+
+| Phase | State |
+|---|---|
+| 1 Gateway baseline | Duitku adapter committed; static analysis, unit, feature, integration, build, and browser gates pass |
+| 2 Satamu contract | Explicit activation, cross-brand refusal, detail allow-list, `SAT-` invoices, Satamu return URL, back-office filters: implemented and tested (`tests/Integration/SatamuPaymentFlowTest.php`) |
+| 3 Integrated staging | Local fake-gateway run from the Satamu site to a paid, confirmed order in the back office: done. Duitku sandbox from Satamu: **not run yet** |
+| 4 Production rollout | Not started; blocked on business approval of packages, themes, event types, privacy and refund text |
+
 ## Delivery phases
 
 ### Phase 1 — Gateway baseline

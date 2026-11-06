@@ -16,6 +16,13 @@ Find the transaction in the report menu of the Duitku dashboard, using the invoi
 | Status pesanan tidak konsisten | Paid but not confirmed, confirmed without payment, or paid more than once | Paid on a cancelled order or paid twice means a **possible refund**: Duitku has no refund service, so transfer manually and note it. Confirmed without payment should not happen: treat as an incident |
 | Transisi tidak valid | Evidence asked for a disallowed or unsupported change | Investigate |
 
+## Satamu orders
+
+- Invoices start with `SAT-`; filter by brand Satamu, package, theme, event type, or event date on Transaksi.
+- Fulfilment is manual in the first release. After `Berhasil` and `Terkonfirmasi`, contact the customer on WhatsApp for the invitation material and record progress as an admin note. Never start work on `Jumlah tidak cocok` or an unconfirmed order.
+- Deactivating a Satamu package stops new orders only. Attempts already issued still receive callbacks and appear here as usual; reconcile them as for Webworks.
+- The customer's status page reads the platform. If a customer says they paid but the page says pending, follow **Lost notification**; never confirm from a screenshot of the Duitku page.
+
 ## Lost notification
 
 1. Confirm in Duitku that it is paid.
