@@ -4,7 +4,7 @@ Status: Draft. These steps have not yet been executed on the target cPanel host,
 
 ## Requirements
 
-PHP 8.3 or newer with `pdo_mysql`, `mbstring`, `openssl`, `bcmath`, `intl`; MySQL 8; HTTPS; document root pointing at `public/`. Build assets on CI or locally if the host has no Node.
+PHP 8.4.1 or newer (the locked Symfony 8 packages require it) with `pdo_mysql`, `mbstring`, `openssl`, `bcmath`, `intl`; MySQL 8; HTTPS; document root pointing at `public/`. Build assets on CI or locally if the host has no Node.
 
 ## Continuous deployment
 
@@ -23,7 +23,7 @@ Repo → **Settings → Secrets and variables → Actions**.
 ### What a deploy does
 
 1. Builds `vendor/` (`composer install --no-dev`) and `public/build` (Vite) on GitHub.
-2. Preflight over SSH: stops before copying anything if `.env` is missing, PHP is older than 8.3, or a required extension is missing.
+2. Preflight over SSH: stops before copying anything if `.env` is missing, PHP is older than 8.4.1, or a required extension is missing.
 3. `php artisan down --retry=30` (skipped on the first deploy). Duitku callbacks in this window get 503 and are retried by Duitku.
 4. `rsync --delete` of the release. Never touched on the server: `.env`, `storage/`, `bootstrap/cache/`, and cPanel's `public/.user.ini`, `public/php.ini`, `public/.well-known/`. `public/.htaccess` is copied only when it does not exist yet, because cPanel may add its PHP handler there.
 5. `migrate --force`, the `ApplicationSeeder` and `PackageSeeder` (names and prices; availability is never changed), `optimize`, `up`.
@@ -36,7 +36,7 @@ If a step after maintenance mode fails, the site **stays in maintenance mode** s
 Once, before the first deploy:
 
 1. cPanel → **MySQL Databases**: create the database and a user with all privileges on it.
-2. cPanel → **MultiPHP Manager**: PHP 8.3 or newer for `platform.prasetyawebworks.web.id`, with the extensions under Requirements. Over SSH, check `php -v`; if it differs, find the right binary (`ls /opt/cpanel/ea-php8*/root/usr/bin/php`) and set the `SERVER_PHP` variable.
+2. cPanel → **MultiPHP Manager**: PHP 8.4 for `platform.prasetyawebworks.web.id`, with the extensions under Requirements. Over SSH, check `php -v`; if it differs, find the right binary (`ls /opt/cpanel/ea-php8*/root/usr/bin/php`, use ea-php84 or newer) and set the `SERVER_PHP` variable.
 3. Document root: `/home/prasetya/public_html/platform.prasetyawebworks.web.id/public`.
 4. Create `~/public_html/platform.prasetyawebworks.web.id/.env` with the values under **Production environment**, the database credentials, and an `APP_KEY` made locally with `php artisan key:generate --show`. Keep it `chmod 600`.
 5. Run the workflow (**Actions → CI → Run workflow**, or push to `main`).

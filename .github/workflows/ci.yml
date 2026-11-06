@@ -129,7 +129,8 @@ jobs:
             echo "::error::$DEPLOY_PATH/.env does not exist. Do the first-time setup in docs/runbooks/deployment.md."
             exit 1
           fi
-          "$SERVER_PHP" -r 'exit(version_compare(PHP_VERSION, "8.3.0", ">=") ? 0 : 1);' || { echo "::error::$SERVER_PHP is older than 8.3: set the SERVER_PHP variable"; exit 1; }
+          # composer.lock needs PHP 8.4.1 (Symfony 8).
+          "$SERVER_PHP" -r 'exit(version_compare(PHP_VERSION, "8.4.1", ">=") ? 0 : 1);' || { echo "::error::$SERVER_PHP is PHP $("$SERVER_PHP" -r 'echo PHP_VERSION;'), older than 8.4.1: set the SERVER_PHP variable"; exit 1; }
           missing=$("$SERVER_PHP" -r 'echo implode(" ", array_diff(["pdo_mysql","mbstring","openssl","bcmath","intl","ctype","fileinfo","tokenizer","xml"], array_map("strtolower", get_loaded_extensions())));')
           if [ -n "$missing" ]; then echo "::error::Missing PHP extensions on the server: $missing"; exit 1; fi
           echo "Server ready: PHP $("$SERVER_PHP" -r 'echo PHP_VERSION;')"
