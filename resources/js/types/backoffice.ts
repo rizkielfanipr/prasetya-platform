@@ -196,10 +196,28 @@ export interface TransactionFilters {
     payment_status: PaymentStatus | null;
     order_status: OrderStatus | null;
     payment_method: string | null;
+    package: string | null;
+    theme_code: string | null;
+    event_type: string | null;
+    event_date: string | null;
     date_from: string | null;
     date_to: string | null;
     sort: string | null;
     direction: 'asc' | 'desc' | null;
+}
+
+export interface PackageOption {
+    value: string;
+    label: string;
+    brand: Brand;
+}
+
+/** Filter choices the transaction list offers; built server-side from stored values. */
+export interface TransactionFilterOptions {
+    paymentMethods: string[];
+    packages: PackageOption[];
+    themeCodes: string[];
+    eventTypes: string[];
 }
 
 export interface ReconciliationIssue {

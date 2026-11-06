@@ -20,7 +20,7 @@ Activate Satamu as the second production application on the existing order and D
 - Satamu return URL and CORS origin configuration.
 - Shared checkout, callback, payment status, back-office filtering, and reconciliation.
 
-Satamu packages are intentionally inactive in production because the current frontend labels their content and prices as dummy. Activation must not happen until product approval.
+Satamu packages are created inactive in every environment because the current frontend labels their content and prices as dummy. Activation is an explicit, audited catalogue change (`php artisan platform:package-activate <code> --reason=...`) and must not happen in production until product approval.
 
 ## Scope
 
@@ -28,7 +28,7 @@ Satamu packages are intentionally inactive in production because the current fro
 
 - Approve package names, prices, features, revision limits, and service periods.
 - Keep package codes permanent.
-- Replace the environment-dependent production deactivation with an explicit catalogue activation mechanism.
+- Explicit catalogue activation: `PackageSeeder` creates Satamu packages inactive and never changes `is_active` on an existing package. `platform:package-activate` and `platform:package-deactivate` call `SetPackageAvailability`, which requires a reason and records `package.activated` / `package.deactivated` in the audit log.
 - Reject a package when its application does not match the order's `application_code`.
 
 ### Public API

@@ -36,7 +36,7 @@ ADMIN_PASSWORD=...                         # remove after first seed
 
 Change `trustProxies(at: '*')` in `bootstrap/app.php` to the real proxy addresses before going live, or remove it if there is none.
 
-The demo seeder refuses to run here, and Satamu's dummy packages stay inactive until real prices are entered.
+The demo seeder refuses to run here. Satamu packages are created inactive and re-seeding never changes availability; activate them only with `php artisan platform:package-activate <code> --reason=...` after the prices are approved.
 
 ## Cron
 

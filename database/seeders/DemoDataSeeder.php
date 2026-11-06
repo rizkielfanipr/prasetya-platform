@@ -10,6 +10,7 @@ use App\Domain\Brands\Enums\ApplicationCode;
 use App\Domain\Orders\Actions\CreateOrder;
 use App\Domain\Orders\Data\CreateOrderData;
 use App\Domain\Orders\Models\Order;
+use App\Domain\Packages\Actions\SetPackageAvailability;
 use App\Domain\Packages\Models\Package;
 use App\Domain\Payments\Actions\ProcessGatewayNotification;
 use App\Domain\Payments\Actions\StartCheckout;
@@ -46,6 +47,12 @@ class DemoDataSeeder extends Seeder
         }
 
         $sender = app(FakeNotificationSender::class);
+
+        // Packages start inactive until approved. Local demo orders need them, so they are switched on through the
+        // same audited action an operator uses; this seeder never runs outside local and testing (checked above).
+        foreach (Package::query()->where('is_active', false)->pluck('code') as $code) {
+            app(SetPackageAvailability::class)($code, true, 'Data demo lokal');
+        }
 
         foreach ([['demo.admin', 'Admin Demo', Role::SuperAdmin], ['demo.finance', 'Finance Demo', Role::Finance], ['demo.ops', 'Operasional Demo', Role::Operations]] as [$local, $name, $role]) {
             User::query()->firstOrCreate(['email' => "{$local}@example.test"], ['name' => $name, 'password' => self::PASSWORD, 'role' => $role]);

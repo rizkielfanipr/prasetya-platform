@@ -27,7 +27,7 @@ Status: Proposed. Must be reviewed before production payments are enabled.
 | XSS | Vue escaping, `v-html` banned by lint, production CSP | ESLint | CSP keeps `style-src 'unsafe-inline'` for attribute styles |
 | Secrets in logs or pages | Redacting log processor, `SensitiveParameter`, config never shared, sanitised storage | Logging and settings tests | Only key-name based: a secret inside a free-text message would pass |
 | Fake gateway reaching production | Refuses to boot when `APP_ENV=production` | Test | |
-| Dummy Satamu prices sold | Inactive when seeded in production | Test | Must be replaced before enabling |
+| Dummy Satamu prices sold | Created inactive in every environment; re-seeding never changes availability; activation only through the audited `platform:package-activate` command with a reason and confirmation | Test | Must be replaced before enabling |
 | Audit tampering | Append-only models | Test | Not enforced in the database. Consider revoking UPDATE and DELETE for the app's MySQL user |
 | Vulnerable dependencies | `npm audit` and `composer audit` | Run manually | Add to CI schedule |
 

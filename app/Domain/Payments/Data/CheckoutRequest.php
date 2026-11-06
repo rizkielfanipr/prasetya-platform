@@ -13,7 +13,7 @@ final readonly class CheckoutRequest
         public string $invoiceNumber,
         public Money $amount,
         public int $dueInMinutes,
-        public string $callbackUrl,
+        public string $returnUrl,
         public string $customerName,
         public string $customerEmail,
         public ?string $customerPhone,

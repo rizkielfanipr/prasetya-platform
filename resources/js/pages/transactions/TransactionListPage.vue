@@ -9,15 +9,15 @@ import TransactionFilterBar from '@/features/transactions/TransactionFilterBar.v
 import TransactionTable from '@/features/transactions/TransactionTable.vue';
 import { copy } from '@/lib/copy';
 import { routes } from '@/lib/routes';
-import type { Paginated, TransactionFilters, TransactionRow } from '@/types/backoffice';
+import type { Paginated, TransactionFilterOptions, TransactionFilters, TransactionRow } from '@/types/backoffice';
 import { computed } from 'vue';
 
-const props = defineProps<{ filters: TransactionFilters; paymentMethods: string[]; transactions: Paginated<TransactionRow> }>();
+const props = defineProps<TransactionFilterOptions & { filters: TransactionFilters; transactions: Paginated<TransactionRow> }>();
 
 const { apply, applyDebounced, loading, failed } = useUrlFilters(
     () => routes.transactions,
     () => ({ ...props.filters }),
-    ['filters', 'transactions', 'paymentMethods'],
+    ['filters', 'transactions', 'paymentMethods', 'packages', 'themeCodes', 'eventTypes'],
 );
 
 const hasFilters = computed(() => Object.entries(props.filters).some(([key, value]) => value && !['sort', 'direction', 'page'].includes(key)));
@@ -28,12 +28,30 @@ function toggleSort(key: string): void {
 }
 
 const clearFilters = (): void =>
-    apply({ search: null, brand: null, payment_status: null, order_status: null, payment_method: null, date_from: null, date_to: null, page: null });
+    apply({
+        search: null,
+        brand: null,
+        payment_status: null,
+        order_status: null,
+        payment_method: null,
+        package: null,
+        theme_code: null,
+        event_type: null,
+        event_date: null,
+        date_from: null,
+        date_to: null,
+        page: null,
+    });
 </script>
 
 <template>
     <AppLayout title="Transaksi" description="Pesanan dan pembayaran dari kedua brand">
-        <TransactionFilterBar :filters="filters" :payment-methods="paymentMethods" @change="apply" @search="applyDebounced({ search: $event, page: null })" />
+        <TransactionFilterBar
+            :filters="filters"
+            :options="{ paymentMethods, packages, themeCodes, eventTypes }"
+            @change="apply"
+            @search="applyDebounced({ search: $event, page: null })"
+        />
         <PanelCard flush>
             <TransactionTable
                 :rows="transactions.data"

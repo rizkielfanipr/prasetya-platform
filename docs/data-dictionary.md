@@ -9,7 +9,7 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `applications` | Brands: `WEBWORKS`, `SATAMU` | Unique `code`, `invoice_prefix` |
 | `users` | Back-office accounts | `role`: `SUPER_ADMIN`, `FINANCE`, `OPERATIONS`. Inactive users cannot sign in |
 | `customers` | Customer per brand | Unique (`application_id`, `email`). Never overwritten by public input |
-| `packages` | Authoritative catalogue | Unique stable `code`, `price_amount` |
+| `packages` | Authoritative catalogue | Unique stable `code`, `price_amount`. `is_active` is catalogue state: set once when the seeder creates a package (Satamu starts `false`) and changed afterwards only by `SetPackageAvailability`, which writes an audit entry. Inactive packages cannot be ordered; their existing orders and payments are unaffected |
 | `invoice_sequences` | Per-brand, per-month counter | Unique (`application_id`, `period`), row-locked |
 | `orders` | One purchase | Unique `invoice_number`, own `status`, snapshot of customer contact |
 | `order_items` | Package snapshot | Code, name, and price copied at order time |

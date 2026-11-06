@@ -115,7 +115,7 @@ final class DuitkuClient implements PaymentGateway
             ]],
             'customerDetail' => ['firstName' => Str::limit($request->customerName, 50, ''), ...$contact],
             'callbackUrl' => $this->config->callbackUrl,
-            'returnUrl' => $request->callbackUrl,
+            'returnUrl' => $request->returnUrl,
             'expiryPeriod' => $request->dueInMinutes,
             'paymentMethod' => $this->config->paymentMethod,
         ], static fn (mixed $value): bool => $value !== null);

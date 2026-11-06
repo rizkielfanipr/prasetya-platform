@@ -27,10 +27,7 @@ return [
         'no_attempt_after_minutes' => (int) env('RECONCILIATION_NO_ATTEMPT_MINUTES', 30),
     ],
 
-    'cors_allowed_origins' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env('CORS_ALLOWED_ORIGINS', 'https://prasetyawebworks.web.id,https://satamu.prasetyawebworks.web.id')),
-    ))),
+    // Allowed browser origins live in config/cors.php, read by both the CORS middleware and EnforceApiOrigin.
 
     'admin' => [
         'name' => env('ADMIN_NAME', 'Super Admin'),

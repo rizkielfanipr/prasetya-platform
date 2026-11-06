@@ -46,6 +46,8 @@ it('keeps the snapshot when the catalogue price later changes', function (): voi
 });
 
 it('uses the SAT prefix and Satamu details for Satamu orders', function (): void {
+    activateSatamuPackages();
+
     postOrder([
         'application_code' => 'SATAMU',
         'package_code' => 'SAT-SPESIAL',

@@ -70,12 +70,23 @@ it('creates no admin without configured credentials', function (): void {
     expect(User::query()->count())->toBe(0);
 });
 
-it('keeps Satamu dummy packages inactive in production', function (): void {
-    app()->detectEnvironment(fn () => 'production');
+it('creates Satamu packages inactive in every environment', function (string $environment): void {
+    Package::query()->delete();
+    app()->detectEnvironment(fn () => $environment);
     (new PackageSeeder)->run();
 
-    expect(Package::query()->where('code', 'SAT-SPESIAL')->value('is_active'))->toBeFalse()
+    expect(Package::query()->where('code', 'like', 'SAT-%')->pluck('is_active')->unique()->all())->toBe([false])
         ->and(Package::query()->where('code', 'PW-COMPANY-PROFILE')->value('is_active'))->toBeTrue();
+})->with(['production', 'local', 'staging', 'testing']);
+
+it('never changes availability when the catalogue is seeded again', function (): void {
+    activateSatamuPackages();
+    Package::query()->where('code', 'PW-COMPANY-PROFILE')->update(['is_active' => false]);
+
+    (new PackageSeeder)->run();
+
+    expect(Package::query()->where('code', 'SAT-SPESIAL')->value('is_active'))->toBeTrue()
+        ->and(Package::query()->where('code', 'PW-COMPANY-PROFILE')->value('is_active'))->toBeFalse();
 });
 
 it('writes operational logs without sensitive values', function (): void {

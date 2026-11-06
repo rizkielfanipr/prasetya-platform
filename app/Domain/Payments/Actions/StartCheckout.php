@@ -119,7 +119,7 @@ final class StartCheckout
                 invoiceNumber: $payment->gateway_invoice_number,
                 amount: new Money($payment->amount, $payment->currency),
                 dueInMinutes: $due,
-                callbackUrl: (string) config('platform.return_urls.'.$order->application->code->value).'?order='.$order->public_id,
+                returnUrl: (string) config('platform.return_urls.'.$order->application->code->value).'?order='.$order->public_id,
                 customerName: $order->customer_name,
                 customerEmail: $order->customer_email,
                 customerPhone: $order->customer_phone,

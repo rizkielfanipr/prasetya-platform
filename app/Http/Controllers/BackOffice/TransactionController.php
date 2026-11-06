@@ -28,8 +28,8 @@ final class TransactionController
         $filters = $request->validated();
 
         return Inertia::render('transactions/TransactionListPage', [
-            'filters' => array_merge(array_fill_keys(['search', 'brand', 'payment_status', 'order_status', 'payment_method', 'date_from', 'date_to', 'sort', 'direction'], null), $filters),
-            'paymentMethods' => Payment::query()->whereNotNull('payment_method')->distinct()->orderBy('payment_method')->pluck('payment_method'),
+            'filters' => array_merge(array_fill_keys(['search', 'brand', 'payment_status', 'order_status', 'payment_method', 'package', 'theme_code', 'event_type', 'event_date', 'date_from', 'date_to', 'sort', 'direction'], null), $filters),
+            ...$query->filterOptions(),
             'transactions' => Paginated::present($query->paginate($filters), TransactionPresenter::row(...)),
         ]);
     }

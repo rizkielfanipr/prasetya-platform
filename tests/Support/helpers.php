@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use App\Domain\Orders\Models\Order;
+use App\Domain\Packages\Actions\SetPackageAvailability;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Data\GatewayEvidence;
 use App\Domain\Payments\Enums\GatewayStatus;
@@ -22,6 +23,25 @@ function fakeGateway(): FakeGateway
 function admin(Role $role = Role::SuperAdmin): User
 {
     return User::factory()->role($role)->create();
+}
+
+/** Satamu packages start inactive; tests switch them on the way an operator does. */
+function activateSatamuPackages(): void
+{
+    foreach (['SAT-SEDERHANA', 'SAT-SPESIAL', 'SAT-ISTIMEWA'] as $code) {
+        app(SetPackageAvailability::class)($code, true, 'Test');
+    }
+}
+
+/** @return array<string, mixed> */
+function satamuOrderPayload(array $overrides = []): array
+{
+    return array_replace_recursive([
+        'application_code' => 'SATAMU',
+        'package_code' => 'SAT-SPESIAL',
+        'customer' => ['name' => 'Sari Lestari', 'email' => 'sari@example.test', 'phone' => '628123456789'],
+        'details' => ['theme_code' => 'T01', 'event_type' => 'wedding', 'event_date' => '2027-02-20', 'notes' => null],
+    ], $overrides);
 }
 
 /** @return array<string, mixed> */
