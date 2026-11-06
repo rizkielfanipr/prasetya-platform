@@ -12,7 +12,7 @@ const props = defineProps<{ admin: SettingsAdmin }>();
 
 const columns: DataTableColumn[] = [
     { key: 'name', label: 'Nama' },
-    { key: 'email', label: 'Email' },
+    { key: 'username', label: 'Username' },
     { key: 'role', label: 'Peran' },
     { key: 'active', label: 'Status' },
     { key: 'lastLogin', label: 'Masuk terakhir' },
@@ -82,7 +82,7 @@ const gatewayStatus = computed<StatusDefinition>(() => {
             <template #cell-name="{ row }"
                 ><span class="whitespace-nowrap">{{ row.name }}</span></template
             >
-            <template #cell-email="{ row }">{{ row.email }}</template>
+            <template #cell-username="{ row }">{{ row.username }}</template>
             <template #cell-role="{ row }"
                 ><span class="whitespace-nowrap">{{ roleLabels[row.role] }}</span></template
             >

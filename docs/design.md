@@ -172,10 +172,10 @@ Do not invent additional shadow tiers.
 
 ### Form
 
-- Visible labels for email and password.
+- Visible labels for username and password. The username field has `autocomplete="username"` and no auto-capitalisation.
 - Inputs are `48px` high with `12px` radius.
 - Password input includes a show/hide control with an accessible label.
-- `Ingat saya` sits opposite `Lupa kata sandi?`.
+- `Ingat saya` sits opposite the hint *Lupa kata sandi? Hubungi admin lain.* There is no email reset ([ADR-0009](decisions/0009-single-access-users-username-login.md)).
 - Submit button is full-width, `48px` high, orange, with white text.
 - Validation errors appear below the related field and are announced to assistive technology.
 - Loading state disables repeat submission and keeps the button label understandable.

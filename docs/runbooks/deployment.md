@@ -42,7 +42,7 @@ Once, before the first deploy:
 3. Document root: `/home/prasetya/public_html/platform.prasetyawebworks.web.id/public`.
 4. Create `~/public_html/platform.prasetyawebworks.web.id/.env` with the values under **Production environment**, the database credentials, and an `APP_KEY` made locally with `php artisan key:generate --show`. Keep it `chmod 600`.
 5. Run the workflow (**Actions → CI → Run workflow**, or push to `main`).
-6. After the first successful deploy, over SSH in the release folder: `php artisan platform:create-admin <email> "<name>"`, then add the cron entry below.
+6. After the first successful deploy, over SSH in the release folder: `php artisan platform:create-admin <username> "<name>"` (the username cannot be changed later), then add the cron entry below.
 7. Verify as under **Verify**, including that `https://platform.prasetyawebworks.web.id/.env` answers 404 or 403.
 
 ## First deploy by hand
@@ -71,7 +71,7 @@ DUITKU_ENVIRONMENT=production
 DUITKU_MERCHANT_CODE=...
 DUITKU_API_KEY=...
 CORS_ALLOWED_ORIGINS=https://prasetyawebworks.web.id,https://satamu.prasetyawebworks.web.id
-ADMIN_EMAIL=...
+ADMIN_USERNAME=...
 ADMIN_PASSWORD=...                         # remove after first seed
 ```
 
@@ -147,6 +147,18 @@ php artisan up
 ```
 
 With CI, roll back by opening the last good run in **Actions** and choosing **Re-run all jobs**: it deploys that run's commit. Migrations are not reversed by this. Otherwise roll back by redeploying the previous release. Do not run `migrate:rollback` on production without a fresh backup: it can destroy payment evidence. Prefer a forward fix.
+
+## Back-office accounts
+
+Users sign in with a username ([ADR-0009](../decisions/0009-single-access-users-username-login.md)). On the server, in the release folder (`$PHP` is `/opt/cpanel/ea-php84/root/usr/bin/php`):
+
+```sh
+$PHP artisan platform:list-users                       # username, name, status, last sign-in
+$PHP artisan platform:create-admin <username> "<name>" # asks for the password twice
+$PHP artisan platform:reset-password <username>        # new password, ends that user's sessions
+```
+
+The release that introduced usernames derived them from the old email addresses (the part before `@`, with `-2`, `-3`, … on collisions). Run `platform:list-users` after deploying it and give each person their username privately. There is no email password reset: another user sets a new password, or use `platform:reset-password`.
 
 ## Backup and restore
 

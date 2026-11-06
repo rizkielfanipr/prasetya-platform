@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Http\Controllers\BackOffice\AdminNoteController;
 use App\Http\Controllers\BackOffice\AuditLogController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
-use App\Http\Controllers\BackOffice\Auth\PasswordResetController;
 use App\Http\Controllers\BackOffice\DashboardController;
 use App\Http\Controllers\BackOffice\PaymentEventController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
@@ -19,10 +18,6 @@ Route::redirect('/', '/dashboard');
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [LoginController::class, 'create'])->name('login');
     Route::post('login', [LoginController::class, 'store'])->name('login.store');
-    Route::get('forgot-password', [PasswordResetController::class, 'requestForm'])->name('password.request');
-    Route::post('forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:password-reset')->name('password.email');
-    Route::get('reset-password/{token}', [PasswordResetController::class, 'resetForm'])->name('password.reset');
-    Route::post('reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:password-reset')->name('password.update');
 });
 
 Route::middleware('auth')->group(function (): void {

@@ -6,9 +6,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { routes } from '@/lib/routes';
-import { Link, useForm } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 
-const form = useForm({ email: '', password: '', remember: false });
+const form = useForm({ username: '', password: '', remember: false });
 
 function submit(): void {
     form.post(routes.login, { onFinish: () => form.reset('password') });
@@ -17,14 +17,14 @@ function submit(): void {
 
 <template>
     <form class="space-y-4" novalidate @submit.prevent="submit">
-        <FormField id="email" v-slot="{ describedBy, invalid }" label="Email" :error="form.errors.email">
+        <FormField id="username" v-slot="{ describedBy, invalid }" label="Username" :error="form.errors.username">
             <Input
-                id="email"
-                v-model="form.email"
-                type="email"
+                id="username"
+                v-model="form.username"
                 class="h-12"
-                placeholder="nama@perusahaan.com"
                 autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
                 required
                 autofocus
                 :aria-describedby="describedBy"
@@ -46,7 +46,8 @@ function submit(): void {
                 <Checkbox id="remember" v-model="form.remember" class="border-input-strong" />
                 <Label for="remember" class="font-normal">Ingat saya</Label>
             </div>
-            <Link :href="routes.forgotPassword" class="text-sm font-medium text-primary-text hover:underline">Lupa kata sandi?</Link>
+            <!-- No email reset (ADR-0009): another user sets a new password in Pengguna. -->
+            <p class="text-sm text-muted-foreground">Lupa kata sandi? Hubungi admin lain.</p>
         </div>
         <Button type="submit" class="h-12 w-full rounded-md text-base font-semibold" :disabled="form.processing" :aria-busy="form.processing">
             {{ form.processing ? 'Memeriksa…' : 'Masuk' }}

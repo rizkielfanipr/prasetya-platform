@@ -9,7 +9,7 @@ import type { AuthUser } from '@/types/backoffice';
 import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps<{ user: AuthUser }>();
-const form = useForm({ name: props.user.name, email: props.user.email });
+const form = useForm({ name: props.user.name });
 </script>
 
 <template>
@@ -18,16 +18,8 @@ const form = useForm({ name: props.user.name, email: props.user.email });
             <FormField id="profile-name" v-slot="{ describedBy, invalid }" label="Nama" :error="form.errors.name">
                 <Input id="profile-name" v-model="form.name" class="h-11" autocomplete="name" :aria-describedby="describedBy" :aria-invalid="invalid" />
             </FormField>
-            <FormField id="profile-email" v-slot="{ describedBy, invalid }" label="Email" :error="form.errors.email">
-                <Input
-                    id="profile-email"
-                    v-model="form.email"
-                    type="email"
-                    class="h-11"
-                    autocomplete="username"
-                    :aria-describedby="describedBy"
-                    :aria-invalid="invalid"
-                />
+            <FormField id="profile-username" v-slot="{ describedBy }" label="Username" hint="Username tidak dapat diubah.">
+                <Input id="profile-username" :model-value="user.username" class="h-11" readonly :aria-describedby="describedBy" />
             </FormField>
             <Button type="submit" :disabled="form.processing || !form.isDirty">{{ form.processing ? copy.saving : copy.save }}</Button>
         </form>

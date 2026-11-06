@@ -42,7 +42,7 @@ export interface Paginated<T> {
 export interface AuthUser {
     id: string;
     name: string;
-    email: string;
+    username: string;
     role: Role;
 }
 
@@ -234,7 +234,7 @@ export interface ReconciliationIssue {
 }
 
 export interface SettingsAdmin {
-    users: { id: string; name: string; email: string; role: Role; isActive: boolean; lastLoginAt: string | null }[];
+    users: { id: string; name: string; username: string; role: Role; isActive: boolean; lastLoginAt: string | null }[];
     gateway: { driver: string; environment: string; configured: boolean; notificationPath: string };
     application: { environment: string; timezone: string; allowedOrigins: string[]; pendingThresholdMinutes: number; failedJobs: number };
 }

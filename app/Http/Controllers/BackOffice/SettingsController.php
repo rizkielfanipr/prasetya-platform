@@ -13,7 +13,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Failed\CountableFailedJobProvider;
 use Illuminate\Queue\Failed\FailedJobProviderInterface;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,7 +29,7 @@ final class SettingsController
                 'users' => User::query()->orderBy('name')->get()->map(static fn (User $u): array => [
                     'id' => $u->public_id,
                     'name' => $u->name,
-                    'email' => $u->email,
+                    'username' => $u->username,
                     'role' => $u->role->value,
                     'isActive' => $u->is_active,
                     'lastLoginAt' => $u->last_login_at?->toIso8601ZuluString(),
@@ -57,12 +56,10 @@ final class SettingsController
     {
         /** @var User $user */
         $user = $request->user();
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-        ]);
+        // Name only: the username never changes and the email is hidden (ADR-0009).
+        $validated = $request->validate(['name' => ['required', 'string', 'max:255']]);
 
-        $user->update($validated);
+        $user->update(['name' => $validated['name']]);
         $audit('user.profile_updated', 'user', $user->public_id, $user);
 
         return back()->with('success', 'Profil diperbarui.');

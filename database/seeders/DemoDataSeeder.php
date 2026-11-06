@@ -54,8 +54,8 @@ class DemoDataSeeder extends Seeder
             app(SetPackageAvailability::class)($code, true, 'Data demo lokal');
         }
 
-        foreach ([['demo.admin', 'Admin Demo', Role::SuperAdmin], ['demo.finance', 'Finance Demo', Role::Finance], ['demo.ops', 'Operasional Demo', Role::Operations]] as [$local, $name, $role]) {
-            User::query()->firstOrCreate(['email' => "{$local}@example.test"], ['name' => $name, 'password' => self::PASSWORD, 'role' => $role]);
+        foreach ([['demo', 'Admin Demo', Role::SuperAdmin], ['demo-finance', 'Finance Demo', Role::Finance], ['demo-ops', 'Operasional Demo', Role::Operations]] as [$username, $name, $role]) {
+            User::query()->firstOrCreate(['username' => $username], ['name' => $name, 'password' => self::PASSWORD, 'role' => $role]);
         }
 
         mt_srand(20261101);

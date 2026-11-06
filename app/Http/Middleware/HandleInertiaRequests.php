@@ -27,7 +27,7 @@ final class HandleInertiaRequests extends Middleware
                 'user' => $user instanceof User ? [
                     'id' => $user->public_id,
                     'name' => $user->name,
-                    'email' => $user->email,
+                    'username' => $user->username,
                     'role' => $user->role->value,
                 ] : null,
                 // Display hints only. Every one of these is enforced again by a policy on the server.

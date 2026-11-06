@@ -21,7 +21,6 @@ use App\Policies\OrderPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\WebhookEventPolicy;
 use App\Support\RequestContext;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -60,8 +59,6 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(static fn () => Password::min(12)->letters()->numbers());
         Factory::guessFactoryNamesUsing(static fn (string $model): string => 'Database\\Factories\\'.class_basename($model).'Factory');
 
-        ResetPassword::createUrlUsing(static fn (User $user, string $token): string => route('password.reset', ['token' => $token, 'email' => $user->email]));
-
         Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(WebhookEvent::class, WebhookEventPolicy::class);
@@ -72,6 +69,5 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', static fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->ip()));
         RateLimiter::for('api-mutations', static fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
         RateLimiter::for('webhooks', static fn (Request $request): Limit => Limit::perMinute(120)->by((string) $request->ip()));
-        RateLimiter::for('password-reset', static fn (Request $request): Limit => Limit::perMinute(5)->by((string) $request->ip()));
     }
 }

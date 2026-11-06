@@ -21,7 +21,7 @@ Status: Proposed. Must be reviewed before production payments are enabled.
 | Spam filling `webhook_events` | 120 per minute per IP, 64 KB cap, unverified bodies not stored | Tests | Rows still accumulate during an attack: no retention job yet |
 | Rate limits behind a proxy | `trustProxies('*')` so client IP is read from forwarded headers | | **Must be narrowed to the real proxy at deployment.** With `*`, a directly reachable app lets a client spoof its IP and evade limits |
 | Stolen admin session | Encrypted session, HttpOnly, SameSite Lax, Secure in production, regeneration on login | `AuthTest` | No 2FA. Recommended before many users |
-| Password guessing | 5 attempts per minute per email and IP, generic error, 12-character minimum | `AuthTest` | |
+| Password guessing | 5 attempts per minute per username and IP plus 20 per minute per IP, the same generic error for unknown usernames and wrong passwords, 12-character minimum | `AuthTest` | |
 | Privilege escalation | Server policies on every route, evidence and audit props withheld by role | Role matrix tests | |
 | CSRF | Laravel token on all web mutations; webhook and API are outside the web group | Framework | |
 | XSS | Vue escaping, `v-html` banned by lint, production CSP | ESLint | CSP keeps `style-src 'unsafe-inline'` for attribute styles |

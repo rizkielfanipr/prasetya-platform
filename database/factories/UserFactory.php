@@ -22,7 +22,7 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'username' => 'user-'.fake()->unique()->numerify('######'),
             'password' => static::$password ??= Hash::make('password-for-tests-1'),
             'role' => Role::SuperAdmin,
             'is_active' => true,

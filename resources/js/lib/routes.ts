@@ -2,8 +2,6 @@
 export const routes = {
     login: '/login',
     logout: '/logout',
-    forgotPassword: '/forgot-password',
-    resetPassword: '/reset-password',
     dashboard: '/dashboard',
     transactions: '/transactions',
     transaction: (id: string) => `/transactions/${id}`,
