@@ -4,6 +4,7 @@ import DataTable, { type DataTableColumn } from '@/components/shared/DataTable.v
 import EmptyState from '@/components/shared/EmptyState.vue';
 import OrderStatusBadge from '@/components/shared/OrderStatusBadge.vue';
 import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge.vue';
+import { copy } from '@/lib/copy';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import { rejectionLabels } from '@/lib/status';
@@ -39,7 +40,10 @@ const columns: DataTableColumn[] = [
     >
         <template #cell-invoice="{ row }">
             <Link v-if="row.orderId" :href="routes.transaction(row.orderId)" class="whitespace-nowrap hover:underline">{{ row.invoice }}</Link>
-            <span v-else class="whitespace-nowrap">{{ row.invoice ?? 'Tidak diketahui' }}</span>
+            <span v-else class="whitespace-nowrap"
+                >{{ row.invoice ?? 'Tidak diketahui'
+                }}<span class="block text-xs text-muted-foreground" data-testid="no-transaction">{{ copy.noTransaction }}</span></span
+            >
         </template>
         <template #cell-brand="{ row }"><BrandBadge v-if="row.brand" :brand="row.brand" /><span v-else>—</span></template>
         <template #cell-amount="{ row }">{{ formatCurrency(row.amount) }}</template>

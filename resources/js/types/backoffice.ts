@@ -256,6 +256,16 @@ export interface UserRow {
     createdAt: string;
 }
 
+export interface PaymentEventFilters {
+    search: string | null;
+    status: WebhookStatus | null;
+    date_from: string | null;
+    date_to: string | null;
+}
+
+/** Views of the Transaksi workspace (ADR-0010), in the URL as ?view=. */
+export type TransactionWorkspaceView = 'all' | 'attention' | 'events';
+
 export interface UserFilters {
     search: string | null;
     status: 'active' | 'inactive' | null;

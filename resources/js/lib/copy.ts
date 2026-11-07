@@ -23,6 +23,7 @@ export const copy = {
     networkError: 'Koneksi terputus. Periksa jaringan Anda, lalu coba lagi.',
     forbiddenTitle: 'Akses ditolak',
     forbiddenBody: 'Anda tidak memiliki izin untuk membuka halaman ini.',
+    noTransaction: 'Transaksi tidak ditemukan',
     notFoundTitle: 'Halaman tidak ditemukan',
     notFoundBody: 'Data yang Anda cari tidak ada atau sudah dipindahkan.',
     serverErrorTitle: 'Terjadi kesalahan',

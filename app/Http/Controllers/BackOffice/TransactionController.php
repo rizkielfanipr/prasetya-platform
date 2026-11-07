@@ -8,26 +8,32 @@ use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Models\WebhookEvent;
 use App\Domain\Payments\Queries\ReconciliationReport;
-use App\Domain\Payments\Queries\TransactionQuery;
 use App\Http\Presenters\ReconciliationPresenter;
 use App\Http\Presenters\TransactionActivityPresenter;
 use App\Http\Presenters\TransactionPresenter;
-use App\Http\Requests\BackOffice\TransactionFilterRequest;
-use App\Support\Paginated;
+use App\Http\Workspace\AllTransactionsView;
+use App\Http\Workspace\AttentionView;
+use App\Http\Workspace\PaymentEventsView;
+use App\Http\Workspace\TransactionWorkspaceView;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final class TransactionController
 {
-    public function index(TransactionFilterRequest $request, TransactionQuery $query): Response
+    /**
+     * The Transaksi workspace (ADR-0010): one route, three views. Each view validates its own filters and builds its own
+     * props, so a filter of one view never reaches another.
+     */
+    public function index(Request $request, AllTransactionsView $all, AttentionView $attention, PaymentEventsView $events): Response
     {
-        $filters = $request->validated();
+        $view = TransactionWorkspaceView::fromQuery($request->query('view'));
 
-        return Inertia::render('transactions/TransactionListPage', [
-            'filters' => array_merge(array_fill_keys(['search', 'brand', 'payment_status', 'order_status', 'payment_method', 'package', 'theme_code', 'event_type', 'event_date', 'date_from', 'date_to', 'sort', 'direction'], null), $filters),
-            ...$query->filterOptions(),
-            'transactions' => Paginated::present($query->paginate($filters), TransactionPresenter::row(...)),
-        ]);
+        return Inertia::render('transactions/TransactionWorkspacePage', ['view' => $view->value, ...match ($view) {
+            TransactionWorkspaceView::All => $all->props($request),
+            TransactionWorkspaceView::Attention => $attention->props($request),
+            TransactionWorkspaceView::Events => $events->props($request),
+        }]);
     }
 
     public function show(Order $order, ReconciliationReport $report): Response

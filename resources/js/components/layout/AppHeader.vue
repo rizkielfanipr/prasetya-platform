@@ -43,7 +43,7 @@ function submitSearch(): void {
         </form>
 
         <Link
-            :href="routes.reconciliation"
+            :href="routes.transactionsAttention"
             class="relative flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-muted"
             :aria-label="copy.issuesLabel(issues)"
         >
