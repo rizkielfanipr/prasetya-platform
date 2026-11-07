@@ -4,7 +4,6 @@ import DataTable, { type DataTableColumn } from '@/components/shared/DataTable.v
 import EmptyState from '@/components/shared/EmptyState.vue';
 import OrderStatusBadge from '@/components/shared/OrderStatusBadge.vue';
 import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge.vue';
-import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import { rejectionLabels } from '@/lib/status';
@@ -15,8 +14,6 @@ import GatewayCheckDialog from './GatewayCheckDialog.vue';
 
 defineProps<{ rows: ReconciliationIssue[]; loading?: boolean; failed?: boolean }>();
 defineEmits<{ retry: [] }>();
-
-const { can } = usePermissions();
 
 const columns: DataTableColumn[] = [
     { key: 'invoice', label: 'Invoice' },
@@ -53,11 +50,7 @@ const columns: DataTableColumn[] = [
             ><span class="whitespace-nowrap">{{ formatDateTime(row.at) }}</span></template
         >
         <template #cell-actions="{ row }">
-            <GatewayCheckDialog
-                v-if="row.checkablePaymentId && can('reconciliation.gateway-check')"
-                :payment-id="row.checkablePaymentId"
-                :invoice="row.invoice"
-            />
+            <GatewayCheckDialog v-if="row.checkablePaymentId" :payment-id="row.checkablePaymentId" :invoice="row.invoice" />
         </template>
         <template #empty
             ><EmptyState :icon="CheckCircle2" title="Tidak ada isu di kelompok ini" description="Tidak ada catatan yang perlu ditinjau saat ini."

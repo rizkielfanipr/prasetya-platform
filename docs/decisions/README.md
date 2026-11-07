@@ -57,3 +57,4 @@ How will the decision be verified in implementation and operation?
 | [0006](0006-money-identifiers-idempotency.md) | Integer rupiah, public ULIDs, and reference-based idempotency | Proposed |
 | [0007](0007-duitku-gateway.md) | Use Duitku Pop as the only payment gateway | Proposed |
 | [0008](0008-satamu-payment-activation.md) | Activate Satamu on the shared order and payment core | Proposed |
+| [0009](0009-single-access-users-username-login.md) | One access level, back-office user management, and username login | Proposed |

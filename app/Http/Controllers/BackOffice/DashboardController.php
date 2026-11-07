@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\BackOffice;
 
-use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Queries\DashboardMetrics;
 use App\Domain\Payments\Queries\TransactionQuery;
 use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\DashboardFilterRequest;
 use App\Support\DateRange;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,7 +16,6 @@ final class DashboardController
 {
     public function __invoke(DashboardFilterRequest $request, DashboardMetrics $metrics, TransactionQuery $transactions): Response
     {
-        Gate::authorize('viewAny', Order::class);
 
         $filters = $request->validated();
         $brand = $filters['brand'] ?? null;

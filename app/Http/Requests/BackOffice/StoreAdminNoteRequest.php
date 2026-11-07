@@ -10,7 +10,7 @@ final class StoreAdminNoteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('addNote', $this->route('order')) ?? false;
+        return true; // Every active user may do this (ADR-0009); the auth middleware is the gate.
     }
 
     /** @return array<string, mixed> */

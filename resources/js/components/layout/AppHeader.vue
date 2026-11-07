@@ -9,10 +9,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { usePermissions } from '@/composables/usePermissions';
 import { copy } from '@/lib/copy';
 import { routes } from '@/lib/routes';
-import { roleLabels } from '@/lib/status';
 import type { SharedProps } from '@/types/backoffice';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Bell, ChevronDown, LogOut, Menu, Settings, UserRound } from '@lucide/vue';
@@ -23,7 +21,6 @@ defineProps<{ title: string; description?: string }>();
 defineEmits<{ openMenu: [] }>();
 
 const page = usePage<SharedProps>();
-const { can } = usePermissions();
 const user = computed(() => page.props.auth.user);
 const issues = computed(() => page.props.openIssueCount ?? 0);
 const search = ref('');
@@ -46,7 +43,6 @@ function submitSearch(): void {
         </form>
 
         <Link
-            v-if="can('reconciliation.view')"
             :href="routes.reconciliation"
             class="relative flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-muted"
             :aria-label="copy.issuesLabel(issues)"
@@ -67,7 +63,7 @@ function submitSearch(): void {
             <DropdownMenuContent align="end" class="w-56">
                 <DropdownMenuLabel>
                     <span class="block truncate">{{ user?.name }}</span>
-                    <span class="block text-xs font-normal text-muted-foreground">{{ user ? roleLabels[user.role] : '' }}</span>
+                    <span class="block text-xs font-normal text-muted-foreground">{{ user ? `@${user.username}` : '' }}</span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem as-child>

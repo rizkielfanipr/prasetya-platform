@@ -1,4 +1,4 @@
-import type { OrderStatus, PaymentStatus, ReconciliationGroup, Role, WebhookStatus } from '@/types/backoffice';
+import type { OrderStatus, PaymentStatus, ReconciliationGroup, WebhookStatus } from '@/types/backoffice';
 import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, RefreshCw, ShieldAlert, ShieldCheck, TriangleAlert, XCircle } from '@lucide/vue';
 
 export type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -75,10 +75,10 @@ export const sourceLabels: Record<string, string> = {
     ADMIN: 'Admin',
 };
 
-export const roleLabels: Record<Role, string> = {
-    SUPER_ADMIN: 'Super Admin',
-    FINANCE: 'Finance',
-    OPERATIONS: 'Operasional',
+/** Back-office user status (Pengguna). */
+export const userStatuses: Record<'active' | 'inactive', StatusDefinition> = {
+    active: { label: 'Aktif', tone: 'success', icon: CheckCircle2 },
+    inactive: { label: 'Nonaktif', tone: 'neutral', icon: Ban },
 };
 
 export const reconciliationGroups: Record<ReconciliationGroup, { label: string; description: string }> = {

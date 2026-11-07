@@ -17,7 +17,7 @@ import type { AuditEntry, TransactionDetail, WebhookEventRow } from '@/types/bac
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 
-defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[] | null; audit: AuditEntry[] | null }>();
+defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[]; audit: AuditEntry[] }>();
 </script>
 
 <template>
@@ -61,7 +61,7 @@ defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[] | null
                     </div>
                 </PanelCard>
 
-                <PanelCard v-if="webhooks !== null" title="Riwayat webhook" flush>
+                <PanelCard title="Riwayat webhook" flush>
                     <WebhookEventTable :rows="webhooks" compact />
                 </PanelCard>
             </div>
@@ -109,7 +109,7 @@ defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[] | null
 
                 <PanelCard title="Riwayat status pesanan"><OrderHistoryList :entries="transaction.statusHistory" /></PanelCard>
                 <AdminNotesPanel :order-id="transaction.id" :notes="transaction.notes" />
-                <PanelCard v-if="audit !== null" title="Riwayat audit"><AuditTimeline :entries="audit" /></PanelCard>
+                <PanelCard title="Riwayat audit"><AuditTimeline :entries="audit" /></PanelCard>
             </div>
         </div>
     </AppLayout>

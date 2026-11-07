@@ -14,13 +14,13 @@ test.describe('invalid login', () => {
 
     test('shows an announced field error and stays on login', async ({ page }) => {
         await page.goto('/login');
-        await page.getByLabel('Email').fill(USERS.admin);
+        await page.getByLabel('Username').fill(USERS.admin);
         await page.getByLabel('Kata sandi', { exact: true }).fill('wrong-password');
         await page.getByRole('button', { name: 'Masuk' }).click();
 
-        const error = page.getByRole('alert').filter({ hasText: 'Email atau kata sandi salah' });
+        const error = page.getByRole('alert').filter({ hasText: 'Username atau kata sandi salah' });
         await expect(error).toBeVisible();
-        await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');
+        await expect(page.getByLabel('Username')).toHaveAttribute('aria-invalid', 'true');
         await expect(page).toHaveURL(/\/login/);
     });
 });
@@ -41,7 +41,7 @@ test('password can be shown and hidden with an accessible control', async ({ pag
 
 test('login can be completed with the keyboard alone', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByLabel('Email')).toBeFocused(); // The form mounts after load; keys sent earlier are lost.
+    await expect(page.getByLabel('Username')).toBeFocused(); // The form mounts after load; keys sent earlier are lost.
     await page.keyboard.type(USERS.admin);
     await page.keyboard.press('Tab');
     await page.keyboard.type(PASSWORD);

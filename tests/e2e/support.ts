@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type ConsoleMessage, expect, type Page, test as base } from '@playwright/test';
 
-export const USERS = { admin: 'demo.admin@example.test', finance: 'demo.finance@example.test', operations: 'demo.ops@example.test' } as const;
+export const USERS = { admin: 'demo', colleague: 'demo2' } as const;
 export const PASSWORD = 'demo-password-only-1';
 
 /** Fails any test that logs a console error, warning, or uncaught exception. Expected HTTP failures are declared per test. */
@@ -23,9 +23,9 @@ export const test = base.extend<{ allowedConsole: RegExp[]; consoleGuard: undefi
     ],
 });
 
-export async function login(page: Page, email: string = USERS.admin): Promise<void> {
+export async function login(page: Page, username: string = USERS.admin): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Username').fill(username);
     await page.getByLabel('Kata sandi', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Masuk' }).click();
     await expect(page).toHaveURL(/\/dashboard/);

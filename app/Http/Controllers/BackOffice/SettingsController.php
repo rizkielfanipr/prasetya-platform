@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\BackOffice;
 
 use App\Domain\Audit\Actions\RecordAudit;
-use App\Domain\Auth\Enums\Permission;
 use App\Domain\Auth\Models\User;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Integrations\Duitku\DuitkuConfig;
@@ -13,28 +12,16 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Failed\CountableFailedJobProvider;
 use Illuminate\Queue\Failed\FailedJobProviderInterface;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final class SettingsController
 {
-    public function index(Request $request, PaymentGateway $gateway, DuitkuConfig $duitku, FailedJobProviderInterface $failedJobs): Response
+    public function index(PaymentGateway $gateway, DuitkuConfig $duitku, FailedJobProviderInterface $failedJobs): Response
     {
-        /** @var User $user */
-        $user = $request->user();
-
         return Inertia::render('settings/SettingsPage', [
-            'admin' => $user->hasPermission(Permission::ManageSettings) ? [
-                'users' => User::query()->orderBy('name')->get()->map(static fn (User $u): array => [
-                    'id' => $u->public_id,
-                    'name' => $u->name,
-                    'email' => $u->email,
-                    'role' => $u->role->value,
-                    'isActive' => $u->is_active,
-                    'lastLoginAt' => $u->last_login_at?->toIso8601ZuluString(),
-                ])->all(),
+            'admin' => [
                 // Whether and where, never what: no credential value is read into this array.
                 'gateway' => [
                     'driver' => (string) config('platform.payment_gateway'),
@@ -49,7 +36,7 @@ final class SettingsController
                     'pendingThresholdMinutes' => (int) config('platform.reconciliation.pending_too_long_minutes'),
                     'failedJobs' => $failedJobs instanceof CountableFailedJobProvider ? $failedJobs->count() : 0,
                 ],
-            ] : null,
+            ],
         ]);
     }
 
@@ -57,12 +44,10 @@ final class SettingsController
     {
         /** @var User $user */
         $user = $request->user();
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-        ]);
+        // Name only: the username never changes and the email is hidden (ADR-0009).
+        $validated = $request->validate(['name' => ['required', 'string', 'max:255']]);
 
-        $user->update($validated);
+        $user->update(['name' => $validated['name']]);
         $audit('user.profile_updated', 'user', $user->public_id, $user);
 
         return back()->with('success', 'Profil diperbarui.');

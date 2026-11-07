@@ -270,7 +270,7 @@ The sequence deliberately establishes the approved UI and operational model befo
 - Add filters for brand, payment status, fulfilment status, and date range.
 - Add order detail, payment attempts, webhook history, notes, and status timeline.
 - Separate finance actions from project fulfilment actions.
-- Add roles and policies for super admin, finance, and operations if required.
+- ~~Add roles and policies for super admin, finance, and operations if required.~~ Superseded by [ADR-0009](decisions/0009-single-access-users-username-login.md): one access level and back-office user management.
 - Add export and reconciliation views only after core workflows are stable.
 
 ### Exit criteria

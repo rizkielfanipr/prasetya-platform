@@ -22,7 +22,7 @@ export const copy = {
     errorBody: 'Terjadi gangguan saat mengambil data. Tidak ada data yang berubah.',
     networkError: 'Koneksi terputus. Periksa jaringan Anda, lalu coba lagi.',
     forbiddenTitle: 'Akses ditolak',
-    forbiddenBody: 'Peran Anda tidak memiliki izin untuk membuka halaman ini.',
+    forbiddenBody: 'Anda tidak memiliki izin untuk membuka halaman ini.',
     notFoundTitle: 'Halaman tidak ditemukan',
     notFoundBody: 'Data yang Anda cari tidak ada atau sudah dipindahkan.',
     serverErrorTitle: 'Terjadi kesalahan',

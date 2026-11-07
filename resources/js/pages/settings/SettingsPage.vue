@@ -7,7 +7,7 @@ import type { SettingsAdmin, SharedProps } from '@/types/backoffice';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-defineProps<{ admin: SettingsAdmin | null }>();
+defineProps<{ admin: SettingsAdmin }>();
 const page = usePage<SharedProps>();
 const user = computed(() => page.props.auth.user);
 </script>
@@ -18,6 +18,6 @@ const user = computed(() => page.props.auth.user);
             <ProfileForm v-if="user" :user="user" />
             <PasswordForm />
         </div>
-        <AdminPanels v-if="admin" :admin="admin" />
+        <AdminPanels :admin="admin" />
     </AppLayout>
 </template>

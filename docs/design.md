@@ -172,10 +172,10 @@ Do not invent additional shadow tiers.
 
 ### Form
 
-- Visible labels for email and password.
+- Visible labels for username and password. The username field has `autocomplete="username"` and no auto-capitalisation.
 - Inputs are `48px` high with `12px` radius.
 - Password input includes a show/hide control with an accessible label.
-- `Ingat saya` sits opposite `Lupa kata sandi?`.
+- `Ingat saya` sits opposite the hint *Lupa kata sandi? Hubungi admin lain.* There is no email reset ([ADR-0009](decisions/0009-single-access-users-username-login.md)).
 - Submit button is full-width, `48px` high, orange, with white text.
 - Validation errors appear below the related field and are announced to assistive technology.
 - Loading state disables repeat submission and keeps the button label understandable.
@@ -206,9 +206,10 @@ Navigation order for the first release ([ADR-0002](decisions/0002-mvp-payment-mo
 3. Event Pembayaran
 4. Rekonsiliasi
 5. Audit Log
-6. Pengaturan
+6. Pengguna
+7. Pengaturan
 
-Items a role cannot use are not shown, and the server refuses them regardless. Pelanggan and Paket & Layanan return with their CRUD scope.
+Every signed-in user sees every item: there is one access level ([ADR-0009](decisions/0009-single-access-users-username-login.md)). Pelanggan and Paket & Layanan return with their CRUD scope.
 
 ### Header
 
@@ -259,6 +260,20 @@ Columns:
 
 The complete transaction page may add payment method and Duitku reference. On small screens, use horizontal scrolling with a sticky invoice column or switch to compact transaction cards; never compress every column until text is unreadable.
 
+### Pengguna
+
+User management for a single access level ([ADR-0009](decisions/0009-single-access-users-username-login.md)).
+
+- Page title **Pengguna**, description *Semua pengguna aktif dapat membuka semua menu*.
+- Filter bar with search (name or username) and a status select, the same pattern as Transaksi and Audit Log; **Tambah pengguna** (primary button) sits at the end of the bar.
+- `DataTable` columns: Nama (with a muted *(Anda)* on the signed-in user's row), Username (monospace), Status (`StatusBadge`: Aktif, Nonaktif), Masuk terakhir, Dibuat, and row actions. On small screens the table scrolls horizontally with the name column sticky, like the transaction list.
+- Row actions, each opening a `ConfirmDialog` with a form or a confirmation:
+  - **Ubah**: the name only; the username is shown read-only with the hint *Username tidak dapat diubah.*
+  - **Atur kata sandi**: new password and confirmation. Not shown on the user's own row; they change it in Pengaturan with their current password.
+  - **Nonaktifkan** (destructive) or **Aktifkan**. Deactivation explains that the user is signed out at once. On the user's own row, and for the last active user, the button is disabled and the reason is shown below it (`aria-describedby`).
+- **Tambah pengguna** dialog: Nama, Username (hint: allowed characters, cannot be changed later), Kata sandi awal (hint: rules, share it privately), Ulangi kata sandi. Server errors appear under each field and replace its hint.
+- Pengaturan no longer lists users. Its profile form edits the name only, with the username read-only.
+
 ## Core components
 
 Build from shadcn-vue source components and customise through semantic tokens:
@@ -293,6 +308,7 @@ Application-specific components:
 - `DataTable`, `TablePagination`, `FilterBar`, `SelectFilter`, `DateRangeFilter`, `SearchInput`
 - `PaymentTimeline`, `AuditTimeline`, `PaymentSummary`
 - `EmptyState`, `ErrorState`, `LoadingState`, `ConfirmDialog`
+- `UserTable`, `UserFields`, `UserCreateDialog`, `UserEditDialog`, `UserPasswordDialog`, `UserStatusDialog`
 
 ### Reusability boundaries
 

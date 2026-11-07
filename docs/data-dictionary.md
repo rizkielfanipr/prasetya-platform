@@ -7,7 +7,7 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | Table | Purpose | Key rules |
 |---|---|---|
 | `applications` | Brands: `WEBWORKS`, `SATAMU` | Unique `code`, `invoice_prefix` |
-| `users` | Back-office accounts | `role`: `SUPER_ADMIN`, `FINANCE`, `OPERATIONS`. Inactive users cannot sign in |
+| `users` | Back-office accounts | `username` unique, lower-case, fixed at creation, used to sign in ([ADR-0009](decisions/0009-single-access-users-username-login.md)). `email` is nullable, hidden, and unused. No roles: every active user has full access. Inactive users cannot sign in. There is no `password_reset_tokens` table: passwords are set by another user or `platform:reset-password` |
 | `customers` | Customer per brand | Unique (`application_id`, `email`). Never overwritten by public input |
 | `packages` | Authoritative catalogue | Unique stable `code`, `price_amount`. `is_active` is catalogue state: set once when the seeder creates a package (Satamu starts `false`) and changed afterwards only by `SetPackageAvailability`, which writes an audit entry. Inactive packages cannot be ordered; their existing orders and payments are unaffected |
 | `invoice_sequences` | Per-brand, per-month counter | Unique (`application_id`, `period`), row-locked |
@@ -21,7 +21,7 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `payment_events` | Append-only timeline per attempt | Unique (`webhook_event_id`, `type`) |
 | `webhook_events` | Evidence of each delivery | `primary_dedupe_key` unique on first delivery only |
 | `idempotency_keys` | Public mutation guard | Unique (`scope`, `idempotency_key`); stores a fingerprint and a resource reference |
-| `audit_logs` | Append-only record of sensitive actions | Actor, action, entity, previous and new state, reason, request id |
+| `audit_logs` | Append-only record of sensitive actions | Actor, action, entity, previous and new state, reason, request id. User changes: `user.created`, `user.updated`, `user.activated`, `user.deactivated`, `user.password_reset`, never with a password |
 | `sessions`, `password_reset_tokens`, `cache`, `jobs`, `failed_jobs` | Laravel infrastructure | |
 
 Append-only tables refuse updates and deletes through their models. This is not a database-level guarantee: someone with SQL access can still change them.
