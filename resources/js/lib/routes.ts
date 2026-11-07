@@ -27,6 +27,8 @@ export const routes = {
     contentApprove: (id: string) => `/content/items/${id}/approve`,
     contentReject: (id: string) => `/content/items/${id}/reject`,
     contentPublication: (id: string) => `/content/items/${id}/publication`,
+    contentGenerate: (id: string) => `/content/items/${id}/generate`,
+    contentSettings: '/content/settings',
     contentBrands: '/content/brands',
     contentBrand: (id: string) => `/content/brands/${id}`,
     contentBrandRules: (id: string) => `/content/brands/${id}/rules`,

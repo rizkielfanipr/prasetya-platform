@@ -1,6 +1,17 @@
 import type { StatusDefinition } from '@/lib/status';
 import { BUSINESS_TIMEZONE } from '@/lib/format';
-import type { BrandTab, CampaignPriority, ContentAction, ContentDecision, ContentFields, ContentRevision, ContentStatus, RuleSeverity } from '@/types/content';
+import type {
+    BrandTab,
+    CampaignPriority,
+    ContentAction,
+    ContentDecision,
+    ContentFields,
+    ContentRevision,
+    ContentStatus,
+    CopyField,
+    GenerationStatus,
+    RuleSeverity,
+} from '@/types/content';
 import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, Pencil, Send, TriangleAlert, XCircle } from '@lucide/vue';
 
 /** Each line of a textarea as one list entry; blank lines dropped. */
@@ -44,7 +55,28 @@ export const contentSections = [
     { value: 'calendar', label: 'Kalender' },
     { value: 'items', label: 'Konten' },
     { value: 'brands', label: 'Brand & Template' },
+    { value: 'settings', label: 'Pengaturan AI' },
 ] as const;
+
+export const copyFields: readonly { value: CopyField; label: string }[] = [
+    { value: 'caption', label: 'Caption' },
+    { value: 'hashtags', label: 'Hashtag' },
+    { value: 'alt_text', label: 'Alt text' },
+    { value: 'visual_direction', label: 'Arahan visual' },
+];
+
+export const generationStatuses: Record<GenerationStatus, StatusDefinition> = {
+    QUEUED: { label: 'Menunggu antrean', tone: 'info', icon: Clock },
+    RUNNING: { label: 'AI sedang menulis', tone: 'info', icon: Clock },
+    SUCCEEDED: { label: 'Draft dibuat', tone: 'success', icon: CheckCircle2 },
+    FAILED: { label: 'Gagal', tone: 'danger', icon: XCircle },
+    DISCARDED: { label: 'Tidak diterapkan', tone: 'neutral', icon: Ban },
+};
+
+/** $0.00123 for small AI costs; cents are not enough. */
+export function formatUsd(amount: number): string {
+    return `$${amount < 0.01 && amount > 0 ? amount.toFixed(5) : amount.toFixed(2)}`;
+}
 
 export const brandTabs: readonly { value: BrandTab; label: string }[] = [
     { value: 'rules', label: 'Aturan' },

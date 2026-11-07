@@ -36,7 +36,7 @@ final class ContentRuleValidator
             array_push($findings, ...$this->profileRules($profile, $revision), ...$this->topicSpacing($profile, $item));
         }
 
-        array_push($findings, ...$this->facts($item, $revision), ...$this->plan($item));
+        array_push($findings, ...$this->claims($this->usableFacts($item), $revision), ...$this->plan($item));
 
         return $findings;
     }
@@ -100,12 +100,45 @@ final class ContentRuleValidator
     }
 
     /**
+     * Statements of the facts content of this item may rely on: brand-wide or of its campaign, not retired, and not
+     * expired on the planned business day.
+     *
+     * @return list<string>
+     */
+    public function usableFacts(ContentItem $item): array
+    {
+        $day = $item->planned_at->setTimezone(BusinessTime::zone())->toDateString();
+
+        return ContentFact::query()
+            ->where('content_brand_id', $item->content_brand_id)
+            ->where(fn ($q) => $q->whereNull('content_campaign_id')->orWhere('content_campaign_id', $item->content_campaign_id))
+            ->usableOn($day)
+            ->orderBy('id')
+            ->pluck('statement')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The checks that need only the rules, the facts, and the text: used for stored content and for evaluating a
+     * provider against fixtures without touching the database.
+     *
+     * @param  list<string>  $facts
+     * @return list<RuleFinding>
+     */
+    public function evaluate(?ContentBrandProfile $profile, array $facts, ContentRevision $revision): array
+    {
+        return [...($profile === null ? [] : $this->profileRules($profile, $revision)), ...$this->claims($facts, $revision)];
+    }
+
+    /**
      * Prices and percentages must come from an approved fact. A price that no fact states is an error; a percentage
      * is a warning, because "100% responsif" is not always a business claim.
      *
+     * @param  list<string>  $facts
      * @return list<RuleFinding>
      */
-    private function facts(ContentItem $item, ContentRevision $revision): array
+    private function claims(array $facts, ContentRevision $revision): array
     {
         $text = $revision->caption.' '.$revision->alt_text;
         preg_match_all('/Rp\.?\s?\d[\d.,]*|\d+(?:[.,]\d+)?\s?%/iu', $text, $matches);
@@ -114,15 +147,7 @@ final class ContentRuleValidator
             return [];
         }
 
-        $day = $item->planned_at->setTimezone(BusinessTime::zone())->toDateString();
-        $statements = ContentFact::query()
-            ->where('content_brand_id', $item->content_brand_id)
-            ->where(fn ($q) => $q->whereNull('content_campaign_id')->orWhere('content_campaign_id', $item->content_campaign_id))
-            ->usableOn($day)
-            ->pluck('statement')
-            ->map($this->compact(...))
-            ->implode("\n");
-
+        $statements = implode("\n", array_map($this->compact(...), $facts));
         $findings = [];
         foreach ($claims as $claim) {
             if (! str_contains($statements, $this->compact($claim))) {

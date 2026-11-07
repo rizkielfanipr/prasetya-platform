@@ -15,6 +15,7 @@ use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\ContentAssetStore;
 use App\Domain\Content\Support\ContentImageInspector;
 use App\Domain\Content\Support\ContentItemLock;
+use App\Domain\Content\Support\RevisionCopier;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,6 +37,7 @@ final class SaveContentRevision
         private readonly ContentItemLock $lock,
         private readonly ContentImageInspector $inspector,
         private readonly ContentAssetStore $store,
+        private readonly RevisionCopier $copier,
     ) {}
 
     /**
@@ -72,7 +74,7 @@ final class SaveContentRevision
             }
 
             $wasApproved = $item->status === ContentStatus::Approved;
-            $revision = $current->isSubmitted() ? $this->newRevision($item, $current, $actor) : $current;
+            $revision = $current->isSubmitted() ? $this->copier->copy($item, $current, $actor) : $current;
             $revision->fill($values);
             $revision->save();
 
@@ -109,25 +111,6 @@ final class SaveContentRevision
 
             return $revision;
         });
-    }
-
-    private function newRevision(ContentItem $item, ContentRevision $from, User $actor): ContentRevision
-    {
-        $revision = ContentRevision::query()->create([
-            'content_item_id' => $item->id,
-            'number' => $from->number + 1,
-            'author_user_id' => $actor->id,
-            ...array_intersect_key($from->getAttributes(), array_flip(ContentRevision::FIELDS)),
-        ]);
-
-        if ($from->asset !== null) {
-            ContentAsset::query()->create([
-                ...array_intersect_key($from->asset->getAttributes(), array_flip(['disk', 'path', 'original_name', 'mime_type', 'size_bytes', 'width', 'height', 'checksum_sha256', 'uploaded_by_user_id'])),
-                'content_revision_id' => $revision->id,
-            ]);
-        }
-
-        return $revision;
     }
 
     private function clean(?string $value): ?string

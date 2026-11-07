@@ -77,6 +77,12 @@ final class ContentPresenter
             'altText' => $revision->alt_text,
             'visualDirection' => $revision->visual_direction,
             'brandRulesVersion' => $revision->brandProfile?->version,
+            'generatedBy' => $revision->generationRun === null ? null : [
+                'provider' => $revision->generationRun->provider,
+                'model' => $revision->generationRun->model,
+                'promptVersion' => $revision->generationRun->prompt_version,
+                'fields' => $revision->generationRun->fields,
+            ],
             'author' => $revision->author->name,
             'submittedBy' => $revision->submitter?->name,
             'submittedAt' => $revision->submitted_at?->toIso8601ZuluString(),

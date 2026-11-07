@@ -6,6 +6,10 @@ use App\Domain\Auth\Actions\CreateUser;
 use App\Domain\Auth\Actions\ResetUserPassword;
 use App\Domain\Auth\Models\User;
 use App\Domain\Auth\Username;
+use App\Domain\Content\Ai\CopyBudget;
+use App\Domain\Content\Ai\CopyEvaluation;
+use App\Domain\Content\Ai\CopyPromptBuilder;
+use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Packages\Actions\SetPackageAvailability;
 use App\Domain\Packages\Models\Package;
 use App\Domain\Payments\Actions\ExpireStaleRecords;
@@ -15,6 +19,7 @@ use App\Support\Logging\OperationLog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -150,6 +155,39 @@ Artisan::command('platform:simulate-notification {invoice} {amount} {--result=00
 
     return 0;
 })->purpose('Send a correctly signed local callback through the real verification path');
+
+// Content Studio (ADR-0011, phase 3): check the configured AI provider against the evaluation scenarios before
+// enabling or switching it. Calls the provider for real when one is configured; writes nothing to the database.
+Artisan::command('content:eval-copy {--file=resources/content-eval/copy-v1.json} {--max-cost=0.50 : Stop when the estimated total passes this (USD)}', function (CopyEvaluation $evaluation, CopyBudget $budget, CopyGenerator $generator): int {
+    $reason = $budget->unavailableReason();
+    if ($reason !== null) {
+        $this->error($reason);
+
+        return Command::FAILURE;
+    }
+    $scenarios = json_decode((string) file_get_contents(base_path((string) $this->option('file'))), true)['scenarios'] ?? [];
+    $rows = [];
+    $results = [];
+    $spent = 0.0;
+    foreach ($scenarios as $scenario) {
+        if ($spent >= (float) $this->option('max-cost')) {
+            $this->warn('Batas biaya evaluasi tercapai; skenario sisanya dilewati.');
+            break;
+        }
+        $result = $evaluation->run($scenario);
+        $spent += $result['cost'];
+        $results[] = $result;
+        $rows[] = [$result['name'], $result['ok'] ? 'lulus' : 'GAGAL', count($result['errors']), count($result['warnings']), $result['tokens'], sprintf('$%.5f', $result['cost']), $result['latency_ms'].' ms'];
+    }
+    $this->table(['Skenario', 'Aturan keras', 'Pelanggaran', 'Peringatan', 'Token', 'Biaya', 'Durasi'], $rows);
+    $path = 'content-eval/'.now()->format('Ymd-His').'.json';
+    Storage::disk((string) config('content.disk'))->put($path, (string) json_encode(['provider' => $generator->provider(), 'model' => $generator->model(), 'prompt_version' => CopyPromptBuilder::VERSION, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    $this->line("Hasil lengkap untuk dinilai manusia (suara brand, relevansi): storage/app/private/{$path}");
+    $failed = count(array_filter($results, static fn (array $r): bool => ! $r['ok']));
+    $this->line(sprintf('%d dari %d skenario lulus aturan keras; total biaya perkiraan $%.5f.', count($results) - $failed, count($results), $spent));
+
+    return $failed === 0 ? Command::SUCCESS : Command::FAILURE;
+})->purpose('Evaluate the configured content AI provider against the copy scenarios');
 
 Schedule::command('platform:expire-stale')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('platform:prune-idempotency')->daily();

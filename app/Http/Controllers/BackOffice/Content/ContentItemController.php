@@ -8,6 +8,7 @@ use App\Domain\Audit\Queries\AuditTrail;
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
+use App\Domain\Content\Actions\RequestCopyGeneration;
 use App\Domain\Content\Actions\ReviewContent;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\SubmitContentForReview;
@@ -18,9 +19,11 @@ use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Exceptions\InvalidContentImage;
 use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\ContentRuleValidator;
+use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
 use App\Http\Presenters\TransactionPresenter;
@@ -79,11 +82,11 @@ final class ContentItemController
         });
     }
 
-    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules): Response
+    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation): Response
     {
         $item->load([
             'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'publication.actor', 'publication.revision',
-            'revisions.asset', 'revisions.decisions.actor', 'revisions.author', 'revisions.submitter', 'revisions.brandProfile',
+            'revisions.asset', 'revisions.decisions.actor', 'revisions.author', 'revisions.submitter', 'revisions.brandProfile', 'revisions.generationRun',
         ]);
         /** @var ContentRevision $active */
         $active = $item->revisions->firstWhere('id', $item->active_revision_id);
@@ -99,6 +102,11 @@ final class ContentItemController
             'findings' => ContentBrandPresenter::findings($rules->check($item, $active)),
             'brandRulesVersion' => $item->brand->currentProfile?->version,
             'planOptions' => ContentBrandPresenter::planOptions($item->brand),
+            'ai' => [
+                'unavailableReason' => $generation->reason($item),
+                'runs' => ContentGenerationRun::query()->where('content_item_id', $item->id)->with(['item', 'requester', 'resultRevision'])->latest('id')->limit(10)->get()
+                    ->map(ContentAiPresenter::run(...))->all(),
+            ],
         ]);
     }
 

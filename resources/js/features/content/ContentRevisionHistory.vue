@@ -38,7 +38,11 @@ const comparison = computed(() => {
                     Revisi {{ revision.number }}
                     <span v-if="revision.id === approvedRevisionId" class="ml-1 text-xs font-semibold text-success">· disetujui</span>
                 </p>
-                <p class="text-xs text-muted-foreground">Ditulis {{ revision.author }} · {{ formatDateTime(revision.createdAt) }}</p>
+                <p class="text-xs text-muted-foreground">
+                    Ditulis {{ revision.author
+                    }}<template v-if="revision.generatedBy"> dengan AI ({{ revision.generatedBy.model ?? revision.generatedBy.provider }})</template> ·
+                    {{ formatDateTime(revision.createdAt) }}
+                </p>
                 <p class="text-xs text-muted-foreground">
                     <template v-if="revision.submittedAt">Diajukan {{ revision.submittedBy }} · {{ formatDateTime(revision.submittedAt) }}</template>
                     <template v-else>Belum diajukan (masih dapat diubah)</template>

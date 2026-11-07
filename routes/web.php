@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\BackOffice\AdminNoteController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
+use App\Http\Controllers\BackOffice\Content\ContentAiController;
 use App\Http\Controllers\BackOffice\Content\ContentAssetController;
 use App\Http\Controllers\BackOffice\Content\ContentBrandController;
 use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
@@ -62,6 +63,10 @@ Route::middleware('auth')->group(function (): void {
     Route::post('content/items/{item:public_id}/reject', [ContentItemController::class, 'reject'])->name('content.items.reject');
     Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
     Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
+
+    // AI copy drafts (ADR-0011, phase 3). Off unless configured; the result is always a draft revision.
+    Route::post('content/items/{item:public_id}/generate', [ContentAiController::class, 'generate'])->middleware('throttle:20,1')->name('content.items.generate');
+    Route::get('content/settings', [ContentAiController::class, 'settings'])->name('content.settings');
 
     // Brand & Template (ADR-0011, phase 2). Children are scoped to their brand.
     Route::get('content/brands', [ContentBrandController::class, 'index'])->name('content.brands.index');

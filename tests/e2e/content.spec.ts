@@ -50,7 +50,7 @@ test('one post goes from draft to published with two people, and the submitter c
 
     await page.getByLabel('Brief *').fill('Satu gambar dengan judul besar.');
     await page.getByLabel('Caption *').fill('Website yang rapi membantu pelanggan percaya.');
-    await page.getByLabel('Hashtag').fill('#websiteumkm #bisnisonline');
+    await page.getByRole('textbox', { name: 'Hashtag', exact: true }).fill('#websiteumkm #bisnisonline');
     await page.getByLabel('Alt text *').fill('Kartu abu-abu bertuliskan judul posting.');
     await page.getByLabel('Unggah gambar').setInputFiles({ name: 'post.png', mimeType: 'image/png', buffer: png(1080, 1350) });
     await page.getByRole('button', { name: 'Simpan konten' }).click();

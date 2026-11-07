@@ -32,8 +32,9 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `content_pillars` | Recurring themes of a brand | Unique (`content_brand_id`, `name`). Description, `target_share` (percent of a week's posts; active pillars total at most 100), `is_active` |
 | `content_campaigns` | Time-boxed pushes | Name, objective, `starts_on`/`ends_on` (business-time days, inclusive), priority (`HIGH`, `NORMAL`, `LOW`), `is_active` |
 | `content_facts` | Approved business facts content may state | Statement, source, optional campaign, optional `valid_until`. The statement never changes; correction retires it (`retired_at`, by, reason) and adds a new fact |
+| `content_generation_runs` | One AI copy generation (phase 3) | Item, base revision, result revision, requester, requested fields, status (`QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `DISCARDED`), provider, model, prompt version, input and output tokens, estimated `cost_usd`, latency, attempts, safe error code and message, provider request id. No prompt or raw response is stored |
 
-Phase 2 also adds `content_items.content_pillar_id`, `content_campaign_id`, and `topic` (nullable plan details), and `content_revisions.brand_profile_id`: the rules version a revision met when it was submitted.
+Phase 2 also adds `content_items.content_pillar_id`, `content_campaign_id`, and `topic` (nullable plan details), and `content_revisions.brand_profile_id`: the rules version a revision met when it was submitted. Phase 3 adds `content_revisions.generation_run_id` on revisions AI drafted.
 
 ### Brand rule check
 

@@ -111,7 +111,7 @@ it('finds every kind of audit the platform writes in at least one documented pla
     $payment = Payment::factory()->create(['order_id' => $order->id]);
     contentSetUp();
     $item = draftItem($admin, complete: false);
-    $content = array_map(fn (string $action): array => [$action, 'content_item', $item->public_id], ['content.created', 'content.revised', 'content.details_updated', 'content.submitted', 'content.revision_requested', 'content.approved', 'content.rejected', 'content.published']);
+    $content = array_map(fn (string $action): array => [$action, 'content_item', $item->public_id], ['content.created', 'content.revised', 'content.details_updated', 'content.submitted', 'content.revision_requested', 'content.approved', 'content.rejected', 'content.published', 'content.generation_requested', 'content.generation_applied', 'content.generation_failed']);
 
     $brand = webworks();
     $brandAudit = array_map(fn (string $action): array => [$action, 'content_brand', $brand->public_id], ['content.brand_rules_updated', 'content.pillar_created', 'content.pillar_updated', 'content.campaign_created', 'content.campaign_updated', 'content.fact_added', 'content.fact_retired']);

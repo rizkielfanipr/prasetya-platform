@@ -24,6 +24,7 @@ const revision = (overrides: Partial<ContentRevision> = {}): ContentRevision => 
     submittedBy: 'Penulis',
     submittedAt: '2026-11-07T03:00:00Z',
     brandRulesVersion: null,
+    generatedBy: null,
     createdAt: '2026-11-07T02:00:00Z',
     updatedAt: '2026-11-07T03:00:00Z',
     asset: {

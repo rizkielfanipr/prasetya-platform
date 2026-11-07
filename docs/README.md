@@ -26,6 +26,7 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 | [`runbooks/deployment.md`](runbooks/deployment.md) | Deploy, backup, and restore | Draft, not yet executed on target hosting |
 | [`runbooks/payment-reconciliation.md`](runbooks/payment-reconciliation.md) | Working each reconciliation group | Active |
 | [`runbooks/incident-response.md`](runbooks/incident-response.md) | What to do when payments misbehave | Active |
+| [`runbooks/content-studio-ai.md`](runbooks/content-studio-ai.md) | Enable, limit, evaluate, and switch the AI copy provider | Current |
 | [`runbooks/content-studio-hermes.md`](runbooks/content-studio-hermes.md) | Hermes runtime rules for Content Studio, local and VPS | Draft, nothing installed |
 
 ## Documentation standards

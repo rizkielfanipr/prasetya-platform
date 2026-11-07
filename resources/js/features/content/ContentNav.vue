@@ -4,7 +4,7 @@ import { routes } from '@/lib/routes';
 import { Link } from '@inertiajs/vue3';
 
 defineProps<{ current: (typeof contentSections)[number]['value'] }>();
-const hrefs = { calendar: routes.contentCalendar, items: routes.contentItems, brands: routes.contentBrands } as const;
+const hrefs = { calendar: routes.contentCalendar, items: routes.contentItems, brands: routes.contentBrands, settings: routes.contentSettings } as const;
 </script>
 
 <template>

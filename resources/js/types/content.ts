@@ -85,6 +85,8 @@ export interface ContentRevision extends ContentFields {
     submittedAt: string | null;
     /** The brand rules version the revision was checked against when submitted. */
     brandRulesVersion: number | null;
+    /** Set when AI drafted this revision. */
+    generatedBy: { provider: string; model: string | null; promptVersion: string; fields: CopyField[] } | null;
     createdAt: string;
     updatedAt: string;
     asset: ContentAsset | null;
@@ -205,3 +207,47 @@ export interface ContentFact {
 }
 
 export type BrandTab = 'rules' | 'pillars' | 'campaigns' | 'facts' | 'activity';
+
+export type CopyField = 'caption' | 'hashtags' | 'alt_text' | 'visual_direction';
+export type GenerationStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'DISCARDED';
+
+export interface GenerationRun {
+    id: string;
+    status: GenerationStatus;
+    fields: CopyField[];
+    provider: string;
+    model: string | null;
+    promptVersion: string;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    latencyMs: number | null;
+    attempts: number;
+    errorCode: string | null;
+    errorMessage: string | null;
+    requestedBy: string;
+    resultRevisionNumber: number | null;
+    item: { id: string; title: string };
+    createdAt: string;
+    finishedAt: string | null;
+}
+
+export interface ItemAi {
+    /** Why AI copy cannot be requested now, or null. */
+    unavailableReason: string | null;
+    runs: GenerationRun[];
+}
+
+export interface AiStatus {
+    provider: string;
+    model: string | null;
+    unavailableReason: string | null;
+    queue: string;
+    priceInputPerMillion: number;
+    priceOutputPerMillion: number;
+    maxOutputTokens: number;
+    maxAttempts: number;
+    timeoutSeconds: number;
+    budget: { spentThisWeek: number; weekLimit: number; runLimit: number; runsPerRevision: number };
+    circuitOpenUntil: string | null;
+}

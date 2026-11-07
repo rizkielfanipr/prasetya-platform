@@ -8,7 +8,7 @@ import { formatNumber } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { ContentItem, ContentLimits, ContentRevision } from '@/types/content';
 import { useForm } from '@inertiajs/vue3';
-import { TriangleAlert } from '@lucide/vue';
+import { Sparkles, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import ContentImageField from './ContentImageField.vue';
 
@@ -59,6 +59,15 @@ function save(): void {
     <form class="space-y-5" novalidate @submit.prevent="save">
         <p v-if="blockedReason" class="flex items-start gap-2 rounded-lg bg-neutral-surface p-3 text-sm text-neutral" data-testid="edit-blocked">
             <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{{ blockedReason }}
+        </p>
+        <p
+            v-if="!blockedReason && revision.generatedBy"
+            class="flex items-start gap-2 rounded-lg bg-info-surface p-3 text-sm text-info"
+            data-testid="ai-draft-note"
+        >
+            <Sparkles class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Draft ini ditulis AI ({{
+                revision.generatedBy.model ?? revision.generatedBy.provider
+            }}). Periksa fakta, gaya bahasa, dan temuan aturan brand sebelum mengajukan.
         </p>
         <p v-else-if="item.status === 'APPROVED'" class="flex items-start gap-2 rounded-lg bg-warning-surface p-3 text-sm text-warning">
             <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Konten ini sudah disetujui. Menyimpan perubahan membuat revisi baru, membatalkan

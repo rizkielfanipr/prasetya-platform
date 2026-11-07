@@ -470,6 +470,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** pengguna dapat membuat serta merevisi caption dan gambar dari brief, lalu meng-approve hasilnya.
 
+**Status (2026-11-08):** selesai untuk **teks** di branch `feat/content-ai-copy` (di atas Fase 2), menunggu evaluasi kualitas dan biaya dengan key asli. Keputusan pemilik: teks lewat adapter OpenAI-compatible (rencana: DeepSeek), **gambar tetap unggah manual**, budget $0,50 per run dan $5 per minggu. Tanpa key, provider `fake` dipakai untuk demo dan test; production tetap `none` sampai ada host queue worker. Generasi dan penyuntingan gambar AI belum dibangun. Cara mengaktifkan di [`runbooks/content-studio-ai.md`](runbooks/content-studio-ai.md).
+
 ### Fase 4 — Research tools
 
 - Internal research services.
