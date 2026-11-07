@@ -17,6 +17,7 @@ use App\Domain\Content\Jobs\GenerateContentCopy;
 use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Support\ContentItemLock;
+use App\Domain\Content\Support\RevisionRequestLookup;
 use App\Support\BusinessTime;
 use Illuminate\Support\Facades\DB;
 
@@ -34,16 +35,21 @@ final class RequestCopyGeneration
         private readonly ContentItemLock $lock,
         private readonly CopyBudget $budget,
         private readonly CopyGenerator $generator,
+        private readonly RevisionRequestLookup $requests,
     ) {}
 
-    /** @param  list<CopyField>  $fields */
-    public function __invoke(ContentItem $item, string $expectedRevision, array $fields, User $actor): ContentGenerationRun
+    /**
+     * @param  list<CopyField>  $fields
+     * @param  string|null  $instruction  the writer's extra direction for this run, e.g. "lebih singkat"
+     */
+    public function __invoke(ContentItem $item, string $expectedRevision, array $fields, User $actor, ?string $instruction = null): ContentGenerationRun
     {
+        $instruction = $instruction === null || trim($instruction) === '' ? null : mb_substr(trim($instruction), 0, 500);
         if ($fields === []) {
             throw ContentActionRefused::because('Pilih bagian yang ingin dibuat AI.');
         }
 
-        return DB::transaction(function () use ($item, $expectedRevision, $fields, $actor): ContentGenerationRun {
+        return DB::transaction(function () use ($item, $expectedRevision, $fields, $actor, $instruction): ContentGenerationRun {
             $item = $this->lock->lock($item, $expectedRevision);
             $this->closeStaleRuns($item);
             $reason = $this->reason($item);
@@ -56,6 +62,9 @@ final class RequestCopyGeneration
                 'base_revision_id' => $item->active_revision_id,
                 'requested_by_user_id' => $actor->id,
                 'fields' => array_map(static fn (CopyField $f): string => $f->value, $fields),
+                'instruction' => $instruction,
+                // A revision answers the reviewer's note: the run carries it into the prompt.
+                'used_review_note' => $this->requests->current($item) !== null,
                 'status' => GenerationStatus::Queued,
                 'provider' => $this->generator->provider(),
                 'model' => $this->generator->model(),
@@ -65,6 +74,8 @@ final class RequestCopyGeneration
             ($this->audit)('content.generation_requested', 'content_item', $item->public_id, $actor, null, [
                 'run' => $run->public_id,
                 'fields' => $run->fields,
+                'instruction' => $run->instruction,
+                'used_review_note' => $run->used_review_note,
                 'provider' => $run->provider,
                 'model' => $run->model,
                 'revision' => $item->activeRevision?->number,

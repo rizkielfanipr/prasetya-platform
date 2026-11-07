@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Content\Models;
 
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Enums\GenerationFeedback;
 use App\Domain\Content\Enums\GenerationStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,12 @@ use Illuminate\Support\Carbon;
  * @property int|null $result_revision_id
  * @property int $requested_by_user_id
  * @property list<string> $fields
+ * @property string|null $instruction
+ * @property bool $used_review_note
+ * @property GenerationFeedback|null $feedback
+ * @property string|null $feedback_reason
+ * @property int|null $feedback_by_user_id
+ * @property Carbon|null $feedback_at
  * @property GenerationStatus $status
  * @property string $provider
  * @property string|null $model
@@ -81,6 +88,9 @@ class ContentGenerationRun extends Model
     {
         return [
             'fields' => 'array',
+            'used_review_note' => 'boolean',
+            'feedback' => GenerationFeedback::class,
+            'feedback_at' => 'datetime',
             'status' => GenerationStatus::class,
             'cost_usd' => 'decimal:6',
             'started_at' => 'datetime',

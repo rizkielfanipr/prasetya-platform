@@ -2,6 +2,8 @@
 import StatusBadge from '@/components/shared/StatusBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import GenerationFeedbackButtons from './GenerationFeedbackButtons.vue';
 import { copyFields, formatUsd, generationStatuses } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
@@ -18,7 +20,15 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 const props = defineProps<{ item: ContentItem; revision: ContentRevision; ai: ItemAi }>();
 
 const POLL_MS = 3000;
-const chosen = ref<Record<CopyField, boolean>>({ caption: true, hashtags: true, alt_text: true, visual_direction: true });
+// Answering a revision request: start from the copy parts the reviewer named; otherwise everything.
+const requested = props.ai.reviewRequest?.areas.filter((area): area is CopyField => copyFields.some((field) => field.value === area)) ?? [];
+const chosen = ref<Record<CopyField, boolean>>({
+    caption: requested.length === 0 || requested.includes('caption'),
+    hashtags: requested.length === 0 || requested.includes('hashtags'),
+    alt_text: requested.length === 0 || requested.includes('alt_text'),
+    visual_direction: requested.length === 0 || requested.includes('visual_direction'),
+});
+const instruction = ref('');
 const submitting = ref(false);
 const announcement = ref('');
 const selected = computed(() => copyFields.filter((field) => chosen.value[field.value]).map((field) => field.value));
@@ -49,8 +59,13 @@ onBeforeUnmount(stopPolling);
 function generate(): void {
     router.post(
         routes.contentGenerate(props.item.id),
-        { revision: props.revision.id, fields: selected.value },
-        { preserveScroll: true, onStart: () => (submitting.value = true), onFinish: () => (submitting.value = false) },
+        { revision: props.revision.id, fields: selected.value, instruction: instruction.value || null },
+        {
+            preserveScroll: true,
+            onStart: () => (submitting.value = true),
+            onSuccess: () => (instruction.value = ''),
+            onFinish: () => (submitting.value = false),
+        },
     );
 }
 </script>
@@ -71,6 +86,16 @@ function generate(): void {
                 </div>
             </div>
         </fieldset>
+        <p v-if="ai.reviewRequest" class="text-sm text-muted-foreground" data-testid="ai-follows-review">
+            AI akan mengikuti catatan peninjau di atas dan hanya menulis ulang bagian yang dicentang.
+        </p>
+        <div v-if="ai.unavailableReason === null" class="space-y-1.5">
+            <label for="ai-instruction" class="text-sm font-semibold">Instruksi tambahan (opsional)</label>
+            <Textarea id="ai-instruction" v-model="instruction" :rows="2" :maxlength="500" aria-describedby="ai-instruction-hint" />
+            <p id="ai-instruction-hint" class="text-xs text-muted-foreground">
+                Misalnya "lebih singkat" atau "sebut domain & hosting". Tetap tunduk pada aturan brand.
+            </p>
+        </div>
         <div class="flex flex-col items-start gap-1">
             <Button
                 class="gap-2"
@@ -100,7 +125,12 @@ function generate(): void {
                             · {{ run.inputTokens + run.outputTokens }} token · {{ formatUsd(run.costUsd) }}</template
                         >
                     </span>
+                    <span v-if="run.usedReviewNote || run.instruction" class="block text-xs text-muted-foreground"
+                        >{{ run.usedReviewNote ? 'Mengikuti catatan peninjau.' : ''
+                        }}<template v-if="run.instruction"> Instruksi: “{{ run.instruction }}”</template></span
+                    >
                     <span v-if="run.errorMessage" class="block text-xs break-words text-muted-foreground">{{ run.errorMessage }}</span>
+                    <GenerationFeedbackButtons v-if="run.status === 'SUCCEEDED'" :run="run" class="mt-1" />
                 </span>
             </li>
         </ol>

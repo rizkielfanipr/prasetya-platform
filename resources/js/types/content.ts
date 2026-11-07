@@ -60,8 +60,12 @@ export interface ContentAsset {
     checksum: string;
 }
 
+export type RevisionArea = 'brief' | 'caption' | 'hashtags' | 'alt_text' | 'visual_direction' | 'image';
+
 export interface ContentDecisionEntry {
     decision: ContentDecision;
+    /** For a revision request: the parts to change. */
+    areas: RevisionArea[];
     note: string | null;
     actor: string;
     at: string;
@@ -215,6 +219,10 @@ export interface GenerationRun {
     id: string;
     status: GenerationStatus;
     fields: CopyField[];
+    instruction: string | null;
+    usedReviewNote: boolean;
+    feedback: 'USEFUL' | 'NOT_USEFUL' | null;
+    feedbackReason: string | null;
     provider: string;
     model: string | null;
     promptVersion: string;
@@ -232,9 +240,18 @@ export interface GenerationRun {
     finishedAt: string | null;
 }
 
+export interface ReviewRequest {
+    areas: RevisionArea[];
+    note: string | null;
+    actor: string;
+    at: string;
+}
+
 export interface ItemAi {
     /** Why AI copy cannot be requested now, or null. */
     unavailableReason: string | null;
+    /** The revision request the item is answering, if any. */
+    reviewRequest: ReviewRequest | null;
     runs: GenerationRun[];
 }
 
@@ -252,4 +269,14 @@ export interface AiStatus {
     timeoutSeconds: number;
     budget: { spentThisWeek: number; weekLimit: number; runLimit: number; runsPerRevision: number };
     circuitOpenUntil: string | null;
+}
+
+export interface EvaluationRow {
+    model: string | null;
+    promptVersion: string;
+    drafts: number;
+    useful: number;
+    notUseful: number;
+    approved: number;
+    costUsd: number;
 }

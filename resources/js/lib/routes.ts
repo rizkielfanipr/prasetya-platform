@@ -28,6 +28,7 @@ export const routes = {
     contentReject: (id: string) => `/content/items/${id}/reject`,
     contentPublication: (id: string) => `/content/items/${id}/publication`,
     contentGenerate: (id: string) => `/content/items/${id}/generate`,
+    contentGenerationFeedback: (id: string) => `/content/generation-runs/${id}/feedback`,
     contentSettings: '/content/settings',
     contentSettingsModel: '/content/settings/model',
     contentBrands: '/content/brands',

@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function (): void {
     // AI copy drafts (ADR-0011, phase 3). Off unless configured; the result is always a draft revision.
     Route::post('content/items/{item:public_id}/generate', [ContentAiController::class, 'generate'])->middleware('throttle:20,1')->name('content.items.generate');
     Route::get('content/settings', [ContentAiController::class, 'settings'])->name('content.settings');
+    Route::post('content/generation-runs/{run:public_id}/feedback', [ContentAiController::class, 'feedback'])->name('content.generation-runs.feedback');
     Route::put('content/settings/model', [ContentAiController::class, 'selectModel'])->name('content.settings.model');
 
     // Brand & Template (ADR-0011, phase 2). Children are scoped to their brand.

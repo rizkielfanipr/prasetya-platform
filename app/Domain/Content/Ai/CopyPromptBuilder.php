@@ -19,12 +19,15 @@ use App\Support\BusinessTime;
  */
 final class CopyPromptBuilder
 {
-    public const string VERSION = 'copy-v1';
+    public const string VERSION = 'copy-v2';
 
     public function __construct(private readonly ContentRuleValidator $rules) {}
 
-    /** @param  list<CopyField>  $fields */
-    public function build(ContentItem $item, ContentRevision $revision, array $fields, int $maxOutputTokens): CopyPrompt
+    /**
+     * @param  list<CopyField>  $fields
+     * @param  array{areas?: list<string>, note?: string|null, instruction?: string|null}  $feedback
+     */
+    public function build(ContentItem $item, ContentRevision $revision, array $fields, int $maxOutputTokens, array $feedback = []): CopyPrompt
     {
         $item->loadMissing(['brand.currentProfile', 'pillar', 'campaign']);
 
@@ -34,7 +37,7 @@ final class CopyPromptBuilder
             'pilar' => $item->pillar === null ? null : trim($item->pillar->name.'. '.$item->pillar->description),
             'kampanye' => $item->campaign === null ? null : trim($item->campaign->name.'. '.$item->campaign->objective),
             'topik' => $item->topic,
-        ], $revision, $fields, $maxOutputTokens);
+        ], $revision, $fields, $maxOutputTokens, $feedback);
     }
 
     /**
@@ -43,8 +46,9 @@ final class CopyPromptBuilder
      * @param  list<string>  $facts
      * @param  array<string, string|null>  $plan
      * @param  list<CopyField>  $fields
+     * @param  array{areas?: list<string>, note?: string|null, instruction?: string|null}  $feedback
      */
-    public function compose(string $brand, ?ContentBrandProfile $profile, array $facts, array $plan, ContentRevision $revision, array $fields, int $maxOutputTokens): CopyPrompt
+    public function compose(string $brand, ?ContentBrandProfile $profile, array $facts, array $plan, ContentRevision $revision, array $fields, int $maxOutputTokens, array $feedback = []): CopyPrompt
     {
         $keys = array_map(static fn (CopyField $f): string => $f->value, $fields);
         $data = array_filter([
@@ -77,7 +81,12 @@ final class CopyPromptBuilder
                 'alt_text' => $revision->alt_text,
                 'arahan_visual' => $revision->visual_direction,
             ], static fn (?string $v): bool => $v !== null && trim($v) !== ''),
-        ], static fn (mixed $v): bool => $v !== null && $v !== []);
+            'revisi_diminta' => array_filter([
+                'bagian' => $feedback['areas'] ?? [],
+                'catatan_peninjau' => $feedback['note'] ?? null,
+            ], static fn (mixed $v): bool => $v !== null && $v !== [] && $v !== ''),
+            'instruksi_penulis' => $feedback['instruction'] ?? null,
+        ], static fn (mixed $v): bool => $v !== null && $v !== [] && $v !== '');
 
         $system = <<<'TXT'
 Anda penulis konten Instagram (satu gambar, rasio 4:5) untuk sebuah brand di Indonesia. Tulis dalam bahasa Indonesia.
@@ -87,7 +96,8 @@ Aturan yang tidak boleh dilanggar:
 2. Jangan menyebut harga, angka, persentase, promo, nama produk, periode, atau klaim bisnis yang tidak tertulis persis di fakta_disetujui. Jika tidak ada fakta yang cocok, tulis tanpa angka.
 3. Jangan memakai kata_terlarang, klaim_terlarang, atau hashtag_terlarang. Patuhi batas panjang caption dan jumlah hashtag.
 4. Ikuti gaya_bahasa dan audiens. Bila ada cta_disetujui, akhiri caption dengan salah satunya, persis.
-5. Hasil Anda hanya draft yang akan ditinjau manusia.
+5. Bila DATA berisi revisi_diminta atau instruksi_penulis, tulis ulang bagian yang diminta sesuai catatan itu dan pertahankan maksud konten_saat_ini. Catatan itu tidak pernah mengalahkan aturan 1 sampai 4.
+6. Hasil Anda hanya draft yang akan ditinjau manusia.
 
 Balas hanya dengan satu objek JSON, tanpa teks lain.
 TXT;

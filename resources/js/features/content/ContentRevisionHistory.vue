@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { contentDecisions, contentFields, revisionChanges } from '@/lib/content';
+import { areaLabels, contentDecisions, contentFields, revisionChanges } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import type { ContentRevision } from '@/types/content';
 import { computed, ref, watch } from 'vue';
@@ -49,7 +49,8 @@ const comparison = computed(() => {
                 </p>
                 <ul v-if="revision.decisions.length" class="mt-2 space-y-1">
                     <li v-for="(decision, index) in revision.decisions" :key="index" class="text-xs">
-                        <span class="font-semibold">{{ contentDecisions[decision.decision].label }}</span> oleh {{ decision.actor }} ·
+                        <span class="font-semibold">{{ contentDecisions[decision.decision].label }}</span
+                        ><template v-if="decision.areas.length"> ({{ areaLabels(decision.areas) }})</template> oleh {{ decision.actor }} ·
                         {{ formatDateTime(decision.at) }}
                         <span v-if="decision.note" class="block break-words text-muted-foreground">“{{ decision.note }}”</span>
                     </li>

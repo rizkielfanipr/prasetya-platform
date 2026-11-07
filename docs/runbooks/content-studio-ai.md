@@ -90,6 +90,10 @@ Re-running skips unchanged rules, existing pillars, and facts already in force.
 
 `content_generation_runs` keeps who asked, which fields, provider, model, prompt version, tokens, estimated cost, latency, attempts, and a safe error message. Prompts and raw responses are not stored. **Content Studio → Pengaturan AI** shows status, the week's spend, and the last 30 runs; it never shows or accepts a key. Audit: `content.generation_requested`, `content.generation_applied`, `content.generation_failed` on the item.
 
+## Revision requests and evaluation
+
+When an item is in *Perlu revisi*, the AI panel preselects the copy parts the reviewer named and sends the reviewer's note and the writer's optional instruction with the prompt (`copy-v2`). The note never overrides the brand rules. People rate finished drafts *Berguna* or *Kurang berguna* (with a reason); **Pengaturan AI → Evaluasi draft AI** shows ratings, approvals, and cost per model and prompt version. Use it, together with `content:eval-copy`, before switching model or prompt; ratings never change a prompt by themselves.
+
 ## Switch or roll back
 
 - Switch provider or model: change the `.env` values, `php artisan config:clear`, run `content:eval-copy`.

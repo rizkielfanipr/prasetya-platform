@@ -9,6 +9,7 @@ use App\Domain\Auth\Models\User;
 use App\Domain\Content\ContentAvailability;
 use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Enums\RevisionArea;
 use App\Domain\Content\Models\ContentApproval;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
@@ -28,8 +29,10 @@ final class ReviewContent
         private readonly ContentItemLock $lock,
     ) {}
 
-    public function __invoke(ContentItem $item, string $expectedRevision, ContentDecision $decision, ?string $note, User $actor): void
+    /** @param  list<RevisionArea>  $areas  for a revision request: the parts to change */
+    public function __invoke(ContentItem $item, string $expectedRevision, ContentDecision $decision, ?string $note, User $actor, array $areas = []): void
     {
+        $areaValues = $decision === ContentDecision::RevisionRequested ? array_values(array_unique(array_map(static fn (RevisionArea $a): string => $a->value, $areas))) : [];
         [$action, $status, $auditAction] = match ($decision) {
             ContentDecision::Approved => ['approve', ContentStatus::Approved, 'content.approved'],
             ContentDecision::RevisionRequested => ['requestRevision', ContentStatus::RevisionRequested, 'content.revision_requested'],
@@ -40,7 +43,7 @@ final class ReviewContent
             throw new \InvalidArgumentException('A revision request or rejection needs a note.');
         }
 
-        DB::transaction(function () use ($item, $expectedRevision, $decision, $note, $actor, $action, $status, $auditAction): void {
+        DB::transaction(function () use ($item, $expectedRevision, $decision, $note, $actor, $action, $status, $auditAction, $areaValues): void {
             $item = $this->lock->lock($item, $expectedRevision);
             $this->availability->ensure($item, $actor, $action);
             /** @var ContentRevision $revision */
@@ -50,6 +53,7 @@ final class ReviewContent
             ContentApproval::query()->create([
                 'content_revision_id' => $revision->id,
                 'decision' => $decision,
+                'areas' => $areaValues === [] ? null : $areaValues,
                 'note' => $note,
                 'actor_user_id' => $actor->id,
             ]);
@@ -60,7 +64,7 @@ final class ReviewContent
 
             ($this->audit)($auditAction, 'content_item', $item->public_id, $actor,
                 ['status' => $previous->value],
-                ['status' => $status->value, 'revision' => $revision->number],
+                ['status' => $status->value, 'revision' => $revision->number, ...($areaValues === [] ? [] : ['areas' => $areaValues])],
                 $note,
             );
         });

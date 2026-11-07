@@ -8,14 +8,14 @@ import ContentNav from '@/features/content/ContentNav.vue';
 import { formatUsd, generationStatuses } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
-import type { AiStatus, GenerationRun } from '@/types/content';
+import type { AiStatus, EvaluationRow, GenerationRun } from '@/types/content';
 import { Button } from '@/components/ui/button';
 import { Link, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, TriangleAlert } from '@lucide/vue';
 import { computed, watch } from 'vue';
 
 /** Pengaturan AI (ADR-0011): read-only status. Keys live in the server's environment and are never shown or entered here. */
-const props = defineProps<{ status: AiStatus; runs: GenerationRun[] }>();
+const props = defineProps<{ status: AiStatus; runs: GenerationRun[]; evaluation: EvaluationRow[] }>();
 
 const modelForm = useForm({ model: props.status.model ?? '' });
 watch(
@@ -133,6 +133,28 @@ const columns: DataTableColumn[] = [
             <div class="mt-2 h-2 rounded-full bg-muted" aria-hidden="true">
                 <div class="h-full rounded-full bg-primary-strong" :style="{ width: `${used}%` }" />
             </div>
+        </PanelCard>
+
+        <PanelCard
+            title="Evaluasi draft AI"
+            description="Per model dan versi prompt: penilaian orang dan berapa yang akhirnya disetujui. Untuk membandingkan, bukan mengubah prompt otomatis."
+        >
+            <EmptyState v-if="evaluation.length === 0" title="Belum ada draft AI" />
+            <ul v-else class="divide-y rounded-lg border" data-testid="ai-evaluation">
+                <li
+                    v-for="row in evaluation"
+                    :key="`${row.model}-${row.promptVersion}`"
+                    class="flex flex-wrap items-baseline justify-between gap-2 p-3 text-sm"
+                >
+                    <span
+                        ><span class="font-mono">{{ row.model ?? '—' }}</span> · prompt {{ row.promptVersion }}</span
+                    >
+                    <span class="tabular"
+                        >{{ row.drafts }} draft · {{ row.useful }} berguna · {{ row.notUseful }} kurang berguna · {{ row.approved }} disetujui ·
+                        {{ formatUsd(row.costUsd) }}</span
+                    >
+                </li>
+            </ul>
         </PanelCard>
 
         <PanelCard title="Riwayat draft AI" description="30 terakhir. Prompt dan jawaban mentah provider tidak disimpan." flush>

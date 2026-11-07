@@ -8,6 +8,7 @@ use App\Domain\Content\Ai\CopyBudget;
 use App\Domain\Content\Ai\CopyModel;
 use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
+use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentGenerationRun;
 
 /** AI generation runs and status for the screen. Never a key, a prompt, or a raw provider response. */
@@ -20,6 +21,10 @@ final class ContentAiPresenter
             'id' => $run->public_id,
             'status' => $run->status->value,
             'fields' => $run->fields,
+            'instruction' => $run->instruction,
+            'usedReviewNote' => $run->used_review_note,
+            'feedback' => $run->feedback?->value,
+            'feedbackReason' => $run->feedback_reason,
             'provider' => $run->provider,
             'model' => $run->model,
             'promptVersion' => $run->prompt_version,
@@ -36,6 +41,35 @@ final class ContentAiPresenter
             'createdAt' => $run->created_at->toIso8601ZuluString(),
             'finishedAt' => $run->finished_at?->toIso8601ZuluString(),
         ];
+    }
+
+    /**
+     * How AI drafts fared, per model and prompt version: people's verdicts and how many became approved revisions.
+     * For comparing providers and prompts; nothing here changes a prompt.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function evaluation(): array
+    {
+        return ContentGenerationRun::query()
+            ->where('status', GenerationStatus::Succeeded)
+            ->selectRaw('model, prompt_version, count(*) as drafts')
+            ->selectRaw("sum(case when feedback = 'USEFUL' then 1 else 0 end) as useful")
+            ->selectRaw("sum(case when feedback = 'NOT_USEFUL' then 1 else 0 end) as not_useful")
+            ->selectRaw("sum(case when exists (select 1 from content_approvals a where a.content_revision_id = content_generation_runs.result_revision_id and a.decision = 'APPROVED') then 1 else 0 end) as approved")
+            ->selectRaw('sum(cost_usd) as cost')
+            ->groupBy('model', 'prompt_version')
+            ->orderByDesc('drafts')
+            ->get()
+            ->map(static fn (ContentGenerationRun $row): array => [
+                'model' => $row->model,
+                'promptVersion' => $row->prompt_version,
+                'drafts' => (int) $row->getAttribute('drafts'),
+                'useful' => (int) $row->getAttribute('useful'),
+                'notUseful' => (int) $row->getAttribute('not_useful'),
+                'approved' => (int) $row->getAttribute('approved'),
+                'costUsd' => round((float) $row->getAttribute('cost'), 6),
+            ])->values()->all();
     }
 
     /** @return array<string, mixed> */

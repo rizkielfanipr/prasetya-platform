@@ -17,6 +17,7 @@ use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\RevisionCopier;
+use App\Domain\Content\Support\RevisionRequestLookup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Sleep;
 
@@ -33,6 +34,7 @@ final class RunCopyGeneration
         private readonly CopyBudget $budget,
         private readonly CopyPromptBuilder $prompts,
         private readonly RevisionCopier $copier,
+        private readonly RevisionRequestLookup $requests,
     ) {}
 
     public function __invoke(int $runId): void
@@ -52,7 +54,12 @@ final class RunCopyGeneration
 
         $fields = array_map(static fn (string $f): CopyField => CopyField::from($f), $run->fields);
         $item = $run->item;
-        $prompt = $this->prompts->build($item, $run->baseRevision, $fields, (int) config('content.ai.copy.max_output_tokens'));
+        $request = $run->used_review_note ? $this->requests->current($item) : null;
+        $prompt = $this->prompts->build($item, $run->baseRevision, $fields, (int) config('content.ai.copy.max_output_tokens'), [
+            'areas' => $request->areas ?? [],
+            'note' => $request?->note,
+            'instruction' => $run->instruction,
+        ]);
 
         $maxCost = $this->budget->maxCost($prompt);
         if ($maxCost > $this->budget->runLimit()) {

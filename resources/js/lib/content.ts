@@ -10,6 +10,7 @@ import type {
     ContentStatus,
     CopyField,
     GenerationStatus,
+    RevisionArea,
     RuleSeverity,
 } from '@/types/content';
 import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, Pencil, Send, TriangleAlert, XCircle } from '@lucide/vue';
@@ -57,6 +58,18 @@ export const contentSections = [
     { value: 'brands', label: 'Brand & Template' },
     { value: 'settings', label: 'Pengaturan AI' },
 ] as const;
+
+export const revisionAreas: readonly { value: RevisionArea; label: string }[] = [
+    { value: 'caption', label: 'Caption' },
+    { value: 'hashtags', label: 'Hashtag' },
+    { value: 'alt_text', label: 'Alt text' },
+    { value: 'visual_direction', label: 'Arahan visual' },
+    { value: 'image', label: 'Gambar' },
+    { value: 'brief', label: 'Brief' },
+];
+
+export const areaLabels = (areas: readonly string[]): string =>
+    areas.map((area) => revisionAreas.find((option) => option.value === area)?.label ?? area).join(', ');
 
 export const copyFields: readonly { value: CopyField; label: string }[] = [
     { value: 'caption', label: 'Caption' },

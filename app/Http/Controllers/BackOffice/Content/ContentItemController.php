@@ -23,6 +23,7 @@ use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\ContentRuleValidator;
+use App\Domain\Content\Support\RevisionRequestLookup;
 use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
@@ -82,7 +83,7 @@ final class ContentItemController
         });
     }
 
-    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation): Response
+    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation, RevisionRequestLookup $requests): Response
     {
         $item->load([
             'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'publication.actor', 'publication.revision',
@@ -104,6 +105,12 @@ final class ContentItemController
             'planOptions' => ContentBrandPresenter::planOptions($item->brand),
             'ai' => [
                 'unavailableReason' => $generation->reason($item),
+                'reviewRequest' => ($current = $requests->current($item)) === null ? null : [
+                    'areas' => $current->areas ?? [],
+                    'note' => $current->note,
+                    'actor' => $current->actor->name,
+                    'at' => $current->created_at->toIso8601ZuluString(),
+                ],
                 'runs' => ContentGenerationRun::query()->where('content_item_id', $item->id)->with(['item', 'requester', 'resultRevision'])->latest('id')->limit(10)->get()
                     ->map(ContentAiPresenter::run(...))->all(),
             ],
@@ -181,7 +188,7 @@ final class ContentItemController
     {
         return $this->attempt(function () use ($review, $item, $request, $decision, $message): RedirectResponse {
             $note = $request->validated('note');
-            $review($item, (string) $request->validated('revision'), $decision, $note === null ? null : (string) $note, $this->actor($request));
+            $review($item, (string) $request->validated('revision'), $decision, $note === null ? null : (string) $note, $this->actor($request), $request->areas());
 
             return back()->with('success', $message);
         });

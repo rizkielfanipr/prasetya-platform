@@ -13,6 +13,10 @@ const run = (overrides: Partial<GenerationRun> = {}): GenerationRun => ({
     id: 'r1',
     status: 'SUCCEEDED',
     fields: ['caption', 'hashtags'],
+    instruction: null,
+    usedReviewNote: false,
+    feedback: null,
+    feedbackReason: null,
     provider: 'openai_compatible',
     model: 'deepseek-test',
     promptVersion: 'copy-v1',
@@ -53,7 +57,7 @@ describe('formatUsd', () => {
 
 describe('ContentAiPanel', () => {
     it('keeps the button visible but disabled, with the reason', () => {
-        const wrapper = mountPanel({ unavailableReason: 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.', runs: [] });
+        const wrapper = mountPanel({ unavailableReason: 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.', reviewRequest: null, runs: [] });
 
         const button = aiButton(wrapper);
         expect(button.attributes('disabled')).toBeDefined();
@@ -62,13 +66,13 @@ describe('ContentAiPanel', () => {
     });
 
     it('asks for the chosen fields of the current revision', async () => {
-        const wrapper = mountPanel({ unavailableReason: null, runs: [] });
+        const wrapper = mountPanel({ unavailableReason: null, reviewRequest: null, runs: [] });
 
         await aiButton(wrapper).trigger('click');
 
         expect(inertia.post).toHaveBeenCalledWith(
             '/content/items/item-1/generate',
-            { revision: revision.id, fields: ['caption', 'hashtags', 'alt_text', 'visual_direction'] },
+            { revision: revision.id, fields: ['caption', 'hashtags', 'alt_text', 'visual_direction'], instruction: null },
             expect.anything(),
         );
     });
@@ -76,6 +80,7 @@ describe('ContentAiPanel', () => {
     it('lists runs with outcome, usage, and cost in words', () => {
         const wrapper = mountPanel({
             unavailableReason: null,
+            reviewRequest: null,
             runs: [run(), run({ id: 'r2', status: 'FAILED', errorMessage: 'Provider AI sedang bermasalah (503).', resultRevisionNumber: null })],
         });
 
@@ -85,14 +90,41 @@ describe('ContentAiPanel', () => {
     });
 
     it('refreshes while a run is active and stops when it finishes', async () => {
-        const wrapper = mountPanel({ unavailableReason: 'AI sedang membuat draft untuk konten ini.', runs: [run({ status: 'RUNNING' })] });
+        const wrapper = mountPanel({ unavailableReason: 'AI sedang membuat draft untuk konten ini.', reviewRequest: null, runs: [run({ status: 'RUNNING' })] });
 
         vi.advanceTimersByTime(3000);
         expect(inertia.reload).toHaveBeenCalledTimes(1);
 
-        await wrapper.setProps({ ai: { unavailableReason: null, runs: [run()] } });
+        await wrapper.setProps({ ai: { unavailableReason: null, reviewRequest: null, runs: [run()] } });
         vi.advanceTimersByTime(9000);
         expect(inertia.reload).toHaveBeenCalledTimes(1);
         expect(wrapper.get('[aria-live="polite"]').text()).toBe('Draft dibuat');
+    });
+});
+
+describe('ContentAiPanel answering a revision request', () => {
+    it("preselects the copy parts the reviewer named and sends the writer's instruction", async () => {
+        const wrapper = mountPanel({
+            unavailableReason: null,
+            reviewRequest: { areas: ['caption', 'image'], note: 'Ringkas caption', actor: 'Peninjau', at: '2026-11-08T03:00:00Z' },
+            runs: [],
+        });
+
+        expect(wrapper.get('[data-testid="ai-follows-review"]').text()).toContain('catatan peninjau');
+        await wrapper.get('#ai-instruction').setValue('lebih singkat');
+        await aiButton(wrapper).trigger('click');
+
+        expect(inertia.post).toHaveBeenCalledWith(
+            '/content/items/item-1/generate',
+            { revision: revision.id, fields: ['caption'], instruction: 'lebih singkat' },
+            expect.anything(),
+        );
+    });
+
+    it('offers a verdict on each finished draft', () => {
+        const wrapper = mountPanel({ unavailableReason: null, reviewRequest: null, runs: [run({ feedback: 'NOT_USEFUL', feedbackReason: 'Terlalu formal' })] });
+
+        expect(wrapper.text()).toContain('Dinilai kurang berguna: Terlalu formal');
+        expect(wrapper.findAll('button').some((b) => b.text().includes('Berguna'))).toBe(true);
     });
 });

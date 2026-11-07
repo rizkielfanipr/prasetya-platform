@@ -3,13 +3,17 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { contentActionLabels } from '@/lib/content';
 import { routes } from '@/lib/routes';
-import type { ContentAction, ContentActions, ContentItem, ContentRevision } from '@/types/content';
+import type { ContentAction, ContentActions, ContentItem, ContentRevision, ReviewRequest } from '@/types/content';
+import { areaLabels } from '@/lib/content';
+import { formatDateTime } from '@/lib/format';
 import { router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import ContentDecisionDialog from './ContentDecisionDialog.vue';
 
 /** Submit and review. Every button the user cannot use stays visible, disabled, with the server's reason beside it. */
-const props = defineProps<{ item: ContentItem; revision: ContentRevision; actions: ContentActions }>();
+const props = withDefaults(defineProps<{ item: ContentItem; revision: ContentRevision; actions: ContentActions; reviewRequest?: ReviewRequest | null }>(), {
+    reviewRequest: null,
+});
 
 const submitOpen = ref(false);
 const submitting = ref(false);
@@ -65,6 +69,7 @@ const dialogs = computed(() => ({
         noteLabel: 'Apa yang perlu diubah',
         noteRequired: true,
         destructive: false,
+        withAreas: true,
     },
     reject: {
         url: routes.contentReject(props.item.id),
@@ -98,6 +103,13 @@ function submit(): void {
 <template>
     <div class="space-y-4">
         <p class="text-sm" data-testid="review-summary">{{ summary }}</p>
+        <div v-if="reviewRequest" class="space-y-1 rounded-lg bg-warning-surface p-3 text-sm" data-testid="review-request">
+            <p class="font-semibold text-warning">
+                Catatan {{ reviewRequest.actor }} · {{ formatDateTime(reviewRequest.at)
+                }}<template v-if="reviewRequest.areas.length"> · {{ areaLabels(reviewRequest.areas) }}</template>
+            </p>
+            <p class="break-words whitespace-pre-line">{{ reviewRequest.note }}</p>
+        </div>
         <ul v-if="shown.length" class="flex flex-wrap gap-x-3 gap-y-3">
             <li v-for="action in shown" :key="action" class="flex max-w-xs flex-col gap-1">
                 <Button

@@ -91,6 +91,7 @@ final class ContentPresenter
             'asset' => $revision->asset === null ? null : self::asset($revision->asset),
             'decisions' => $revision->decisions->map(static fn (ContentApproval $decision): array => [
                 'decision' => $decision->decision->value,
+                'areas' => $decision->areas ?? [],
                 'note' => $decision->note,
                 'actor' => $decision->actor->name,
                 'at' => $decision->created_at->toIso8601ZuluString(),

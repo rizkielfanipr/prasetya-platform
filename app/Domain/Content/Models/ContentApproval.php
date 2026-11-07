@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $content_revision_id
  * @property ContentDecision $decision
+ * @property list<string>|null $areas parts a revision request names
  * @property string|null $note
  * @property int $actor_user_id
  * @property Carbon $created_at
@@ -45,6 +46,6 @@ class ContentApproval extends Model
 
     protected function casts(): array
     {
-        return ['decision' => ContentDecision::class];
+        return ['decision' => ContentDecision::class, 'areas' => 'array'];
     }
 }

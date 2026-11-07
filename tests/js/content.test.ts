@@ -183,12 +183,14 @@ describe('ContentEditor', () => {
 
 describe('ContentRevisionHistory', () => {
     it('lists revisions with decisions and compares the two newest', async () => {
-        const first = revision({ decisions: [{ decision: 'REVISION_REQUESTED', note: 'Ringkas caption', actor: 'Peninjau', at: '2026-11-07T04:00:00Z' }] });
+        const first = revision({
+            decisions: [{ decision: 'REVISION_REQUESTED', areas: ['caption'], note: 'Ringkas caption', actor: 'Peninjau', at: '2026-11-07T04:00:00Z' }],
+        });
         const second = revision({ id: '01REVISION000000000000000B', number: 2, caption: 'Caption ringkas', submittedAt: null });
         const wrapper = mount(ContentRevisionHistory, { props: { revisions: [second, first], approvedRevisionId: null } });
         await flushPromises();
 
-        expect(wrapper.get('[data-testid="revision-1"]').text()).toContain('Revisi diminta oleh Peninjau');
+        expect(wrapper.get('[data-testid="revision-1"]').text()).toContain('Revisi diminta (Caption) oleh Peninjau');
         expect(wrapper.get('[data-testid="revision-1"]').text()).toContain('Ringkas caption');
         expect(wrapper.get('[data-testid="revision-2"]').text()).toContain('Belum diajukan');
         const diff = wrapper.get('[data-testid="revision-diff"]').text();

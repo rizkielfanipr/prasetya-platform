@@ -503,6 +503,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** pengguna dapat meminta revisi granular tanpa kehilangan versi sebelumnya.
 
+**Status (2026-11-08):** selesai di branch `feat/content-revision-loop` (di atas Fase 3). Peninjau mencentang bagian yang perlu diubah (caption, hashtag, alt text, arahan visual, gambar, brief) saat meminta revisi; panel AI memilihkan bagian salinan yang diminta, mengirim catatan peninjau dan instruksi tambahan penulis (prompt `copy-v2`), dan hasilnya revisi baru sehingga versi, persetujuan, dan audit lama tetap ada. Draft AI dapat dinilai "Berguna" atau "Kurang berguna" (dengan alasan); Pengaturan AI menampilkan penilaian dan jumlah draft yang akhirnya disetujui per model dan versi prompt. Penilaian tidak pernah mengubah prompt secara otomatis.
+
 ### Fase 7 — Manual posting workflow
 
 - Final posting package.

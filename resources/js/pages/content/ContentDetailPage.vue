@@ -76,7 +76,7 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
             </dl>
         </PanelCard>
 
-        <PanelCard title="Tinjauan"><ContentReviewPanel :item="item" :revision="revision" :actions="actions" /></PanelCard>
+        <PanelCard title="Tinjauan"><ContentReviewPanel :item="item" :revision="revision" :actions="actions" :review-request="ai.reviewRequest" /></PanelCard>
 
         <PanelCard title="Aturan brand" description="Pemeriksaan otomatis tanpa AI terhadap aturan, fakta, pilar, dan kampanye brand.">
             <ContentRuleFindings :findings="findings" :version="brandRulesVersion" :submitted-version="revision.brandRulesVersion" />
