@@ -10,7 +10,7 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 | [`architecture.md`](architecture.md) | System context, module boundaries, data ownership, and engineering constraints | Proposed |
 | [`implementation-plan.md`](implementation-plan.md) | Delivery milestones, dependencies, exit criteria, quality gates, and risks | Draft for approval |
 | [`satamu-payment-activation-plan.md`](satamu-payment-activation-plan.md) | Satamu catalogue, shared Duitku integration, tests, rollout, and rollback | Draft for approval |
-| [`back-office-user-management-plan.md`](back-office-user-management-plan.md) | Pengguna module, one access level, and username sign-in | Draft for approval |
+| [`back-office-user-management-plan.md`](back-office-user-management-plan.md) | Pengguna module, one access level, and username sign-in | Implemented, awaiting acceptance |
 | [`back-office-user-management-implementation-prompt.md`](back-office-user-management-implementation-prompt.md) | Coding-agent prompt for the user management plan (Indonesian) | Reference |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) for consequential technical choices | Active |
 | [`assets/`](assets/) | Approved visual references used by design documentation | Reference |

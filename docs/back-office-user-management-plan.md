@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft for approval |
+| Status | Implemented on branch `feat/user-management`, awaiting the owner's acceptance |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-07 |
 | Decision | [ADR-0009](decisions/0009-single-access-users-username-login.md) |
@@ -11,6 +11,25 @@
 ## Objective
 
 Let any back-office user add and manage colleagues from a new **Pengguna** module, give every account the same full access, and sign in with a username and password instead of an email.
+
+## Progress (2026-11-07)
+
+| Phase | Commit | State |
+|---|---|---|
+| 2 Username sign-in | `feat(platform): sign in with username` | Done |
+| 3 One access level | `refactor(platform): remove roles and permissions` | Done |
+| 4 Pengguna module | `feat(platform): manage users in the back office` | Done |
+| 5 Docs and rollout | `docs: user management and username sign-in` | Docs done; rollout after merge |
+
+Differences from the scope below, decided during implementation:
+
+- The migration is split in two (`…_sign_in_with_username`, `…_remove_user_roles`), one per phase. Both ship in the same release.
+- `platform:create-admin` lost `--role` in the username phase already, because `CreateUser` gives every new user full access.
+- Row actions sit in one "Aksi" menu per row instead of three buttons, so the table fits at 1280 px. On phones the table scrolls horizontally with a sticky name column, like the transaction list, rather than turning into cards.
+- A user cannot set their own password from Pengguna; they change it in Pengaturan with their current password. Otherwise the action would end their own session and skip that check.
+- The last-active-user rule cannot be reached over HTTP (the only active user is always the actor, so the self rule answers first). It stays in `SetUserActive` as a guard against races and calls without an actor, and is tested there.
+
+ADR-0009 becomes Accepted, and the roles row of ADR-0002 is marked superseded in the ADR index, once the owner accepts this implementation.
 
 ## Current state
 
