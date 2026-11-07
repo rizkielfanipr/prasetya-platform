@@ -30,6 +30,10 @@ Status: Proposed. Must be reviewed before production payments are enabled.
 | Fake gateway reaching production | Refuses to boot when `APP_ENV=production` | Test | |
 | Dummy Satamu prices sold | Created inactive in every environment; re-seeding never changes availability; activation only through the audited `platform:package-activate` command with a reason and confirmation | Test | Must be replaced before enabling |
 | Audit tampering | Append-only models | Test | Not enforced in the database. Consider revoking UPDATE and DELETE for the app's MySQL user |
+| Content published without review | Approval names one revision; the submitter cannot approve it; publishing requires the current revision to be approved; editing approved content creates a new revision and returns it to review ([ADR-0011](../decisions/0011-content-studio-authority-boundary.md)) | Content Studio feature tests | Two colluding users can still approve each other |
+| Malicious or oversized image upload | MIME from the bytes (JPEG, PNG, WebP), size and pixel limits read from the header before any decode, exact 4:5 ratio, private disk, path by checksum, download only behind sign-in | Upload tests | Images are not re-encoded, so metadata (EXIF) stays in the file |
+| AI or agent output treated as fact or approval (later phases) | AI output is always a draft; no AI route or tool can approve, publish, delete, or change facts; budgets and tool allowlists enforced by Laravel | ADR-0011; tests per AI phase | Not built yet |
+| Hermes compromise (later phase) | Separate container without database credentials, Laravel `.env`, SSH keys, or Docker socket; service token per run; egress limited | ADR-0011; manifest review | Host not decided |
 | Vulnerable dependencies | `npm audit` and `composer audit` | Run manually | Add to CI schedule |
 
 ## Before production

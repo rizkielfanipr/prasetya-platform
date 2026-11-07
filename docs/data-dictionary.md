@@ -22,9 +22,27 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `webhook_events` | Evidence of each delivery | `primary_dedupe_key` unique on first delivery only |
 | `idempotency_keys` | Public mutation guard | Unique (`scope`, `idempotency_key`); stores a fingerprint and a resource reference |
 | `audit_logs` | Append-only record of sensitive actions | Actor, action, entity, previous and new state, reason, request id. User changes: `user.created`, `user.updated`, `user.activated`, `user.deactivated`, `user.password_reset`, never with a password. Shown by entity ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md), `AuditTrail`): order and payment on the transaction detail; any entry about a user on that user's page; everything else, including sign-in, profile, and packages, under Pengaturan → Aktivitas Sistem, which can also search every entry |
+| `content_brands` | Brands Content Studio plans for ([ADR-0011](decisions/0011-content-studio-authority-boundary.md)) | Unique `code`, name, `is_active`. Brand knowledge (audience, voice, facts) arrives in phase 2 |
+| `content_items` | One planned single-image Instagram post | Brand, title, `planned_at` (UTC), status (state machine below), `active_revision_id`, `approved_revision_id` (null unless the current revision is approved), creator |
+| `content_revisions` | One version of an item's content | Unique (`content_item_id`, `number`). Objective, audience, brief, caption, hashtags, alt text, visual direction, author. **Immutable once `submitted_at` is set**; any later change is a new revision |
+| `content_assets` | The image of a revision | One per revision. Private disk, path by SHA-256 checksum (deduplicated), MIME type from the bytes, size, width, height, original name, uploader |
+| `content_approvals` | Append-only review decisions | Revision, decision (`APPROVED`, `REVISION_REQUESTED`, `REJECTED`), note, actor, time. An approval names exactly one revision |
+| `content_publications` | The human statement that an item was posted | One per item. Revision posted, actual `published_at` (required), Instagram URL (optional), note, actor. Immutable |
 | `sessions`, `password_reset_tokens`, `cache`, `jobs`, `failed_jobs` | Laravel infrastructure | |
 
 Append-only tables refuse updates and deletes through their models. This is not a database-level guarantee: someone with SQL access can still change them.
+
+## Content item state machine
+
+```text
+DRAFT -> READY_FOR_REVIEW -> APPROVED -> PUBLISHED
+              |    ^            |
+              v    |            v (edit: new revision)
+     REVISION_REQUESTED    READY_FOR_REVIEW
+DRAFT / READY_FOR_REVIEW -> REJECTED
+```
+
+Each transition is a named action in `App\Domain\Content\Actions` (submit, request revision, approve, reject, mark published, edit) and writes an audit entry on entity `content_item`. `APPROVED` needs an approver other than the submitter of that revision. `PUBLISHED` needs the item to be approved on its current revision. `REJECTED` and `PUBLISHED` are final. A planned date passing changes nothing.
 
 ## Order state machine
 

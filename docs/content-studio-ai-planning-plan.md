@@ -634,6 +634,20 @@ Log menggunakan run id dan content public id, bukan caption penuh atau secret.
 - Seluruh required tests dan quality gate proyek lulus.
 - Runbook deploy, incident, credential rotation, provider outage, dan cost runaway tersedia sebelum production.
 
+## Keputusan pemilik (2026-11-07)
+
+Dicatat di [ADR-0011](decisions/0011-content-studio-authority-boundary.md).
+
+| Pertanyaan | Jawaban |
+|---|---|
+| 1. Brand pertama | Prasetya Webworks |
+| 3. Siapa yang boleh approve | Bukan pengaju revisi tersebut (four-eyes); semua user aktif lain boleh |
+| 5. Ukuran gambar | 4:5, 1080×1350 |
+| 9. URL Instagram saat published | Opsional; waktu posting aktual wajib |
+| Provider AI | Konfigurasi per kemampuan (copy, gambar, riset, agent); OpenAI sebagai provider pertama; penggantian provider melalui evaluasi |
+
+Masih terbuka sampai fase yang membutuhkannya: 2 (jumlah dan hari konten; kalender tidak memaksa jumlah), 4 (gambar generatif atau asset brand), 6 (retensi), 7 (budget), 8 (search provider), 10 (insight manual), serta lokasi Hermes dan queue worker di staging/production karena hosting cPanel saat ini tidak menyediakan Docker maupun queue worker.
+
 ## Pertanyaan yang harus diputuskan sebelum Fase 1
 
 1. Brand pertama: Satamu, Prasetya Webworks, atau brand lain?
