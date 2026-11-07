@@ -527,6 +527,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** weekly strategy dapat menjelaskan bagaimana performa masa lalu memengaruhi rekomendasi baru.
 
+**Status (2026-11-08):** bagian manual selesai di branch `feat/content-insights` (di atas Fase 7); pemakaian oleh Hermes menyusul di Fase 5. Keputusan pemilik: insight manual masuk rilis awal. Konten yang dipublikasikan punya panel **Insight** untuk mencatat angka dari Instagram (jangkauan wajib; tayangan, suka, komentar, simpan, bagikan, kunjungan profil, pengikut baru opsional) sebagai snapshot append-only. Tab **Insight** meringkas 30/90/180 hari dari snapshot terbaru tiap posting: total, rata-rata jangkauan dan engagement ((suka + komentar + simpan + bagikan) ÷ jangkauan), per pilar, kampanye, dan topik, lima posting terbaik dengan arahan visualnya, serta pengingat posting tanpa insight setelah 2 hari. `PerformanceSummary` adalah snapshot terstruktur yang nanti dibaca Hermes; tidak ada aturan, pilar, atau prompt yang berubah otomatis.
+
 ## Required tests
 
 ### Domain dan feature

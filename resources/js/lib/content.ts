@@ -62,6 +62,23 @@ export const postingSteps: readonly { value: PostingStep; label: string }[] = [
     { value: 'account', label: 'Diposting dari akun brand yang benar' },
 ];
 
+/** The approved Instagram metrics, in form order. Reach is required. */
+export const insightMetrics = [
+    { key: 'reach', name: 'reach', label: 'Jangkauan', required: true },
+    { key: 'views', name: 'views', label: 'Tayangan', required: false },
+    { key: 'likes', name: 'likes', label: 'Suka', required: false },
+    { key: 'comments', name: 'comments', label: 'Komentar', required: false },
+    { key: 'saves', name: 'saves', label: 'Simpan', required: false },
+    { key: 'shares', name: 'shares', label: 'Bagikan', required: false },
+    { key: 'profileVisits', name: 'profile_visits', label: 'Kunjungan profil', required: false },
+    { key: 'follows', name: 'follows', label: 'Pengikut baru', required: false },
+] as const;
+
+/** 0.0917 → "9,2%"; null → "—". */
+export function formatRate(rate: number | null | undefined): string {
+    return rate === null || rate === undefined ? '—' : `${(rate * 100).toFixed(1).replace('.', ',')}%`;
+}
+
 /** "Terlambat 2 hari", "Hari ini", or nothing. */
 export function dueLabel(state: 'overdue' | 'today' | 'upcoming' | null, daysLate = 0): string | null {
     if (state === 'overdue') return daysLate > 0 ? `Terlambat ${daysLate} hari` : 'Terlambat';
@@ -75,6 +92,7 @@ export const contentSections = [
     { value: 'calendar', label: 'Kalender' },
     { value: 'to-post', label: 'Siap posting' },
     { value: 'items', label: 'Konten' },
+    { value: 'insights', label: 'Insight' },
     { value: 'brands', label: 'Brand & Template' },
     { value: 'settings', label: 'Pengaturan AI' },
 ] as const;

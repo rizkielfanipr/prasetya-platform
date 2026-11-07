@@ -109,6 +109,9 @@ final class ContentItemController
             'brandRulesVersion' => $item->brand->currentProfile?->version,
             'planOptions' => ContentBrandPresenter::planOptions($item->brand),
             'research' => $this->research($item, $research, $context),
+            'insights' => $item->status === ContentStatus::Published
+                ? $item->insights()->with('recordedBy')->limit(20)->get()->map(ContentPresenter::insight(...))->all()
+                : null,
             'ai' => [
                 'unavailableReason' => $generation->reason($item),
                 'reviewRequest' => ($current = $requests->current($item)) === null ? null : [

@@ -11,6 +11,7 @@ const hrefs = {
     calendar: routes.contentCalendar,
     'to-post': routes.contentToPost,
     items: routes.contentItems,
+    insights: routes.contentInsights,
     brands: routes.contentBrands,
     settings: routes.contentSettings,
 } as const;

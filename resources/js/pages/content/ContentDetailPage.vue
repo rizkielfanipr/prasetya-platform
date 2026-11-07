@@ -4,6 +4,7 @@ import PanelCard from '@/components/layout/PanelCard.vue';
 import AuditTimeline from '@/components/shared/AuditTimeline.vue';
 import ContentAiPanel from '@/features/content/ContentAiPanel.vue';
 import ContentDetailsDialog from '@/features/content/ContentDetailsDialog.vue';
+import ContentInsightPanel from '@/features/content/ContentInsightPanel.vue';
 import ContentEditor from '@/features/content/ContentEditor.vue';
 import ContentPostingPackage from '@/features/content/ContentPostingPackage.vue';
 import ContentResearchPanel from '@/features/content/ContentResearchPanel.vue';
@@ -14,7 +15,17 @@ import ContentStatusBadge from '@/features/content/ContentStatusBadge.vue';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { AuditEntry } from '@/types/backoffice';
-import type { ContentActions, ContentItem, ContentLimits, ContentRevision, ItemAi, ItemResearch, PlanOptions, RuleFinding } from '@/types/content';
+import type {
+    ContentActions,
+    ContentItem,
+    ContentLimits,
+    ContentRevision,
+    InsightSnapshot,
+    ItemAi,
+    ItemResearch,
+    PlanOptions,
+    RuleFinding,
+} from '@/types/content';
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed } from 'vue';
@@ -32,6 +43,7 @@ const props = defineProps<{
     planOptions: PlanOptions;
     ai: ItemAi;
     research: ItemResearch;
+    insights: InsightSnapshot[] | null;
 }>();
 
 const postable = computed(() => props.item.status === 'APPROVED' || props.item.status === 'PUBLISHED');
@@ -82,6 +94,10 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
 
         <PanelCard title="Aturan brand" description="Pemeriksaan otomatis tanpa AI terhadap aturan, fakta, pilar, dan kampanye brand.">
             <ContentRuleFindings :findings="findings" :version="brandRulesVersion" :submitted-version="revision.brandRulesVersion" />
+        </PanelCard>
+
+        <PanelCard v-if="insights" id="insight" title="Insight" description="Angka dari Insight Instagram, dicatat manual.">
+            <ContentInsightPanel :item-id="item.id" :insights="insights" />
         </PanelCard>
 
         <PanelCard v-if="postable" title="Paket posting" description="Posting manual di Instagram dari revisi yang disetujui, lalu catat di sini.">

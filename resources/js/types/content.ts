@@ -333,3 +333,47 @@ export interface ItemResearch {
 export type PostingStep = 'image' | 'caption' | 'alt_text' | 'account';
 
 export type ToPostRow = ContentRow & { daysLate: number };
+
+export interface InsightSnapshot {
+    id: string;
+    measuredAt: string;
+    reach: number;
+    views: number | null;
+    likes: number | null;
+    comments: number | null;
+    saves: number | null;
+    shares: number | null;
+    profileVisits: number | null;
+    follows: number | null;
+    engagement: number | null;
+    note: string | null;
+    recordedBy: string;
+}
+
+export interface InsightGroup {
+    name: string;
+    posts: number;
+    avgReach: number | null;
+    avgEngagement: number | null;
+    avgSaves: number | null;
+}
+
+export interface PerformanceSummary {
+    window: { days: number; from: string };
+    totals: { posts: number; measured: number; reach: number; avgReach: number | null; avgEngagement: number | null; saves: number };
+    byPillar: InsightGroup[];
+    byCampaign: InsightGroup[];
+    byTopic: InsightGroup[];
+    top: {
+        id: string;
+        title: string;
+        pillar: string | null;
+        topic: string | null;
+        publishedAt: string | null;
+        reach: number;
+        saves: number | null;
+        engagement: number | null;
+        visualDirection: string | null;
+    }[];
+    missing: { id: string; title: string; publishedAt: string | null }[];
+}

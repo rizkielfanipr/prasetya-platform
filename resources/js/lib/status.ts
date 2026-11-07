@@ -100,6 +100,7 @@ export const auditActionLabels: Record<string, string> = {
     'content.rejected': 'Ditolak',
     'content.published': 'Ditandai dipublikasikan',
     'content.ai_model_selected': 'Model AI diganti',
+    'content.insight_recorded': 'Insight dicatat',
     'content.research_requested': 'Riset web diminta',
     'content.research_completed': 'Riset web selesai',
     'content.research_failed': 'Riset web gagal',

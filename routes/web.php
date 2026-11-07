@@ -8,6 +8,7 @@ use App\Http\Controllers\BackOffice\Content\ContentAiController;
 use App\Http\Controllers\BackOffice\Content\ContentAssetController;
 use App\Http\Controllers\BackOffice\Content\ContentBrandController;
 use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
+use App\Http\Controllers\BackOffice\Content\ContentInsightController;
 use App\Http\Controllers\BackOffice\Content\ContentItemController;
 use App\Http\Controllers\BackOffice\Content\ContentPostingController;
 use App\Http\Controllers\BackOffice\Content\ContentResearchController;
@@ -55,6 +56,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('content', [ContentCalendarController::class, 'home'])->name('content.home');
     Route::get('content/calendar', ContentCalendarController::class)->name('content.calendar');
     Route::get('content/to-post', ContentPostingController::class)->name('content.to-post');
+    Route::get('content/insights', [ContentInsightController::class, 'index'])->name('content.insights');
+    Route::post('content/items/{item:public_id}/insights', [ContentInsightController::class, 'store'])->name('content.items.insights.store');
     Route::get('content/items', [ContentItemController::class, 'index'])->name('content.items.index');
     Route::post('content/items', [ContentItemController::class, 'store'])->name('content.items.store');
     Route::get('content/items/{item:public_id}', [ContentItemController::class, 'show'])->name('content.items.show');

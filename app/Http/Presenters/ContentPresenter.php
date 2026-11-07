@@ -7,6 +7,7 @@ namespace App\Http\Presenters;
 use App\Domain\Content\Models\ContentApproval;
 use App\Domain\Content\Models\ContentAsset;
 use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentInsightSnapshot;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentPublication;
 use App\Domain\Content\Models\ContentRevision;
@@ -115,6 +116,22 @@ final class ContentPresenter
             'width' => $asset->width,
             'height' => $asset->height,
             'checksum' => $asset->checksum_sha256,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public static function insight(ContentInsightSnapshot $snapshot): array
+    {
+        return [
+            'id' => $snapshot->public_id,
+            'measuredAt' => $snapshot->measured_at->toIso8601ZuluString(),
+            ...array_combine(
+                array_map(static fn (string $m): string => lcfirst(str_replace('_', '', ucwords($m, '_'))), ContentInsightSnapshot::METRICS),
+                array_map(static fn (string $m): ?int => $snapshot->getAttribute($m), ContentInsightSnapshot::METRICS),
+            ),
+            'engagement' => $snapshot->engagementRate(),
+            'note' => $snapshot->note,
+            'recordedBy' => $snapshot->recordedBy->name,
         ];
     }
 

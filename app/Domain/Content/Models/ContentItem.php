@@ -76,6 +76,12 @@ class ContentItem extends Model
             ->orderByPivot('created_at');
     }
 
+    /** @return HasMany<ContentInsightSnapshot, $this> */
+    public function insights(): HasMany
+    {
+        return $this->hasMany(ContentInsightSnapshot::class)->orderByDesc('measured_at')->orderByDesc('id');
+    }
+
     /** @return BelongsTo<ContentPillar, $this> */
     public function pillar(): BelongsTo
     {
