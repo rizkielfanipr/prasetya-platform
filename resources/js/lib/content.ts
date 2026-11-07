@@ -10,8 +10,10 @@ import type {
     ContentStatus,
     CopyField,
     GenerationStatus,
+    ResearchStatus,
     RevisionArea,
     RuleSeverity,
+    SourceTrust,
 } from '@/types/content';
 import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, Pencil, Send, TriangleAlert, XCircle } from '@lucide/vue';
 
@@ -58,6 +60,19 @@ export const contentSections = [
     { value: 'brands', label: 'Brand & Template' },
     { value: 'settings', label: 'Pengaturan AI' },
 ] as const;
+
+export const sourceTrusts: Record<SourceTrust, StatusDefinition> = {
+    OFFICIAL: { label: 'Resmi', tone: 'success', icon: CheckCircle2 },
+    GENERAL: { label: 'Umum', tone: 'neutral', icon: Circle },
+    USER_GENERATED: { label: 'Konten pengguna', tone: 'warning', icon: TriangleAlert },
+};
+
+export const researchStatuses: Record<ResearchStatus, StatusDefinition> = {
+    QUEUED: { label: 'Menunggu antrean', tone: 'info', icon: Clock },
+    RUNNING: { label: 'Sedang mencari', tone: 'info', icon: Clock },
+    SUCCEEDED: { label: 'Selesai', tone: 'success', icon: CheckCircle2 },
+    FAILED: { label: 'Gagal', tone: 'danger', icon: XCircle },
+};
 
 export const revisionAreas: readonly { value: RevisionArea; label: string }[] = [
     { value: 'caption', label: 'Caption' },

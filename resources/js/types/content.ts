@@ -268,6 +268,7 @@ export interface AiStatus {
     maxAttempts: number;
     timeoutSeconds: number;
     budget: { spentThisWeek: number; weekLimit: number; runLimit: number; runsPerRevision: number };
+    search: { provider: string; unavailableReason: string | null; pricePerCall: number; maxResults: number; perItemPerDay: number; callsThisWeek: number };
     circuitOpenUntil: string | null;
 }
 
@@ -279,4 +280,48 @@ export interface EvaluationRow {
     notUseful: number;
     approved: number;
     costUsd: number;
+}
+
+export type SourceTrust = 'OFFICIAL' | 'GENERAL' | 'USER_GENERATED';
+export type ResearchStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+
+/** Untrusted page metadata: render as plain text only. */
+export interface ResearchSource {
+    id: string;
+    url: string;
+    domain: string;
+    title: string;
+    summary: string | null;
+    trust: SourceTrust;
+    origin: 'SEARCH' | 'MANUAL';
+    relevance: number | null;
+    publishedOn: string | null;
+    fetchedAt: string;
+    note: string | null;
+}
+
+export interface ResearchRun {
+    id: string;
+    query: string;
+    status: ResearchStatus;
+    provider: string;
+    resultsCount: number;
+    droppedCount: number;
+    costUsd: number;
+    errorMessage: string | null;
+    requestedBy: string;
+    createdAt: string;
+    sources: ResearchSource[];
+}
+
+export interface ItemResearch {
+    unavailableReason: string | null;
+    cited: ResearchSource[];
+    runs: ResearchRun[];
+    internal: {
+        campaigns: { name: string; objective: string | null }[];
+        facts: number;
+        similar: { id: string; title: string; status: ContentStatus; plannedAt: string; score: number }[];
+    };
+    suggestedQuery: string;
 }

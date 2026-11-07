@@ -7,12 +7,12 @@ arch('the domain does not depend on the Duitku adapter or HTTP')
     ->expect('App\Domain')
     ->not->toUse(['App\Integrations', 'App\Http']);
 
-arch('only the Duitku and content AI adapters make outbound HTTP calls')
+arch('only the Duitku, content AI, and content research adapters make outbound HTTP calls')
     ->expect('Illuminate\Support\Facades\Http')
-    ->toOnlyBeUsedIn(['App\Integrations\Duitku', 'App\Integrations\ContentAi']);
+    ->toOnlyBeUsedIn(['App\Integrations\Duitku', 'App\Integrations\ContentAi', 'App\Integrations\ContentResearch']);
 
-arch('content AI adapters stay away from payments and orders')
-    ->expect('App\Integrations\ContentAi')
+arch('content AI and research adapters stay away from payments and orders')
+    ->expect(['App\Integrations\ContentAi', 'App\Integrations\ContentResearch'])
     ->not->toUse(['App\Domain\Payments', 'App\Domain\Orders', 'App\Domain\Customers', 'App\Integrations\Duitku']);
 
 arch('models do not call gateways')

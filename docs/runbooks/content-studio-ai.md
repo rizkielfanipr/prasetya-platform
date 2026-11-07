@@ -90,6 +90,22 @@ Re-running skips unchanged rules, existing pillars, and facts already in force.
 
 `content_generation_runs` keeps who asked, which fields, provider, model, prompt version, tokens, estimated cost, latency, attempts, and a safe error message. Prompts and raw responses are not stored. **Content Studio → Pengaturan AI** shows status, the week's spend, and the last 30 runs; it never shows or accepts a key. Audit: `content.generation_requested`, `content.generation_applied`, `content.generation_failed` on the item.
 
+## Web research
+
+Research runs on the same `content-ai` queue and weekly budget. Internal context (facts in force, running campaigns, similar posts within 90 days) shows first; web results are untrusted material, never business facts.
+
+```dotenv
+CONTENT_SEARCH_PROVIDER=tavily          # none (default) | fake | tavily
+CONTENT_SEARCH_API_KEY=...              # from tavily.com; stays in .env, agents never see it
+CONTENT_SEARCH_PRICE_PER_CALL=0.008     # USD per search from the price page; a small nominal value on a free plan
+CONTENT_SEARCH_MAX_RESULTS=5            # per search, at most 10
+CONTENT_SEARCH_PER_ITEM_PER_DAY=5
+CONTENT_RESEARCH_BLOCKED_DOMAINS=       # comma-separated, dropped from results and refused as manual sources
+CONTENT_RESEARCH_ALLOWED_DOMAINS=       # when set, the only domains research may use
+```
+
+Results are filtered by `UrlPolicy` (http/https on standard ports, no credentials, no private, loopback, link-local, metadata, or internal hosts), canonicalised without tracking parameters, deduplicated per brand, and stored with title, domain, a summary of at most 600 characters, trust (official, general, user-generated), relevance, and access time. Manual sources are always available; with no title the server reads it through `SafePageReader` (resolved addresses must be public, the connection is pinned to them, each redirect is re-checked, HTML only, 8 s and 512 KB). Cited sources go to AI copy as untrusted background (`copy-v3`).
+
 ## Revision requests and evaluation
 
 When an item is in *Perlu revisi*, the AI panel preselects the copy parts the reviewer named and sends the reviewer's note and the writer's optional instruction with the prompt (`copy-v2`). The note never overrides the brand rules. People rate finished drafts *Berguna* or *Kurang berguna* (with a reason); **Pengaturan AI → Evaluasi draft AI** shows ratings, approvals, and cost per model and prompt version. Use it, together with `content:eval-copy`, before switching model or prompt; ratings never change a prompt by themselves.

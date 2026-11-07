@@ -121,6 +121,18 @@ const columns: DataTableColumn[] = [
             </details>
         </PanelCard>
 
+        <PanelCard title="Pencarian web (riset)">
+            <p class="text-sm" data-testid="search-status">
+                <template v-if="status.search.unavailableReason">{{ status.search.unavailableReason }}</template>
+                <template v-else>Siap. Provider {{ status.search.provider }}, {{ formatUsd(status.search.pricePerCall) }} per pencarian.</template>
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">
+                {{ status.search.callsThisWeek }} pencarian minggu ini · maksimal {{ status.search.maxResults }} hasil per pencarian ·
+                {{ status.search.perItemPerDay }} kali per konten per hari. Biaya masuk budget mingguan yang sama. Key tidak pernah ditampilkan; agen memakai
+                tool riset, bukan key.
+            </p>
+        </PanelCard>
+
         <PanelCard
             title="Budget minggu ini"
             :description="`Senin–Minggu WIB. Batas per run ${formatUsd(status.budget.runLimit)}, maksimal ${status.budget.runsPerRevision} kali AI per revisi.`"

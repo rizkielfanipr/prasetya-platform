@@ -7,6 +7,7 @@ namespace App\Domain\Content\Ai;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentGenerationRun;
+use App\Domain\Content\Models\ContentResearchRun;
 use App\Support\BusinessTime;
 use Carbon\CarbonImmutable;
 
@@ -59,12 +60,14 @@ final class CopyBudget
         return (float) config('content.ai.budget.week_usd');
     }
 
-    /** Spent this business week (Monday 00:00 WIB onwards), by every run that reached the provider. */
+    /** Spent this business week (Monday 00:00 WIB onwards) by every copy and research run that reached a provider. */
     public function spentThisWeek(): float
     {
         $start = CarbonImmutable::now(BusinessTime::zone())->startOfWeek(CarbonImmutable::MONDAY)->startOfDay()->utc();
 
-        return round((float) ContentGenerationRun::query()->where('started_at', '>=', $start)->sum('cost_usd'), 6);
+        // One weekly AI budget for copy and web research together.
+        return round((float) ContentGenerationRun::query()->where('started_at', '>=', $start)->sum('cost_usd')
+            + (float) ContentResearchRun::query()->where('started_at', '>=', $start)->sum('cost_usd'), 6);
     }
 
     /** When the provider failed repeatedly just now, the time new requests may resume; otherwise null. */

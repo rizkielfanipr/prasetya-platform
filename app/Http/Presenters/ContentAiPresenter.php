@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Presenters;
 
+use App\Domain\Content\Actions\RequestResearch;
 use App\Domain\Content\Ai\CopyBudget;
 use App\Domain\Content\Ai\CopyModel;
 use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentGenerationRun;
+use App\Domain\Content\Models\ContentResearchRun;
+use App\Support\BusinessTime;
+use Carbon\Carbon;
 
 /** AI generation runs and status for the screen. Never a key, a prompt, or a raw provider response. */
 final class ContentAiPresenter
@@ -100,6 +104,14 @@ final class ContentAiPresenter
                 'weekLimit' => $budget->weekLimit(),
                 'runLimit' => $budget->runLimit(),
                 'runsPerRevision' => (int) config('content.ai.budget.runs_per_revision'),
+            ],
+            'search' => [
+                'provider' => (string) config('content.ai.search.provider'),
+                'unavailableReason' => app(RequestResearch::class)->unavailableReason(),
+                'pricePerCall' => (float) config('content.ai.search.price_per_call'),
+                'maxResults' => (int) config('content.ai.search.max_results'),
+                'perItemPerDay' => (int) config('content.ai.search.searches_per_item_per_day'),
+                'callsThisWeek' => (int) ContentResearchRun::query()->where('started_at', '>=', now(BusinessTime::zone())->startOfWeek(Carbon::MONDAY)->startOfDay()->utc())->sum('search_calls'),
             ],
             'circuitOpenUntil' => $until !== null && $until->isFuture() ? $until->toIso8601ZuluString() : null,
         ];

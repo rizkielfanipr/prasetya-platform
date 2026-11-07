@@ -482,6 +482,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** research run menghasilkan kumpulan sumber yang dapat diaudit dan digunakan oleh planner.
 
+**Status (2026-11-08):** selesai di branch `feat/content-research` (di atas Fase 6), menunggu security review dan key Tavily. Sumber internal didahulukan (fakta berlaku, kampanye berjalan, konten mirip dalam 90 hari). Pencarian web lewat kontrak `WebSearch` (Tavily, `fake`, atau `none`) berjalan di queue tanpa Hermes; hasil disaring `UrlPolicy` (hanya http/https port standar, tanpa kredensial, tanpa alamat privat/lokal/metadata, daftar blokir dan izin domain), dikanonisasi dan dideduplikasi, diberi tingkat kepercayaan, dan disimpan sebagai metadata plus ringkasan terbatas, bukan artikel. Sumber manual membaca judul lewat `SafePageReader` (cek IP hasil DNS, pin koneksi, cek ulang setiap redirect, HTML saja, batas waktu dan ukuran). Sumber yang dipakai ikut dibaca AI sebagai bahan latar tak tepercaya (prompt `copy-v3`). Hermes nanti memakai tool riset ini, bukan key atau skill search sendiri.
+
 ### Fase 5 — Hermes Content Strategist
 
 - Jalankan spike lokal dalam container melalui Docker Desktop dan Docker CLI/Compose.

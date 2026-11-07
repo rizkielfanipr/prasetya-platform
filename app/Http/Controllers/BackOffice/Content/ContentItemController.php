@@ -9,6 +9,7 @@ use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
 use App\Domain\Content\Actions\RequestCopyGeneration;
+use App\Domain\Content\Actions\RequestResearch;
 use App\Domain\Content\Actions\ReviewContent;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\SubmitContentForReview;
@@ -21,12 +22,16 @@ use App\Domain\Content\Exceptions\InvalidContentImage;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Models\ContentResearchRun;
+use App\Domain\Content\Models\ContentResearchSource;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Research\InternalContext;
 use App\Domain\Content\Support\ContentRuleValidator;
 use App\Domain\Content\Support\RevisionRequestLookup;
 use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
+use App\Http\Presenters\ContentResearchPresenter;
 use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\Content\ContentFilterRequest;
 use App\Http\Requests\BackOffice\Content\MarkContentPublishedRequest;
@@ -83,10 +88,10 @@ final class ContentItemController
         });
     }
 
-    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation, RevisionRequestLookup $requests): Response
+    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation, RevisionRequestLookup $requests, RequestResearch $research, InternalContext $context): Response
     {
         $item->load([
-            'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'publication.actor', 'publication.revision',
+            'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'sources', 'publication.actor', 'publication.revision',
             'revisions.asset', 'revisions.decisions.actor', 'revisions.author', 'revisions.submitter', 'revisions.brandProfile', 'revisions.generationRun',
         ]);
         /** @var ContentRevision $active */
@@ -103,6 +108,7 @@ final class ContentItemController
             'findings' => ContentBrandPresenter::findings($rules->check($item, $active)),
             'brandRulesVersion' => $item->brand->currentProfile?->version,
             'planOptions' => ContentBrandPresenter::planOptions($item->brand),
+            'research' => $this->research($item, $research, $context),
             'ai' => [
                 'unavailableReason' => $generation->reason($item),
                 'reviewRequest' => ($current = $requests->current($item)) === null ? null : [
@@ -192,6 +198,22 @@ final class ContentItemController
 
             return back()->with('success', $message);
         });
+    }
+
+    /** @return array<string, mixed> */
+    private function research(ContentItem $item, RequestResearch $research, InternalContext $context): array
+    {
+        $runs = ContentResearchRun::query()->where('content_item_id', $item->id)->with('requester')->latest('id')->limit(5)->get();
+        $ids = $runs->flatMap(static fn (ContentResearchRun $run): array => $run->result_source_ids ?? [])->unique()->values()->all();
+        $sources = ContentResearchSource::query()->whereIn('id', $ids)->get();
+
+        return [
+            'unavailableReason' => $research->reason($item),
+            'cited' => $item->sources->map(static fn (ContentResearchSource $s): array => ContentResearchPresenter::source($s, $s->getRelationValue('pivot')?->getAttribute('note')))->values()->all(),
+            'runs' => $runs->map(static fn (ContentResearchRun $run): array => ContentResearchPresenter::run($run, $sources))->all(),
+            'internal' => $context->for($item),
+            'suggestedQuery' => trim($item->topic ?: $item->title),
+        ];
     }
 
     /** @param  Closure(): RedirectResponse  $action */

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
@@ -61,6 +62,18 @@ class ContentItem extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(ContentBrand::class, 'content_brand_id');
+    }
+
+    /**
+     * Research sources this item cites.
+     *
+     * @return BelongsToMany<ContentResearchSource, $this>
+     */
+    public function sources(): BelongsToMany
+    {
+        return $this->belongsToMany(ContentResearchSource::class, 'content_item_sources')
+            ->withPivot(['note', 'linked_by_user_id', 'created_at'])
+            ->orderByPivot('created_at');
     }
 
     /** @return BelongsTo<ContentPillar, $this> */

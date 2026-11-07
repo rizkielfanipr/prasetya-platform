@@ -123,7 +123,7 @@ it('lets people rate an AI draft for evaluation, with a reason when it did not h
 
     expect($run->refresh())->feedback->toBe(GenerationFeedback::Useful)->feedback_reason->toBeNull()
         ->and(AuditLog::query()->where('action', 'content.generation_feedback')->count())->toBe(2)
-        ->and(contentPage('/content/settings')['evaluation'][0])->toMatchArray(['model' => 'deepseek-test', 'promptVersion' => 'copy-v2', 'drafts' => 1, 'useful' => 1, 'notUseful' => 0, 'approved' => 0]);
+        ->and(contentPage('/content/settings')['evaluation'][0])->toMatchArray(['model' => 'deepseek-test', 'promptVersion' => 'copy-v3', 'drafts' => 1, 'useful' => 1, 'notUseful' => 0, 'approved' => 0]);
     $this->post($uri, ['feedback' => 'MAYBE'])->assertSessionHasErrors('feedback');
 });
 

@@ -9,6 +9,7 @@ use App\Http\Controllers\BackOffice\Content\ContentAssetController;
 use App\Http\Controllers\BackOffice\Content\ContentBrandController;
 use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
 use App\Http\Controllers\BackOffice\Content\ContentItemController;
+use App\Http\Controllers\BackOffice\Content\ContentResearchController;
 use App\Http\Controllers\BackOffice\DashboardController;
 use App\Http\Controllers\BackOffice\LegacyWorkspaceRedirectController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
@@ -67,6 +68,12 @@ Route::middleware('auth')->group(function (): void {
     // AI copy drafts (ADR-0011, phase 3). Off unless configured; the result is always a draft revision.
     Route::post('content/items/{item:public_id}/generate', [ContentAiController::class, 'generate'])->middleware('throttle:20,1')->name('content.items.generate');
     Route::get('content/settings', [ContentAiController::class, 'settings'])->name('content.settings');
+    // Research (ADR-0011, phase 4): web search, manual sources, citations. Sources are scoped to the item's brand.
+    Route::post('content/items/{item:public_id}/research', [ContentResearchController::class, 'search'])->middleware('throttle:20,1')->name('content.items.research');
+    Route::post('content/items/{item:public_id}/sources', [ContentResearchController::class, 'addSource'])->middleware('throttle:20,1')->name('content.items.sources.store');
+    // Any source of the item's brand may be cited; CiteSource checks the brand, so no implicit scoping to citations.
+    Route::post('content/items/{item:public_id}/sources/{source:public_id}', [ContentResearchController::class, 'cite'])->withoutScopedBindings()->name('content.items.sources.cite');
+    Route::delete('content/items/{item:public_id}/sources/{source:public_id}', [ContentResearchController::class, 'uncite'])->withoutScopedBindings()->name('content.items.sources.uncite');
     Route::post('content/generation-runs/{run:public_id}/feedback', [ContentAiController::class, 'feedback'])->name('content.generation-runs.feedback');
     Route::put('content/settings/model', [ContentAiController::class, 'selectModel'])->name('content.settings.model');
 
