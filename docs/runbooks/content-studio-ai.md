@@ -20,6 +20,7 @@ Personal subscriptions (Claude Pro, ChatGPT Plus, Command Code Go) do not includ
 |---|---|---|
 | DeepSeek | `https://api.deepseek.com` | Official API, pay as you go. Planned first choice |
 | KelontongAI | `https://api.kelontongai.my.id/v1` | Indonesian gateway, OpenAI-compatible, prepaid Coin via QRIS. Prices are far below the model makers' list prices and the terms do not say how models are sourced; no SLA; models may be withdrawn on provider policy changes; Coin expires after 14–60 days; privacy policy not reviewed. Acceptable for local evaluation with a small top-up; do not rely on it for production without confirming sourcing and data handling. Its prices are in Rupiah: convert to USD for `CONTENT_TEXT_PRICE_*` |
+| Vengetic (AI API Proxy Indonesia) | `https://api.vengetic.biz.id/v1` | OpenAI-compatible; free plan of 100 requests a day (gemini-flash, deepseek-chat). No terms, privacy policy, or legal entity published; model sourcing not stated, so upstream free tiers may keep or train on prompts. Local trials only. A free plan still needs a small nominal `CONTENT_TEXT_PRICE_*` (e.g. 0.01), because a real provider with zero prices stays off |
 
 ## Enable on a machine
 
