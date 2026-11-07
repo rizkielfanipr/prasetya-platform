@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type ConsoleMessage, expect, type Page, test as base } from '@playwright/test';
 
-export const USERS = { admin: 'demo', finance: 'demo-finance', operations: 'demo-ops' } as const;
+export const USERS = { admin: 'demo', colleague: 'demo2' } as const;
 export const PASSWORD = 'demo-password-only-1';
 
 /** Fails any test that logs a console error, warning, or uncaught exception. Expected HTTP failures are declared per test. */

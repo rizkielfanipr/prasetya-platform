@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Packages\Actions\SetPackageAvailability;
@@ -26,9 +25,10 @@ function fakeGateway(): FakeGateway
     return app(PaymentGateway::class);
 }
 
-function admin(Role $role = Role::SuperAdmin): User
+/** A signed-in back-office user. Every active user has full access (ADR-0009). */
+function admin(): User
 {
-    return User::factory()->role($role)->create();
+    return User::factory()->create();
 }
 
 /** Satamu packages start inactive; tests switch them on the way an operator does. */

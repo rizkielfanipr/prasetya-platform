@@ -3,7 +3,7 @@ import PanelCard from '@/components/layout/PanelCard.vue';
 import DataTable, { type DataTableColumn } from '@/components/shared/DataTable.vue';
 import StatusBadge from '@/components/shared/StatusBadge.vue';
 import { formatDateTime, formatNumber } from '@/lib/format';
-import { roleLabels, type StatusDefinition } from '@/lib/status';
+import type { StatusDefinition } from '@/lib/status';
 import type { SettingsAdmin } from '@/types/backoffice';
 import { Ban, CheckCircle2, Clock } from '@lucide/vue';
 import { computed } from 'vue';
@@ -13,7 +13,6 @@ const props = defineProps<{ admin: SettingsAdmin }>();
 const columns: DataTableColumn[] = [
     { key: 'name', label: 'Nama' },
     { key: 'username', label: 'Username' },
-    { key: 'role', label: 'Peran' },
     { key: 'active', label: 'Status' },
     { key: 'lastLogin', label: 'Masuk terakhir' },
 ];
@@ -83,9 +82,6 @@ const gatewayStatus = computed<StatusDefinition>(() => {
                 ><span class="whitespace-nowrap">{{ row.name }}</span></template
             >
             <template #cell-username="{ row }">{{ row.username }}</template>
-            <template #cell-role="{ row }"
-                ><span class="whitespace-nowrap">{{ roleLabels[row.role] }}</span></template
-            >
             <template #cell-active="{ row }"><StatusBadge :status="row.isActive ? active : inactive" /></template>
             <template #cell-lastLogin="{ row }"
                 ><span class="whitespace-nowrap">{{ formatDateTime(row.lastLoginAt) }}</span></template

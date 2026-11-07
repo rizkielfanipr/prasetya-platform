@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\BackOffice;
 
 use App\Domain\Audit\Actions\RecordAudit;
-use App\Domain\Auth\Enums\Permission;
 use App\Domain\Auth\Models\User;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Integrations\Duitku\DuitkuConfig;
@@ -19,18 +18,14 @@ use Inertia\Response;
 
 final class SettingsController
 {
-    public function index(Request $request, PaymentGateway $gateway, DuitkuConfig $duitku, FailedJobProviderInterface $failedJobs): Response
+    public function index(PaymentGateway $gateway, DuitkuConfig $duitku, FailedJobProviderInterface $failedJobs): Response
     {
-        /** @var User $user */
-        $user = $request->user();
-
         return Inertia::render('settings/SettingsPage', [
-            'admin' => $user->hasPermission(Permission::ManageSettings) ? [
+            'admin' => [
                 'users' => User::query()->orderBy('name')->get()->map(static fn (User $u): array => [
                     'id' => $u->public_id,
                     'name' => $u->name,
                     'username' => $u->username,
-                    'role' => $u->role->value,
                     'isActive' => $u->is_active,
                     'lastLoginAt' => $u->last_login_at?->toIso8601ZuluString(),
                 ])->all(),
@@ -48,7 +43,7 @@ final class SettingsController
                     'pendingThresholdMinutes' => (int) config('platform.reconciliation.pending_too_long_minutes'),
                     'failedJobs' => $failedJobs instanceof CountableFailedJobProvider ? $failedJobs->count() : 0,
                 ],
-            ] : null,
+            ],
         ]);
     }
 

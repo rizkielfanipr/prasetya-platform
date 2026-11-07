@@ -3,7 +3,6 @@ import PanelCard from '@/components/layout/PanelCard.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import FormField from '@/components/shared/FormField.vue';
 import { Button } from '@/components/ui/button';
-import { usePermissions } from '@/composables/usePermissions';
 import { copy } from '@/lib/copy';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
@@ -11,7 +10,6 @@ import type { AdminNote } from '@/types/backoffice';
 import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps<{ orderId: string; notes: AdminNote[] }>();
-const { can } = usePermissions();
 const form = useForm({ body: '' });
 
 function submit(): void {
@@ -21,7 +19,7 @@ function submit(): void {
 
 <template>
     <PanelCard title="Catatan admin">
-        <form v-if="can('orders.notes.add')" class="mb-4 space-y-3" @submit.prevent="submit">
+        <form class="mb-4 space-y-3" @submit.prevent="submit">
             <FormField id="note" v-slot="{ describedBy, invalid }" label="Tambah catatan" :error="form.errors.body">
                 <textarea
                     id="note"

@@ -16,7 +16,6 @@ use App\Support\Paginated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,7 +24,6 @@ final class ReconciliationController
 {
     public function index(Request $request, ReconciliationReport $report): Response
     {
-        Gate::authorize('view-reconciliation');
 
         $validated = $request->validate(['group' => ['nullable', Rule::enum(ReconciliationGroup::class)]]);
         $group = ReconciliationGroup::tryFrom((string) ($validated['group'] ?? '')) ?? ReconciliationGroup::OrdersWithoutAttempt;

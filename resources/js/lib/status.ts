@@ -1,4 +1,4 @@
-import type { OrderStatus, PaymentStatus, ReconciliationGroup, Role, WebhookStatus } from '@/types/backoffice';
+import type { OrderStatus, PaymentStatus, ReconciliationGroup, WebhookStatus } from '@/types/backoffice';
 import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, RefreshCw, ShieldAlert, ShieldCheck, TriangleAlert, XCircle } from '@lucide/vue';
 
 export type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -73,12 +73,6 @@ export const sourceLabels: Record<string, string> = {
     GATEWAY_CHECK: 'Cek status gateway',
     SCHEDULER: 'Terjadwal',
     ADMIN: 'Admin',
-};
-
-export const roleLabels: Record<Role, string> = {
-    SUPER_ADMIN: 'Super Admin',
-    FINANCE: 'Finance',
-    OPERATIONS: 'Operasional',
 };
 
 export const reconciliationGroups: Record<ReconciliationGroup, { label: string; description: string }> = {

@@ -4,15 +4,6 @@ export type Brand = 'WEBWORKS' | 'SATAMU';
 export type PaymentStatus = 'CREATED' | 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'CANCELLED';
 export type OrderStatus = 'DRAFT' | 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
 export type WebhookStatus = 'RECEIVED' | 'VERIFIED' | 'PROCESSED' | 'IGNORED' | 'DUPLICATE' | 'REJECTED' | 'FAILED';
-export type Role = 'SUPER_ADMIN' | 'FINANCE' | 'OPERATIONS';
-export type Permission =
-    | 'transactions.view'
-    | 'orders.notes.add'
-    | 'payment-events.view'
-    | 'reconciliation.view'
-    | 'reconciliation.gateway-check'
-    | 'audit-log.view'
-    | 'settings.manage';
 
 export type ReconciliationGroup =
     | 'orders_without_attempt'
@@ -43,11 +34,10 @@ export interface AuthUser {
     id: string;
     name: string;
     username: string;
-    role: Role;
 }
 
 export interface SharedProps {
-    auth: { user: AuthUser | null; permissions: Permission[] };
+    auth: { user: AuthUser | null };
     flash: { success: string | null; error: string | null };
     openIssueCount: number | null;
     requestId: string;
@@ -234,7 +224,7 @@ export interface ReconciliationIssue {
 }
 
 export interface SettingsAdmin {
-    users: { id: string; name: string; username: string; role: Role; isActive: boolean; lastLoginAt: string | null }[];
+    users: { id: string; name: string; username: string; isActive: boolean; lastLoginAt: string | null }[];
     gateway: { driver: string; environment: string; configured: boolean; notificationPath: string };
     application: { environment: string; timezone: string; allowedOrigins: string[]; pendingThresholdMinutes: number; failedJobs: number };
 }

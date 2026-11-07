@@ -208,7 +208,7 @@ Navigation order for the first release ([ADR-0002](decisions/0002-mvp-payment-mo
 5. Audit Log
 6. Pengaturan
 
-Items a role cannot use are not shown, and the server refuses them regardless. Pelanggan and Paket & Layanan return with their CRUD scope.
+Every signed-in user sees every item: there is one access level ([ADR-0009](decisions/0009-single-access-users-username-login.md)). Pelanggan and Paket & Layanan return with their CRUD scope.
 
 ### Header
 

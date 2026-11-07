@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Audit\Models\AuditLog;
-use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -130,7 +129,7 @@ it('has no email password reset', function (string $method, string $uri): void {
 ]);
 
 it('updates the name only, never the username or email, with an audit trail', function (): void {
-    $user = admin(Role::Operations);
+    $user = admin();
     $username = $user->username;
 
     $this->actingAs($user)->put('/settings/profile', ['name' => 'Baru', 'username' => 'changed', 'email' => 'baru@example.test'])->assertSessionHasNoErrors();

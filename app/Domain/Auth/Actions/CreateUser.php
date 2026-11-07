@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Auth\Actions;
 
 use App\Domain\Audit\Actions\RecordAudit;
-use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -24,8 +23,6 @@ final class CreateUser
                 'name' => $name,
                 'username' => $username,
                 'password' => $password,
-                // Roles go away in the next step of ADR-0009; until then every new user gets full access.
-                'role' => Role::SuperAdmin,
                 'is_active' => true,
             ]);
 

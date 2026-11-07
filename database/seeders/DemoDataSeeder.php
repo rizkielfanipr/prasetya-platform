@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use App\Domain\Brands\Enums\ApplicationCode;
 use App\Domain\Orders\Actions\CreateOrder;
@@ -54,8 +53,8 @@ class DemoDataSeeder extends Seeder
             app(SetPackageAvailability::class)($code, true, 'Data demo lokal');
         }
 
-        foreach ([['demo', 'Admin Demo', Role::SuperAdmin], ['demo-finance', 'Finance Demo', Role::Finance], ['demo-ops', 'Operasional Demo', Role::Operations]] as [$username, $name, $role]) {
-            User::query()->firstOrCreate(['username' => $username], ['name' => $name, 'password' => self::PASSWORD, 'role' => $role]);
+        foreach ([['demo', 'Admin Demo'], ['demo2', 'Rekan Demo']] as [$username, $name]) {
+            User::query()->firstOrCreate(['username' => $username], ['name' => $name, 'password' => self::PASSWORD]);
         }
 
         mt_srand(20261101);

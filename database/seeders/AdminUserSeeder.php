@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Domain\Auth\Enums\Role;
 use App\Domain\Auth\Models\User;
 use App\Domain\Auth\Username;
 use Illuminate\Database\Seeder;
@@ -26,7 +25,6 @@ class AdminUserSeeder extends Seeder
         User::query()->firstOrCreate(['username' => $username], [
             'name' => (string) config('platform.admin.name'),
             'password' => (string) $password,
-            'role' => Role::SuperAdmin,
         ]);
     }
 }
