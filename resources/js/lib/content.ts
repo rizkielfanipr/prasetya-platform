@@ -10,6 +10,7 @@ import type {
     ContentStatus,
     CopyField,
     GenerationStatus,
+    PostingStep,
     ResearchStatus,
     RevisionArea,
     RuleSeverity,
@@ -53,9 +54,26 @@ export const contentActionLabels: Record<ContentAction, string> = {
     markPublished: 'Tandai sudah dipublikasikan',
 };
 
-/** Content Studio sections. Pengaturan AI arrives with the AI phases. */
+/** The posting checklist, in order. The server requires every step (PostingQueue::CHECKLIST). */
+export const postingSteps: readonly { value: PostingStep; label: string }[] = [
+    { value: 'image', label: 'Gambar dari paket ini sudah diunggah ke Instagram' },
+    { value: 'caption', label: 'Caption dan hashtag ditempel apa adanya' },
+    { value: 'alt_text', label: 'Alt text diisi di Pengaturan lanjutan Instagram' },
+    { value: 'account', label: 'Diposting dari akun brand yang benar' },
+];
+
+/** "Terlambat 2 hari", "Hari ini", or nothing. */
+export function dueLabel(state: 'overdue' | 'today' | 'upcoming' | null, daysLate = 0): string | null {
+    if (state === 'overdue') return daysLate > 0 ? `Terlambat ${daysLate} hari` : 'Terlambat';
+    if (state === 'today') return 'Jadwal hari ini';
+
+    return null;
+}
+
+/** Content Studio sections. */
 export const contentSections = [
     { value: 'calendar', label: 'Kalender' },
+    { value: 'to-post', label: 'Siap posting' },
     { value: 'items', label: 'Konten' },
     { value: 'brands', label: 'Brand & Template' },
     { value: 'settings', label: 'Pengaturan AI' },

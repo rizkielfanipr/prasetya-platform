@@ -184,6 +184,7 @@ final class ContentItemController
                 $request->validated('url') === null ? null : (string) $request->validated('url'),
                 $request->validated('note') === null ? null : (string) $request->validated('note'),
                 $this->actor($request),
+                $request->checklist(),
             );
 
             return back()->with('success', 'Konten ditandai sudah dipublikasikan.');

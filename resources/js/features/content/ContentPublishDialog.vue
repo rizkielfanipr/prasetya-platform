@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toLocalInput } from '@/lib/content';
 import { routes } from '@/lib/routes';
-import type { ContentItem, ContentRevision } from '@/types/content';
+import type { ContentItem, ContentRevision, PostingStep } from '@/types/content';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
 /** A person's statement that the post is live. Posting time is required; the Instagram URL is optional (ADR-0011). */
-const props = defineProps<{ item: ContentItem; revision: ContentRevision }>();
+const props = defineProps<{ item: ContentItem; revision: ContentRevision; checklist: PostingStep[] }>();
 const open = defineModel<boolean>('open', { default: false });
 const urlHint = 'Opsional. Salin dari tombol Bagikan → Salin tautan di Instagram.';
 const publishForm = useForm({ revision: props.revision.id, published_at: '', url: '', note: '' });
@@ -24,7 +24,9 @@ watch(open, (value) => {
 });
 
 function submit(): void {
-    publishForm.post(routes.contentPublication(props.item.id), { preserveScroll: true, onSuccess: () => (open.value = false) });
+    publishForm
+        .transform((data) => ({ ...data, checklist: props.checklist }))
+        .post(routes.contentPublication(props.item.id), { preserveScroll: true, onSuccess: () => (open.value = false) });
 }
 </script>
 
@@ -38,6 +40,9 @@ function submit(): void {
         @confirm="submit"
     >
         <div class="space-y-4">
+            <p v-if="(publishForm.errors as Record<string, string | undefined>).checklist" role="alert" class="text-sm font-medium text-danger">
+                {{ (publishForm.errors as Record<string, string | undefined>).checklist }}
+            </p>
             <FormField
                 id="publish-at"
                 v-slot="{ describedBy, invalid }"

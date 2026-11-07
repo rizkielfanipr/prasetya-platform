@@ -14,6 +14,7 @@ final class ContentAssetController
 {
     public function __invoke(Request $request, ContentAsset $asset): StreamedResponse
     {
+        $asset->loadMissing('revision.item');
         $disk = Storage::disk($asset->disk);
         abort_unless($disk->exists($asset->path), 404);
 

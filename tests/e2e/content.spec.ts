@@ -73,6 +73,10 @@ test('one post goes from draft to published with two people, and the submitter c
 
     // Posting package: copy, download, then record the human posting.
     await expect(page.getByRole('link', { name: 'Unduh gambar' })).toHaveAttribute('href', /\/content\/assets\/.+download=1/);
+    await expect(page.getByRole('button', { name: 'Tandai sudah dipublikasikan' })).toBeDisabled();
+    for (const step of ['Gambar dari paket ini sudah diunggah ke Instagram', 'Caption dan hashtag ditempel apa adanya', 'Alt text diisi di Pengaturan lanjutan Instagram', 'Diposting dari akun brand yang benar']) {
+        await page.getByRole('checkbox', { name: step }).check();
+    }
     await page.getByRole('button', { name: 'Tandai sudah dipublikasikan' }).click();
     const publish = page.getByRole('alertdialog', { name: 'Tandai sudah dipublikasikan?' });
     await expect(publish.getByLabel('Waktu diposting (WIB) *')).not.toHaveValue('');
@@ -116,6 +120,9 @@ test('content pages have no accessibility violations', async ({ page }) => {
     await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
     await settled(page);
     await expectNoAxeViolations(page);
+    for (const step of ['Gambar dari paket ini sudah diunggah ke Instagram', 'Caption dan hashtag ditempel apa adanya', 'Alt text diisi di Pengaturan lanjutan Instagram', 'Diposting dari akun brand yang benar']) {
+        await page.getByRole('checkbox', { name: step }).check();
+    }
     await page.getByRole('button', { name: 'Tandai sudah dipublikasikan' }).click();
     await settled(page);
     await expectNoAxeViolations(page);

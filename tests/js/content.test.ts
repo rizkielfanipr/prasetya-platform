@@ -53,6 +53,7 @@ const row = (overrides: Partial<ContentRow> = {}): ContentRow => ({
     plannedAt: '2026-11-09T03:00:00Z',
     plannedDay: '2026-11-09',
     revisionNumber: 1,
+    dueState: null,
     hasImage: true,
     updatedAt: '2026-11-07T03:00:00Z',
     ...overrides,

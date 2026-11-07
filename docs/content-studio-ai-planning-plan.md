@@ -516,6 +516,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** pengguna dapat berpindah dari approved draft ke posting manual dengan langkah minimum dan evidence yang lengkap.
 
+**Status (2026-11-08):** selesai di branch `feat/content-posting-workflow` (di atas Fase 4). Tab **Siap posting** mengelompokkan konten yang disetujui menjadi Terlambat, Hari ini, dan 14 hari ke depan, dengan badge di tab dan sidebar; kalender menandai "Belum diposting". Paket posting menampilkan pengingat jadwal, tombol **Bagikan ke Instagram** (Web Share di HP, caption disalin dulu), nama file unduhan bertanggal, dan checklist empat langkah yang wajib dicentang, diingat selama sesi, dan disimpan di catatan publikasi sebagai bukti. Tetap tidak ada Instagram API, dan tanggal lewat tidak pernah mempublikasikan apa pun.
+
 ### Fase 8 — Insight feedback
 
 - Input metrik Instagram secara manual.

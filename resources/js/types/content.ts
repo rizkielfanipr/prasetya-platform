@@ -27,6 +27,8 @@ export interface ContentRow {
     /** YYYY-MM-DD in business time. */
     plannedDay: string;
     revisionNumber: number | null;
+    /** Approved and waiting to be posted by hand; a reminder only. */
+    dueState: 'overdue' | 'today' | 'upcoming' | null;
     hasImage: boolean;
     updatedAt: string;
 }
@@ -35,6 +37,8 @@ export interface ContentPublication {
     publishedAt: string;
     url: string | null;
     note: string | null;
+    /** The posting checklist confirmed when marked (absent on records from before phase 7). */
+    checklist: PostingStep[] | null;
     actor: string;
     revisionId: string;
     revisionNumber: number;
@@ -325,3 +329,7 @@ export interface ItemResearch {
     };
     suggestedQuery: string;
 }
+
+export type PostingStep = 'image' | 'caption' | 'alt_text' | 'account';
+
+export type ToPostRow = ContentRow & { daysLate: number };

@@ -13,6 +13,8 @@ defineEmits<{ navigate: [] }>();
 const page = usePage<SharedProps>();
 // Issues needing action, shown on Transaksi (ADR-0010). The cached count never includes duplicate webhooks.
 const openIssues = computed(() => page.props.openIssueCount ?? 0);
+// Approved posts due today or earlier and not yet marked posted (Content Studio, phase 7).
+const contentDue = computed(() => page.props.contentDueCount ?? 0);
 // One access level (ADR-0009): every signed-in user sees every item.
 const items: { label: string; href: string; icon: LucideIcon; section?: string }[] = [
     { label: 'Dashboard', href: routes.dashboard, icon: LayoutDashboard },
@@ -51,6 +53,13 @@ const itemActive = (item: { href: string; section?: string }): boolean => isActi
                     :aria-label="`${openIssues} isu perlu ditinjau`"
                     data-testid="sidebar-issue-badge"
                     >{{ formatNumber(openIssues) }}</span
+                >
+                <span
+                    v-if="item.href === routes.contentCalendar && contentDue > 0"
+                    class="rounded-full bg-primary-strong px-2 py-0.5 text-[11px] font-bold text-white tabular"
+                    :aria-label="`${contentDue} konten perlu diposting`"
+                    data-testid="sidebar-content-badge"
+                    >{{ formatNumber(contentDue) }}</span
                 >
             </Link>
         </nav>

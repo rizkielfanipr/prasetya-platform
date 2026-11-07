@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $published_at
  * @property string|null $url
  * @property string|null $note
+ * @property list<string>|null $checklist the posting checklist confirmed (phase 7)
  * @property int $actor_user_id
  * @property Carbon $created_at
  * @property-read ContentRevision $revision
@@ -54,6 +55,6 @@ class ContentPublication extends Model
 
     protected function casts(): array
     {
-        return ['published_at' => 'datetime'];
+        return ['published_at' => 'datetime', 'checklist' => 'array'];
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\BackOffice\Content\ContentAssetController;
 use App\Http\Controllers\BackOffice\Content\ContentBrandController;
 use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
 use App\Http\Controllers\BackOffice\Content\ContentItemController;
+use App\Http\Controllers\BackOffice\Content\ContentPostingController;
 use App\Http\Controllers\BackOffice\Content\ContentResearchController;
 use App\Http\Controllers\BackOffice\DashboardController;
 use App\Http\Controllers\BackOffice\LegacyWorkspaceRedirectController;
@@ -53,6 +54,7 @@ Route::middleware('auth')->group(function (): void {
     // Content Studio (ADR-0011). Manual workflow; nothing here posts to Instagram.
     Route::get('content', [ContentCalendarController::class, 'home'])->name('content.home');
     Route::get('content/calendar', ContentCalendarController::class)->name('content.calendar');
+    Route::get('content/to-post', ContentPostingController::class)->name('content.to-post');
     Route::get('content/items', [ContentItemController::class, 'index'])->name('content.items.index');
     Route::post('content/items', [ContentItemController::class, 'store'])->name('content.items.store');
     Route::get('content/items/{item:public_id}', [ContentItemController::class, 'show'])->name('content.items.show');

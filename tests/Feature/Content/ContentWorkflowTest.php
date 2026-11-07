@@ -11,6 +11,7 @@ use App\Domain\Content\Models\ContentApproval;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentPublication;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\PostingQueue;
 use App\Support\BusinessTime;
 use Carbon\CarbonInterface;
 
@@ -102,6 +103,7 @@ it('runs one post from draft to published with two people', function (): void {
         'revision' => revisionId($item),
         'published_at' => postedAtInput($postedAt),
         'url' => 'https://www.instagram.com/p/ABC123/',
+        'checklist' => PostingQueue::CHECKLIST,
     ])->assertSessionHas('success');
 
     $publication = ContentPublication::query()->sole();
@@ -117,7 +119,7 @@ it('allows a published mark without an Instagram URL but always with the posting
     $item = approvedItem();
 
     $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item)])->assertSessionHasErrors('published_at');
-    $this->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now())])->assertSessionHas('success');
+    $this->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])->assertSessionHas('success');
 
     expect(ContentPublication::query()->sole()->url)->toBeNull();
 });
@@ -125,7 +127,7 @@ it('allows a published mark without an Instagram URL but always with the posting
 it('accepts only an https Instagram URL', function (string $url): void {
     $item = approvedItem();
 
-    $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'url' => $url])
+    $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'url' => $url, 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHasErrors('url');
     expect($item->refresh()->status)->toBe(ContentStatus::Approved);
 })->with(['http://www.instagram.com/p/x/', 'https://instagram.com.evil.test/p/x/', 'https://evil.test/www.instagram.com', 'javascript:alert(1)', 'https://user@www.instagram.com/p/x/']);
@@ -134,9 +136,9 @@ it('refuses a posting time in the future or before the approval', function (): v
     $item = approvedItem();
     $uri = "/content/items/{$item->public_id}/publication";
 
-    $this->actingAs(admin())->post($uri, ['revision' => revisionId($item), 'published_at' => postedAtInput(now()->addHour())])
+    $this->actingAs(admin())->post($uri, ['revision' => revisionId($item), 'published_at' => postedAtInput(now()->addHour()), 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHas('error', 'Waktu posting tidak boleh di masa depan. Tandai setelah konten benar-benar diposting.');
-    $this->post($uri, ['revision' => revisionId($item), 'published_at' => postedAtInput(now()->subDay())])
+    $this->post($uri, ['revision' => revisionId($item), 'published_at' => postedAtInput(now()->subDay()), 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHas('error', 'Waktu posting tidak boleh sebelum revisi ini disetujui.');
 
     expect($item->refresh()->status)->toBe(ContentStatus::Approved)->and(ContentPublication::query()->count())->toBe(0);
@@ -231,9 +233,9 @@ it('sends edited approved content back to review and voids the approval for publ
         ->and($item->activeRevision?->submitted_by_user_id)->toBe($editor->id);
 
     // The old approval cannot publish the new content, even with the old revision id.
-    $this->post("/content/items/{$item->public_id}/publication", ['revision' => $approved, 'published_at' => postedAtInput(now())])
+    $this->post("/content/items/{$item->public_id}/publication", ['revision' => $approved, 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHas('error', ContentActionRefused::staleRevision()->getMessage());
-    $this->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now())])
+    $this->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHas('error', 'Hanya revisi terbaru yang sudah disetujui yang dapat ditandai dipublikasikan.');
 
     // The editor submitted revision 2, so someone else approves it; the original writer may.

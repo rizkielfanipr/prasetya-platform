@@ -10,6 +10,7 @@ use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentPublication;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\PostingQueue;
 use App\Support\BusinessTime;
 
 /**
@@ -42,6 +43,8 @@ final class ContentPresenter
             'plannedAt' => $item->planned_at->toIso8601ZuluString(),
             'plannedDay' => $item->planned_at->setTimezone(BusinessTime::zone())->toDateString(),
             'revisionNumber' => $item->activeRevision?->number,
+            // Waiting to be posted by hand: overdue, today, or upcoming. A reminder only; it never publishes.
+            'dueState' => app(PostingQueue::class)->dueState($item),
             'hasImage' => $item->activeRevision?->asset !== null,
             'updatedAt' => $item->updated_at->toIso8601ZuluString(),
         ];
@@ -122,6 +125,7 @@ final class ContentPresenter
             'publishedAt' => $publication->published_at->toIso8601ZuluString(),
             'url' => $publication->url,
             'note' => $publication->note,
+            'checklist' => $publication->checklist,
             'actor' => $publication->actor->name,
             'revisionId' => $publication->revision->public_id,
             'revisionNumber' => $publication->revision->number,

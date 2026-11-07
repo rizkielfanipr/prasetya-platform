@@ -101,7 +101,7 @@ it('streams an image to signed-in users only, inline or as a download', function
         ->and($inline->streamedContent())->toBe(Storage::disk('local')->get($asset->path));
 
     $download = $this->get("/content/assets/{$asset->public_id}?download=1")->assertOk();
-    expect($download->headers->get('Content-Disposition'))->toBe("attachment; filename=konten-{$asset->public_id}.png");
+    expect($download->headers->get('Content-Disposition'))->toMatch('/^attachment; filename=\d{4}-\d{2}-\d{2}-kenapa-website-lambat-merugikan-r1\.png$/');
 });
 
 it('never sends the storage path or disk to the browser', function (): void {

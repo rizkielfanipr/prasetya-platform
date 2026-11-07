@@ -15,6 +15,7 @@ use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentPublication;
 use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\ContentItemLock;
+use App\Domain\Content\Support\PostingQueue;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,13 +35,18 @@ final class MarkContentPublished
         private readonly ContentItemLock $lock,
     ) {}
 
-    public function __invoke(ContentItem $item, string $expectedRevision, CarbonInterface $publishedAt, ?string $url, ?string $note, User $actor): ContentPublication
+    /** @param  list<string>  $checklist  the PostingQueue::CHECKLIST steps the person confirms */
+    public function __invoke(ContentItem $item, string $expectedRevision, CarbonInterface $publishedAt, ?string $url, ?string $note, User $actor, array $checklist = PostingQueue::CHECKLIST): ContentPublication
     {
+        $checklist = array_values(array_intersect(PostingQueue::CHECKLIST, $checklist));
+        if (count($checklist) !== count(PostingQueue::CHECKLIST)) {
+            throw ContentActionRefused::because('Centang semua langkah checklist posting sebelum menandai dipublikasikan.');
+        }
         if ($publishedAt->isAfter(now()->addMinutes(self::FUTURE_SKEW_MINUTES))) {
             throw ContentActionRefused::because('Waktu posting tidak boleh di masa depan. Tandai setelah konten benar-benar diposting.');
         }
 
-        return DB::transaction(function () use ($item, $expectedRevision, $publishedAt, $url, $note, $actor): ContentPublication {
+        return DB::transaction(function () use ($item, $expectedRevision, $publishedAt, $url, $note, $actor, $checklist): ContentPublication {
             $item = $this->lock->lock($item, $expectedRevision);
             $this->availability->ensure($item, $actor, 'markPublished');
             /** @var ContentRevision $revision */
@@ -61,6 +67,7 @@ final class MarkContentPublished
                 'published_at' => $publishedAt,
                 'url' => $url === null || trim($url) === '' ? null : trim($url),
                 'note' => $note === null || trim($note) === '' ? null : trim($note),
+                'checklist' => $checklist,
                 'actor_user_id' => $actor->id,
             ]);
             $item->forceFill(['status' => ContentStatus::Published])->save();
@@ -72,6 +79,7 @@ final class MarkContentPublished
                     'revision' => $revision->number,
                     'published_at' => $publication->published_at->toIso8601ZuluString(),
                     'url' => $publication->url,
+                    'checklist' => $checklist,
                 ],
                 $publication->note,
             );

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Content\Models;
 
+use App\Support\BusinessTime;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * The image of one revision, stored privately by checksum. Files are shared between revisions that carry the same
@@ -53,14 +55,24 @@ class ContentAsset extends Model
         return $this->belongsTo(ContentRevision::class, 'content_revision_id');
     }
 
-    /** File name offered on download: the item's title is not trusted here, so a fixed, safe pattern. */
+    /**
+     * File name offered on download. With the item loaded: planned date and a slug of the title, so a phone's gallery
+     * sorts posts by schedule; the slug keeps only safe characters. Otherwise a fixed pattern.
+     */
     public function downloadName(): string
     {
-        return 'konten-'.$this->public_id.'.'.match ($this->mime_type) {
+        $extension = match ($this->mime_type) {
             'image/png' => 'png',
             'image/webp' => 'webp',
             default => 'jpg',
         };
+        $item = $this->relationLoaded('revision') && $this->revision->relationLoaded('item') ? $this->revision->item : null;
+        if ($item === null) {
+            return "konten-{$this->public_id}.{$extension}";
+        }
+        $slug = Str::limit(Str::slug($item->title), 60, '') ?: 'konten';
+
+        return $item->planned_at->setTimezone(BusinessTime::zone())->format('Y-m-d')."-{$slug}-r{$this->revision->number}.{$extension}";
     }
 
     protected function casts(): array
