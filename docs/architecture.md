@@ -109,6 +109,8 @@ resources/js/
 - API and Inertia props use explicit TypeScript contracts; `any` is prohibited.
 - Formatters, routes, status labels, and brand mappings have one source of truth.
 - Expensive charts and feature panels are loaded only when needed.
+- The primary back-office navigation is Dashboard, Transaksi, Pengguna, and Pengaturan. Payment events and reconciliation are transaction workspace views; audit is scoped to transaction/user detail or Pengaturan activity ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)).
+- Legacy GET routes remain redirect-only compatibility endpoints for at least one release cycle; their old page/controller implementations stay available only as rollback code until deferred cleanup.
 
 ## Data ownership
 

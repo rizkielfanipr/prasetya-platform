@@ -6,7 +6,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     expect(overflow).toBeLessThanOrEqual(0);
 }
 
-const pages = ['/dashboard', '/transactions', '/payment-events', '/reconciliation', '/audit-log', '/users', '/settings'];
+const pages = ['/dashboard', '/transactions', '/transactions?view=attention', '/transactions?view=events', '/users', '/settings', '/settings/activity'];
 
 for (const [name, width, height] of [
     ['mobile', 360, 740],

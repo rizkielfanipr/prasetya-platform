@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\BackOffice;
 
+use App\Domain\Audit\Queries\AuditTrail;
 use App\Domain\Auth\Actions\CreateUser;
 use App\Domain\Auth\Actions\ResetUserPassword;
 use App\Domain\Auth\Actions\SetUserActive;
 use App\Domain\Auth\Actions\UpdateUser;
 use App\Domain\Auth\Exceptions\UserChangeRefused;
 use App\Domain\Auth\Models\User;
+use App\Http\Presenters\TransactionPresenter;
 use App\Http\Presenters\UserPresenter;
 use App\Http\Requests\BackOffice\ResetUserPasswordRequest;
 use App\Http\Requests\BackOffice\StoreUserRequest;
@@ -51,6 +53,17 @@ final class UserController
         return Inertia::render('users/UserListPage', [
             'filters' => array_merge(['search' => null, 'status' => null], array_intersect_key($filters, ['search' => 1, 'status' => 1])),
             'users' => Paginated::present($users, static fn (User $user): array => UserPresenter::row($user, $viewer, $activeCount)),
+        ]);
+    }
+
+    /** A user and their activity (ADR-0010): every audit entry whose entity is this user, newest first. */
+    public function show(Request $request, User $user, AuditTrail $trail): Response
+    {
+        $activity = $trail->forUser($user->public_id)->latest('id')->limit(100)->get();
+
+        return Inertia::render('users/UserDetailPage', [
+            'user' => UserPresenter::row($user, $this->actor($request), User::query()->where('is_active', true)->count()),
+            'activity' => $activity->map(TransactionPresenter::audit(...))->all(),
         ]);
     }
 

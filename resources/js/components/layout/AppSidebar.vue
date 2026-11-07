@@ -2,19 +2,21 @@
 import { brands } from '@/lib/brands';
 import { copy } from '@/lib/copy';
 import { routes } from '@/lib/routes';
+import { formatNumber } from '@/lib/format';
+import type { SharedProps } from '@/types/backoffice';
 import { Link, usePage } from '@inertiajs/vue3';
-import { CreditCard, FileSearch, LayoutDashboard, type LucideIcon, ReceiptText, Scale, Settings, Users } from '@lucide/vue';
+import { computed } from 'vue';
+import { LayoutDashboard, type LucideIcon, ReceiptText, Settings, Users } from '@lucide/vue';
 
 defineEmits<{ navigate: [] }>();
 
-const page = usePage();
+const page = usePage<SharedProps>();
+// Issues needing action, shown on Transaksi (ADR-0010). The cached count never includes duplicate webhooks.
+const openIssues = computed(() => page.props.openIssueCount ?? 0);
 // One access level (ADR-0009): every signed-in user sees every item.
 const items: { label: string; href: string; icon: LucideIcon }[] = [
     { label: 'Dashboard', href: routes.dashboard, icon: LayoutDashboard },
     { label: 'Transaksi', href: routes.transactions, icon: ReceiptText },
-    { label: 'Event Pembayaran', href: routes.paymentEvents, icon: CreditCard },
-    { label: 'Rekonsiliasi', href: routes.reconciliation, icon: Scale },
-    { label: 'Audit Log', href: routes.auditLog, icon: FileSearch },
     { label: 'Pengguna', href: routes.users, icon: Users },
     { label: 'Pengaturan', href: routes.settings, icon: Settings },
 ];
@@ -40,7 +42,14 @@ const isActive = (href: string): boolean => page.url === href || page.url.starts
                 @click="$emit('navigate')"
             >
                 <component :is="item.icon" class="size-5 shrink-0" :class="isActive(item.href) ? 'text-primary' : ''" aria-hidden="true" />
-                {{ item.label }}
+                <span class="flex-1">{{ item.label }}</span>
+                <span
+                    v-if="item.href === routes.transactions && openIssues > 0"
+                    class="rounded-full bg-primary-strong px-2 py-0.5 text-[11px] font-bold text-white tabular"
+                    :aria-label="`${openIssues} isu perlu ditinjau`"
+                    data-testid="sidebar-issue-badge"
+                    >{{ formatNumber(openIssues) }}</span
+                >
             </Link>
         </nav>
 

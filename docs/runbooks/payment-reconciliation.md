@@ -1,6 +1,12 @@
 # Payment reconciliation
 
-Reconciliation only shows problems. Nothing repairs records automatically, and no screen can mark a payment paid. The one action is **Cek status**: it asks Duitku, applies the answer through the same checks as a notification, and writes an audit entry. Finance and Super Admin can run it.
+Reconciliation only shows problems. Nothing repairs records automatically, and no screen can mark a payment paid. The one action is **Cek status**: it asks Duitku, applies the answer through the same checks as a notification, and writes an audit entry. Every signed-in user can run it ([ADR-0009](../decisions/0009-single-access-users-username-login.md)).
+
+Where to work ([ADR-0010](../decisions/0010-consolidated-transaction-workspace.md)):
+
+- **Transaksi → Perlu Ditinjau** (`/transactions?view=attention&group=<group>`) lists the groups below. Bookmarks to `/reconciliation` redirect here during the compatibility release.
+- **Transaksi → Event Pembayaran** (`/transactions?view=events`) finds any webhook delivery by invoice, status, or date, including deliveries for an invoice no order matches (*Transaksi tidak ditemukan*).
+- **The transaction detail → Pembayaran** shows that order's open issues and each payment attempt with **Cek status** and the last check; **→ Aktivitas** shows its status history, payment events, webhooks, notes, and audit in one timeline.
 
 Find the transaction in the report menu of the Duitku dashboard, using the invoice number, including any `-2` suffix. Duitku warns against automatic repeated status checks, since its limit can block requests for about an hour, so run Cek status only when needed.
 
@@ -27,7 +33,7 @@ Find the transaction in the report menu of the Duitku dashboard, using the invoi
 
 1. Confirm in Duitku that it is paid.
 2. Either resend from the report menu of the Duitku dashboard, or use Cek status.
-3. Confirm the transaction now shows Berhasil and Terkonfirmasi, with an audit entry.
+3. Confirm the transaction now shows Berhasil and Terkonfirmasi, and that its **Aktivitas** tab has the `Status diperiksa ke gateway` entry.
 
 ## When a correction is not possible through the app
 

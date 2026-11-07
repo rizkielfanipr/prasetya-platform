@@ -50,6 +50,35 @@ final class ReconciliationReport
         return $this->query($group)->orderByDesc('id')->paginate($perPage)->withQueryString();
     }
 
+    /**
+     * The open issues of one order, from the same nine group queries, each narrowed to that order. Webhooks without a
+     * payment (an unknown invoice) belong to no order and never appear here; they stay in the workspace views.
+     *
+     * @return list<array{group: ReconciliationGroup, record: Model}>
+     */
+    public function forOrder(Order $order, int $perGroup = 20): array
+    {
+        $issues = [];
+
+        foreach (ReconciliationGroup::cases() as $group) {
+            $query = $this->query($group);
+            $model = $query->getModel();
+
+            match (true) {
+                $model instanceof Order => $query->whereKey($order->id),
+                $model instanceof Payment => $query->where('order_id', $order->id),
+                $model instanceof WebhookEvent => $query->whereHas('payment', static fn (Builder $q) => $q->where('order_id', $order->id)),
+                default => throw new \LogicException('Unsupported reconciliation record.'),
+            };
+
+            foreach ($query->orderByDesc('id')->limit($perGroup)->get() as $record) {
+                $issues[] = ['group' => $group, 'record' => $record];
+            }
+        }
+
+        return $issues;
+    }
+
     /** @return Builder<covariant Model> */
     private function query(ReconciliationGroup $group): Builder
     {

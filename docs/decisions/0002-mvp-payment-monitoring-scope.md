@@ -1,6 +1,6 @@
 # ADR-0002: First release is a payment monitoring back office
 
-- Status: Proposed
+- Status: Superseded by [ADR-0009](0009-single-access-users-username-login.md) and [ADR-0010](0010-consolidated-transaction-workspace.md)
 - Date: 2026-11-01
 - Decision owners: Prasetya Group
 - Related: [`../design.md`](../design.md), [`../architecture.md`](../architecture.md), [`../implementation-plan.md`](../implementation-plan.md)
@@ -11,7 +11,7 @@
 
 ## Decision
 
-Navigation for this release is Dashboard, Transaksi, Event Pembayaran, Rekonsiliasi, Audit Log, Pengaturan.
+The original navigation for this release was Dashboard, Transaksi, Event Pembayaran, Rekonsiliasi, Audit Log, Pengaturan. ADR-0010 now consolidates the three operational screens into Transaksi and Pengaturan; ADR-0009 replaces the original role model.
 
 | Topic | Decision | Why |
 |---|---|---|

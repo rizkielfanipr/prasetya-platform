@@ -28,11 +28,11 @@ Operational events are JSON lines in `storage/logs/operations-YYYY-MM-DD.log`: `
 
 **Notifications return 500.** Rows show `FAILED`. Either processing failed, or Duitku's status check did not confirm the payment. Fix the cause. Duitku's retry completes them, and so does a resend. A burst that the check never confirms suggests forged callbacks.
 
-**Suspected wrong `PAID`.** Stop fulfilment for that order. Compare with Duitku. Check the `webhook_events` row and `audit_logs`. If forged, treat the API key as compromised.
+**Suspected wrong `PAID`.** Stop fulfilment for that order. Compare with Duitku. Open the transaction: **Pembayaran** shows the webhook evidence and **Aktivitas** the audit (or `webhook_events` and `audit_logs` directly). If forged, treat the API key as compromised.
 
 **API key compromised.** Rotate it in the Duitku dashboard, update `.env`, run `php artisan config:cache`. Review `PROCESSED` events since the suspected time against Duitku's report. Also rotate `APP_KEY` if the server was accessed, noting that this invalidates sessions and encrypted data.
 
-**Admin account compromised.** Every account has full access ([ADR-0009](../decisions/0009-single-access-users-username-login.md)), so act at once. In **Pengguna**, deactivate the account: its sessions and "remember me" end immediately. If you cannot sign in, run `php artisan platform:reset-password <username>` on the server for another account first. Review **Audit Log** by actor, including `user.*` entries for users the attacker may have created or reactivated, and deactivate those too. Set a new password with **Atur kata sandi** before reactivating the account.
+**Admin account compromised.** Every account has full access ([ADR-0009](../decisions/0009-single-access-users-username-login.md)), so act at once. In **Pengguna**, deactivate the account: its sessions and "remember me" end immediately. If you cannot sign in, run `php artisan platform:reset-password <username>` on the server for another account first. Review the activity: **Pengaturan → Aktivitas Sistem** (`/settings/activity`, choose **Semua audit** and search the actor) and the **Aktivitas** of each user on their page, including `user.*` entries for users the attacker may have created or reactivated, and deactivate those too. Set a new password with **Atur kata sandi** before reactivating the account.
 
 **Database lost.** Restore per [`deployment.md`](deployment.md), then replay callbacks from Duitku.
 

@@ -81,6 +81,9 @@ export interface PaymentAttempt {
     expiresAt: string | null;
     paidAt: string | null;
     createdAt: string;
+    /** False once PAID: a check could not change anything. */
+    checkable: boolean;
+    lastGatewayCheck: { at: string; gatewayStatus: string | null } | null;
     events: PaymentEventEntry[];
 }
 
@@ -223,6 +226,24 @@ export interface ReconciliationIssue {
     at: string;
 }
 
+/** A reconciliation issue of one transaction, with the group that explains it. */
+export interface TransactionIssue extends ReconciliationIssue {
+    group: ReconciliationGroup;
+    needsAction: boolean;
+}
+
+export type ActivitySource = 'order_status' | 'payment_event' | 'webhook' | 'note' | 'audit';
+
+/** One entry of the transaction timeline. `data` is sanitised and shaped by `source`; lib/activity.ts words it. */
+export interface TransactionActivityEntry {
+    id: string;
+    source: ActivitySource;
+    sourceId: number;
+    at: string;
+    actor: string | null;
+    data: Record<string, string | number | boolean | null>;
+}
+
 export interface UserRow {
     id: string;
     name: string;
@@ -234,6 +255,24 @@ export interface UserRow {
     lastLoginAt: string | null;
     createdAt: string;
 }
+
+export interface AuditFilters {
+    search: string | null;
+    /** Aktivitas Sistem only: 'all' searches every entry; empty means system activity. */
+    scope?: 'system' | 'all' | null;
+    date_from: string | null;
+    date_to: string | null;
+}
+
+export interface PaymentEventFilters {
+    search: string | null;
+    status: WebhookStatus | null;
+    date_from: string | null;
+    date_to: string | null;
+}
+
+/** Views of the Transaksi workspace (ADR-0010), in the URL as ?view=. */
+export type TransactionWorkspaceView = 'all' | 'attention' | 'events';
 
 export interface UserFilters {
     search: string | null;

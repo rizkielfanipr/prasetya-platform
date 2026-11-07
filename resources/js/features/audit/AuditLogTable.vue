@@ -2,6 +2,7 @@
 import DataTable, { type DataTableColumn } from '@/components/shared/DataTable.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import { formatDateTime } from '@/lib/format';
+import { auditActionLabels } from '@/lib/status';
 import type { AuditEntry, JsonState } from '@/types/backoffice';
 
 defineProps<{ rows: AuditEntry[]; loading?: boolean; failed?: boolean }>();
@@ -34,9 +35,10 @@ const describe = (state: JsonState | null): string =>
         <template #cell-actor="{ row }"
             ><span class="whitespace-nowrap">{{ row.actor }}</span></template
         >
-        <template #cell-action="{ row }"
-            ><code class="text-xs whitespace-nowrap">{{ row.action }}</code></template
-        >
+        <template #cell-action="{ row }">
+            <span class="whitespace-nowrap">{{ auditActionLabels[row.action] ?? row.action }}</span>
+            <code class="block text-xs whitespace-nowrap text-muted-foreground">{{ row.action }}</code>
+        </template>
         <template #cell-entity="{ row }"
             >{{ row.entityType
             }}<code class="block text-xs text-muted-foreground" :title="row.entityId ?? ''">{{ row.entityId?.slice(-10) ?? '—' }}</code></template

@@ -8,6 +8,8 @@ use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Orders\Models\AdminNote;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Orders\Models\OrderStatusHistory;
+use App\Domain\Payments\Enums\PaymentEventType;
+use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\PaymentEvent;
 use App\Domain\Payments\Models\WebhookEvent;
@@ -92,6 +94,9 @@ final class TransactionPresenter
             'expiresAt' => $payment->expires_at?->toIso8601ZuluString(),
             'paidAt' => $payment->paid_at?->toIso8601ZuluString(),
             'createdAt' => $payment->created_at->toIso8601ZuluString(),
+            // Same rule as reconciliation: a check on a settled payment could not change anything.
+            'checkable' => $payment->status !== PaymentStatus::Paid,
+            'lastGatewayCheck' => self::lastGatewayCheck($payment),
             'events' => $payment->events->map(static fn (PaymentEvent $event): array => [
                 'id' => $event->id,
                 'type' => $event->type->value,
@@ -141,6 +146,14 @@ final class TransactionPresenter
             'requestId' => $log->request_id,
             'at' => $log->created_at->toIso8601ZuluString(),
         ];
+    }
+
+    /** @return array{at: string, gatewayStatus: string|null}|null */
+    private static function lastGatewayCheck(Payment $payment): ?array
+    {
+        $check = $payment->events->where('type', PaymentEventType::GatewayChecked)->sortByDesc('occurred_at')->first();
+
+        return $check === null ? null : ['at' => $check->occurred_at->toIso8601ZuluString(), 'gatewayStatus' => $check->metadata['gateway_status'] ?? null];
     }
 
     private static function eventDetail(PaymentEvent $event): ?string

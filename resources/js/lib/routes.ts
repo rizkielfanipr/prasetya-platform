@@ -4,6 +4,8 @@ export const routes = {
     logout: '/logout',
     dashboard: '/dashboard',
     transactions: '/transactions',
+    transactionsAttention: '/transactions?view=attention',
+    transactionsEvents: '/transactions?view=events',
     transaction: (id: string) => `/transactions/${id}`,
     transactionNotes: (id: string) => `/transactions/${id}/notes`,
     paymentEvents: '/payment-events',
@@ -18,4 +20,5 @@ export const routes = {
     settings: '/settings',
     settingsProfile: '/settings/profile',
     settingsPassword: '/settings/password',
+    settingsActivity: '/settings/activity',
 } as const;
