@@ -302,7 +302,7 @@ Manual planning, review, and posting records for single-image Instagram posts ([
   - **Kampanye**: name, period (WIB days, inclusive), priority in words, objective, Aktif/Nonaktif.
   - **Fakta disetujui**: each fact with its source, campaign, and expiry; **Tidak berlaku** retires it with a reason. Retired facts sit in a closed disclosure.
   - **Aktivitas**: this brand's audit.
-- **Pengaturan AI** (`/content/settings`): read-only. Status in words (ready, or why not), provider, model, prices, per-run limits, the week's spend against its limit with a bar that repeats the numbers, a closed *Cara mengaktifkan* disclosure naming the `.env` variables, and the last 30 runs. No key is ever shown or entered.
+- **Pengaturan AI** (`/content/settings`): read-only. Status in words (ready, or why not), provider, model, prices, per-run limits, the week's spend against its limit with a bar that repeats the numbers, a model select (only when the server lists more than one model; each with its price, saved with **Simpan model**), a closed *Cara mengaktifkan* disclosure naming the `.env` variables, and the last 30 runs. No key is ever shown or entered.
 - Images: JPEG, PNG, or WebP, exactly 4:5, at least 1080×1350, at most 8 MB. The browser previews a chosen file and warns early about the wrong size; the server decides from the bytes.
 
 ### Transaction detail

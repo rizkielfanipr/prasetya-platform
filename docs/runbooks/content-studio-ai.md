@@ -39,6 +39,14 @@ Personal subscriptions (Claude Pro, ChatGPT Plus, Command Code Go) do not includ
    ```
 
    Without both prices a real provider stays off, because the budget is enforced on estimated cost.
+
+   To let people choose the model in **Pengaturan AI**, list the allowed models with their prices; the screen can only pick from this list:
+
+   ```dotenv
+   CONTENT_TEXT_MODELS=deepseek-v4-flash:0.02:0.02,claude-haiku-5.5:0.04:0.04,claude-sonnet-5.5:0.06:0.06
+   ```
+
+   Compare a model before choosing it: `php artisan content:eval-copy --model=claude-haiku-5.5` (does not change the saved choice). A choice is audited as `content.ai_model_selected` and applies from the next run; a choice later removed from the list falls back to `CONTENT_TEXT_MODEL`.
 3. `php artisan config:clear`, then evaluate before anyone uses it:
 
    ```sh
@@ -67,6 +75,16 @@ Production (cPanel) has no queue worker today, so keep `CONTENT_TEXT_PROVIDER=no
 | Provider failing | 3 failures in a row within 10 minutes | New requests wait 10 minutes |
 
 Content edited while the provider works is never overwritten: the answer is discarded (`DISCARDED`).
+
+## Brand rules
+
+The proposed Prasetya Webworks rules, pillars, and facts (from the live site and the package catalogue) are in `resources/content-brands/prasetya-webworks.json`. After the owner reviews them, apply on any machine through the audited actions:
+
+```sh
+php artisan content:import-brand WEBWORKS resources/content-brands/prasetya-webworks.json --actor=<username>
+```
+
+Re-running skips unchanged rules, existing pillars, and facts already in force.
 
 ## Records
 

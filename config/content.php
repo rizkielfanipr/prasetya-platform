@@ -27,6 +27,9 @@ return [
             'model' => env('CONTENT_TEXT_MODEL'),
             'price_input_per_million' => (float) env('CONTENT_TEXT_PRICE_INPUT', 0),
             'price_output_per_million' => (float) env('CONTENT_TEXT_PRICE_OUTPUT', 0),
+            // Models that may be chosen in Pengaturan AI, each with its own prices:
+            // "model:input-price:output-price,model:input-price:output-price". Empty: only CONTENT_TEXT_MODEL.
+            'models' => env('CONTENT_TEXT_MODELS', ''),
             'timeout_seconds' => (int) env('CONTENT_TEXT_TIMEOUT', 60),
             'max_output_tokens' => (int) env('CONTENT_TEXT_MAX_OUTPUT_TOKENS', 1500),
             // Calls per run: the first try plus retries after a timeout, rate limit, server error, or invalid output.

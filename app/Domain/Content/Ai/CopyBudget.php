@@ -19,7 +19,7 @@ final class CopyBudget
     /** Provider failures that count toward the circuit breaker; invalid output and budget stops do not. */
     private const array PROVIDER_FAILURES = ['timeout', 'rate_limited', 'server_error', 'unreachable', 'auth'];
 
-    public function __construct(private readonly CopyGenerator $generator) {}
+    public function __construct(private readonly CopyGenerator $generator, private readonly CopyModels $models) {}
 
     /** Why AI copy cannot be used at all with this configuration, or null when it can. */
     public function unavailableReason(): ?string
@@ -86,13 +86,14 @@ final class CopyBudget
         return $allFailed && $last !== null ? CarbonImmutable::instance($last)->addMinutes($minutes) : null;
     }
 
+    /** The fake provider is free; a real one is priced by the model in use. */
     private function priceIn(): float
     {
-        return (float) config('content.ai.copy.price_input_per_million');
+        return $this->generator->provider() === 'fake' ? 0.0 : ($this->models->selected()->priceInputPerMillion ?? 0.0);
     }
 
     private function priceOut(): float
     {
-        return (float) config('content.ai.copy.price_output_per_million');
+        return $this->generator->provider() === 'fake' ? 0.0 : ($this->models->selected()->priceOutputPerMillion ?? 0.0);
     }
 }

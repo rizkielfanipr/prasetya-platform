@@ -6,10 +6,18 @@ use App\Domain\Auth\Actions\CreateUser;
 use App\Domain\Auth\Actions\ResetUserPassword;
 use App\Domain\Auth\Models\User;
 use App\Domain\Auth\Username;
+use App\Domain\Content\Actions\AddContentFact;
+use App\Domain\Content\Actions\SavePillar;
+use App\Domain\Content\Actions\UpdateBrandProfile;
 use App\Domain\Content\Ai\CopyBudget;
 use App\Domain\Content\Ai\CopyEvaluation;
+use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Ai\CopyPromptBuilder;
 use App\Domain\Content\Contracts\CopyGenerator;
+use App\Domain\Content\Exceptions\ContentActionRefused;
+use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentFact;
+use App\Domain\Content\Models\ContentPillar;
 use App\Domain\Packages\Actions\SetPackageAvailability;
 use App\Domain\Packages\Models\Package;
 use App\Domain\Payments\Actions\ExpireStaleRecords;
@@ -156,9 +164,58 @@ Artisan::command('platform:simulate-notification {invoice} {amount} {--result=00
     return 0;
 })->purpose('Send a correctly signed local callback through the real verification path');
 
+// Content Studio (ADR-0011, phase 2): apply a reviewed brand file (rules, pillars, facts) through the audited actions.
+// Re-running is safe: unchanged rules, existing pillars, and facts already in force are skipped.
+Artisan::command('content:import-brand {code} {file} {--actor= : Username recorded in the audit}', function (UpdateBrandProfile $rules, SavePillar $pillars, AddContentFact $facts): int {
+    $brand = ContentBrand::query()->where('code', (string) $this->argument('code'))->first();
+    $actor = User::query()->where('username', Username::normalize((string) $this->option('actor')))->where('is_active', true)->first();
+    $data = json_decode((string) @file_get_contents(base_path((string) $this->argument('file'))), true);
+    if ($brand === null || $actor === null || ! is_array($data)) {
+        $this->error('Brand, file, atau --actor (username aktif) tidak ditemukan.');
+
+        return Command::FAILURE;
+    }
+
+    try {
+        $profile = $rules($brand, (array) ($data['rules'] ?? []), (string) ($data['change_note'] ?? 'Impor aturan brand'), $actor);
+        $this->info("Aturan brand disimpan sebagai versi {$profile->version}.");
+    } catch (ContentActionRefused $refused) {
+        $this->line($refused->getMessage());
+    }
+    foreach ((array) ($data['pillars'] ?? []) as $pillar) {
+        if (ContentPillar::query()->where('content_brand_id', $brand->id)->where('name', $pillar['name'])->exists()) {
+            $this->line("Pilar {$pillar['name']} sudah ada, dilewati.");
+
+            continue;
+        }
+        try {
+            $pillars($brand, null, (string) $pillar['name'], $pillar['description'] ?? null, (int) $pillar['target_share'], true, $actor);
+            $this->info("Pilar {$pillar['name']} ditambahkan.");
+        } catch (ContentActionRefused $refused) {
+            $this->warn("Pilar {$pillar['name']}: {$refused->getMessage()}");
+        }
+    }
+    foreach ((array) ($data['facts'] ?? []) as $fact) {
+        if (ContentFact::query()->where('content_brand_id', $brand->id)->whereNull('retired_at')->where('statement', $fact['statement'])->exists()) {
+            continue;
+        }
+        $facts($brand, null, (string) $fact['statement'], (string) $fact['source'], null, $actor);
+        $this->info('Fakta ditambahkan: '.Str::limit((string) $fact['statement'], 70));
+    }
+
+    return Command::SUCCESS;
+})->purpose('Apply a reviewed Content Studio brand file through the audited actions');
+
 // Content Studio (ADR-0011, phase 3): check the configured AI provider against the evaluation scenarios before
 // enabling or switching it. Calls the provider for real when one is configured; writes nothing to the database.
-Artisan::command('content:eval-copy {--file=resources/content-eval/copy-v1.json} {--max-cost=0.50 : Stop when the estimated total passes this (USD)}', function (CopyEvaluation $evaluation, CopyBudget $budget, CopyGenerator $generator): int {
+Artisan::command('content:eval-copy {--file=resources/content-eval/copy-v1.json} {--max-cost=0.50 : Stop when the estimated total passes this (USD)} {--model= : Evaluate another allowed model without changing the chosen one}', function (CopyEvaluation $evaluation, CopyBudget $budget, CopyGenerator $generator, CopyModels $models): int {
+    $model = $this->option('model');
+    if (is_string($model) && $model !== '' && ! $models->useForThisProcess($model)) {
+        $this->error("Model {$model} tidak ada di CONTENT_TEXT_MODELS.");
+
+        return Command::FAILURE;
+    }
+    $this->line('Provider '.$generator->provider().', model '.($generator->model() ?? '-').'.');
     $reason = $budget->unavailableReason();
     if ($reason !== null) {
         $this->error($reason);

@@ -29,6 +29,7 @@ export const routes = {
     contentPublication: (id: string) => `/content/items/${id}/publication`,
     contentGenerate: (id: string) => `/content/items/${id}/generate`,
     contentSettings: '/content/settings',
+    contentSettingsModel: '/content/settings/model',
     contentBrands: '/content/brands',
     contentBrand: (id: string) => `/content/brands/${id}`,
     contentBrandRules: (id: string) => `/content/brands/${id}/rules`,

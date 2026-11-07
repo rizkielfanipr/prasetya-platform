@@ -6,7 +6,9 @@ namespace App\Http\Controllers\BackOffice\Content;
 
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\RequestCopyGeneration;
+use App\Domain\Content\Actions\SelectCopyModel;
 use App\Domain\Content\Ai\CopyBudget;
+use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Enums\CopyField;
 use App\Domain\Content\Exceptions\ContentActionRefused;
@@ -43,10 +45,24 @@ final class ContentAiController
         return back()->with('success', 'AI sedang membuat draft. Hasilnya menjadi revisi baru yang tetap perlu ditinjau.');
     }
 
-    public function settings(CopyGenerator $generator, CopyBudget $budget): Response
+    public function selectModel(Request $request, SelectCopyModel $select): RedirectResponse
+    {
+        $model = (string) $request->validate(['model' => ['required', 'string', 'max:120']])['model'];
+        try {
+            /** @var User $actor */
+            $actor = $request->user();
+            $select($model, $actor);
+        } catch (ContentActionRefused $refused) {
+            return back()->with('error', $refused->getMessage());
+        }
+
+        return back()->with('success', "Model AI diganti ke {$model}. Berlaku untuk draft berikutnya.");
+    }
+
+    public function settings(CopyGenerator $generator, CopyBudget $budget, CopyModels $models): Response
     {
         return Inertia::render('content/ContentAiSettingsPage', [
-            'status' => ContentAiPresenter::status($generator, $budget),
+            'status' => ContentAiPresenter::status($generator, $budget, $models),
             'runs' => ContentGenerationRun::query()->with(['item', 'requester', 'resultRevision'])->latest('id')->limit(30)->get()
                 ->map(ContentAiPresenter::run(...))->all(),
         ]);

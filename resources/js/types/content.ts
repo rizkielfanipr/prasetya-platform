@@ -245,6 +245,8 @@ export interface AiStatus {
     queue: string;
     priceInputPerMillion: number;
     priceOutputPerMillion: number;
+    /** Models the server allows; empty unless a real provider is configured. */
+    models: { name: string; priceInputPerMillion: number; priceOutputPerMillion: number }[];
     maxOutputTokens: number;
     maxAttempts: number;
     timeoutSeconds: number;

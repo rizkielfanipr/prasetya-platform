@@ -1,0 +1,45 @@
+{
+    "about": "Proposed Content Studio rules for Prasetya Webworks, drawn from the live site (prasetya-webworks src/i18n/content.ts, docs/design.md) and the platform package catalogue on 2026-11-08. The owner reviews before relying on them. Apply with: php artisan content:import-brand WEBWORKS resources/content-brands/prasetya-webworks.json --actor=<username>",
+    "change_note": "Usulan awal dari isi situs prasetyawebworks dan katalog paket (perlu ditinjau pemilik)",
+    "rules": {
+        "audience": "Pemilik UMKM, bisnis lokal, usaha rintisan, perusahaan, dan personal brand di Indonesia yang ingin punya website profesional tanpa ribet: belum tentu paham teknis, peduli harga yang jelas dan proses yang cepat.",
+        "voice": "Santai tapi profesional. Menyapa dengan \"kamu\". Kalimat pendek dan jelas, tanpa istilah teknis yang tidak perlu. Tonjolkan kemudahan (\"nggak harus ribet\"), harga yang jelas sejak awal, proses yang terarah, dan website yang siap tampil. Jujur dan tidak berlebihan.",
+        "visual_guidance": "Oranye brand #FF5100 untuk penekanan dan tombol, teks gelap #0F172A, latar krem #FFFAF4 atau putih, aksen oranye lembut #FFE2CF. Judul dengan Raleway, teks dengan Plus Jakarta Sans. Tampilan bersih dan modern dengan banyak ruang kosong; mockup website di laptop atau ponsel cocok untuk paket dan template. Logo Prasetya Webworks kecil di pojok bawah. Hindari warna di luar palet dan efek blur.",
+        "preferred_terms": ["harga jelas sejak awal", "tanpa biaya tersembunyi", "siap tampil", "domain & hosting tahun pertama termasuk", "akses edit website", "template", "nggak harus ribet", "naik kelas"],
+        "forbidden_terms": ["termurah", "paling murah", "murahan", "asal jadi", "instan"],
+        "forbidden_claims": ["domain gratis selamanya", "hosting gratis selamanya", "dijamin ranking 1", "dijamin laris", "garansi uang kembali", "revisi tanpa batas", "jadi dalam 1 hari", "ratusan klien", "ribuan klien"],
+        "allowed_ctas": ["Tanya via WhatsApp", "Lihat paket & harga di link bio", "Pilih template di link bio", "Mulai konsultasi"],
+        "required_hashtags": ["#prasetyawebworks"],
+        "forbidden_hashtags": [],
+        "approved_examples": [
+            "Bikin website nggak harus ribet. Pilih template, kirim data bisnismu, dan website siap tampil mulai 3 hari kerja. Harga jelas sejak awal, domain dan hosting tahun pertama sudah termasuk. Tanya via WhatsApp."
+        ],
+        "rejected_examples": [
+            "Website termurah se-Indonesia, dijamin ranking 1 Google, jadi dalam 1 hari! (Alasan: kata terlarang dan klaim yang tidak bisa dijamin.)",
+            "Sudah dipercaya ratusan klien! (Alasan: belum ada data klien yang disetujui; testimoni di situs masih contoh.)"
+        ],
+        "caption_min_length": 80,
+        "caption_max_length": 700,
+        "hashtag_min": 3,
+        "hashtag_max": 10,
+        "topic_repeat_days": 21
+    },
+    "pillars": [
+        {"name": "Edukasi website", "description": "Tips dan pengetahuan dasar: kenapa bisnis butuh website, domain, hosting, SEO dasar, kecepatan, tanda website perlu diperbarui.", "target_share": 40},
+        {"name": "Template & hasil karya", "description": "Menampilkan template dari katalog dan contoh tampilan website per kategori bisnis.", "target_share": 25},
+        {"name": "Paket & penawaran", "description": "Paket, harga, dan yang termasuk di dalamnya. Hanya dari fakta yang disetujui.", "target_share": 20},
+        {"name": "Cara kerja & di balik layar", "description": "Alur pemesanan sampai website siap tampil, proses tim, dan jawaban pertanyaan umum.", "target_share": 15}
+    ],
+    "facts": [
+        {"statement": "Paket Landing Starter Rp499.000: 1 halaman landing page hingga 5 section, desain responsif dari template pilihan, tombol chat WhatsApp, akses edit konten, revisi 1x, estimasi 3 hari kerja, domain .my.id atau .web.id.", "source": "Situs prasetyawebworks (bagian Paket) dan katalog paket platform PW-LANDING-STARTER"},
+        {"statement": "Paket Landing Professional Rp799.000: 1 halaman landing page hingga 8 section, formulir leads langsung ke WhatsApp, SEO dasar & Google Analytics, akses edit konten, revisi 2x, estimasi 3 hari kerja, domain .my.id atau .web.id. Paket paling populer.", "source": "Situs prasetyawebworks (bagian Paket) dan katalog paket platform PW-LANDING-PROFESSIONAL"},
+        {"statement": "Paket Company Profile Rp1.999.000: hingga 5 halaman (Beranda, Tentang, Layanan, Galeri, Kontak), email bisnis dengan domain sendiri, SEO dasar & Google Analytics, integrasi Google Maps & media sosial, akses edit konten, revisi 3x, estimasi 7 hari kerja, domain .com atau .id.", "source": "Situs prasetyawebworks (bagian Paket) dan katalog paket platform PW-COMPANY-PROFILE"},
+        {"statement": "Paket Business Website Rp2.999.000: hingga 10 halaman, blog/artikel atau katalog produk, email bisnis dengan domain sendiri, SEO dasar & Google Analytics, integrasi Google Maps & media sosial, akses edit konten, revisi 3x, estimasi 7 hari kerja, domain .com atau .id.", "source": "Situs prasetyawebworks (bagian Paket) dan katalog paket platform PW-BUSINESS-WEBSITE"},
+        {"statement": "Harga website mulai Rp499.000.", "source": "Situs prasetyawebworks (judul dan deskripsi halaman)"},
+        {"statement": "Semua paket sudah termasuk domain dan hosting untuk tahun pertama serta akses edit website. Biaya perpanjangan tahun berikutnya diinformasikan terpisah. Domain mengikuti ketersediaan.", "source": "Situs prasetyawebworks (Ketentuan paket dan FAQ)"},
+        {"statement": "Estimasi pengerjaan 3 hari kerja untuk paket landing page dan 7 hari kerja untuk Company Profile serta Business Website, dihitung sejak data lengkap dan pembayaran diterima.", "source": "Situs prasetyawebworks (FAQ)"},
+        {"statement": "Revisi berarti penyesuaian konten atau desain, bukan ganti template atau tambah fitur. Tambahan halaman, section, integrasi, atau revisi di luar paket dikenakan biaya terpisah.", "source": "Situs prasetyawebworks (Ketentuan paket)"},
+        {"statement": "Tersedia lebih dari 200 template website siap pakai dalam 7 kategori bisnis, disesuaikan dengan logo, warna, dan konten bisnis sebelum tayang.", "source": "Situs prasetyawebworks (katalog template, 218 template)"},
+        {"statement": "Pemesanan bisa konsultasi dulu lewat WhatsApp atau langsung bayar online.", "source": "Situs prasetyawebworks (pilihan pemesanan)"}
+    ]
+}

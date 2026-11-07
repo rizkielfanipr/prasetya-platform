@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Auth\Models\User;
+use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentBrandProfile;
 use App\Domain\Content\Models\ContentCampaign;
@@ -131,4 +133,28 @@ it('shows brand audit on its page and keeps it out of system activity', function
     $activity = contentPage(brandUri('?tab=activity'))['activity'];
     expect(collect($activity)->pluck('action')->all())->toBe(['content.brand_rules_updated'])
         ->and(collect(contentPage('/settings/activity')['logs']['data'])->pluck('action'))->not->toContain('content.brand_rules_updated');
+});
+
+it('imports the reviewed Prasetya Webworks brand file through the audited actions, idempotently', function (): void {
+    $admin = User::factory()->create(['username' => 'pemilik']);
+    $file = 'resources/content-brands/prasetya-webworks.json';
+
+    $this->artisan("content:import-brand WEBWORKS {$file} --actor=pemilik")->assertSuccessful();
+    $this->artisan("content:import-brand WEBWORKS {$file} --actor=pemilik")->expectsOutputToContain('Tidak ada aturan yang berubah.')->assertSuccessful();
+
+    $brand = webworks()->refresh();
+    expect($brand->currentProfile?->version)->toBe(1)
+        ->and($brand->currentProfile?->forbidden_terms)->toContain('termurah')
+        ->and((int) ContentPillar::query()->where('is_active', true)->sum('target_share'))->toBe(100)
+        ->and(ContentFact::query()->count())->toBe(10)
+        ->and(AuditLog::query()->where('entity_type', 'content_brand')->where('actor_user_id', $admin->id)->count())->toBe(1 + 4 + 10);
+
+    // The facts back the site's prices, so a draft quoting them passes the price rule.
+    $item = draftItem();
+    app(SaveContentRevision::class)($item, revisionId($item), ['caption' => 'Website siap tampil mulai Rp499.000, domain & hosting tahun pertama termasuk. Tanya via WhatsApp.', 'hashtags' => '#prasetyawebworks #websiteumkm #bisnisonline'], null, $admin);
+    expect(findingCodes($item))->not->toContain('unapproved_price');
+});
+
+it('refuses an import without an active actor', function (): void {
+    $this->artisan('content:import-brand WEBWORKS resources/content-brands/prasetya-webworks.json --actor=nobody')->assertFailed();
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Integrations\ContentAi;
 
+use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Ai\CopyPrompt;
 use App\Domain\Content\Ai\CopyProviderFailed;
 use App\Domain\Content\Ai\CopyResponse;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Http;
  */
 final class OpenAiCompatibleCopyGenerator implements CopyGenerator
 {
+    public function __construct(private readonly CopyModels $models) {}
+
     public function provider(): string
     {
         return 'openai_compatible';
@@ -26,9 +29,7 @@ final class OpenAiCompatibleCopyGenerator implements CopyGenerator
 
     public function model(): ?string
     {
-        $model = config('content.ai.copy.model');
-
-        return is_string($model) && $model !== '' ? $model : null;
+        return $this->models->selected()?->name;
     }
 
     public function unavailableReason(): ?string
@@ -37,7 +38,7 @@ final class OpenAiCompatibleCopyGenerator implements CopyGenerator
         $missing = array_keys(array_filter([
             'CONTENT_TEXT_BASE_URL' => ! str_starts_with($baseUrl, 'https://'),
             'CONTENT_TEXT_API_KEY' => blank(config('content.ai.copy.api_key')),
-            'CONTENT_TEXT_MODEL' => $this->model() === null,
+            'CONTENT_TEXT_MODEL atau CONTENT_TEXT_MODELS' => $this->model() === null,
         ]));
 
         return $missing === [] ? null : 'Provider AI belum lengkap dikonfigurasi: '.implode(', ', $missing).'.';

@@ -34,6 +34,14 @@
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_DATABASE" value="prasetya_platform_testing"/>
         <env name="PAYMENT_GATEWAY" value="fake"/>
+        <!-- Tests never use a real AI provider, whatever the developer's .env says. -->
+        <env name="CONTENT_TEXT_PROVIDER" value="none" force="true"/>
+        <env name="CONTENT_TEXT_BASE_URL" value="" force="true"/>
+        <env name="CONTENT_TEXT_API_KEY" value="" force="true"/>
+        <env name="CONTENT_TEXT_MODEL" value="" force="true"/>
+        <env name="CONTENT_TEXT_MODELS" value="" force="true"/>
+        <env name="CONTENT_TEXT_PRICE_INPUT" value="0" force="true"/>
+        <env name="CONTENT_TEXT_PRICE_OUTPUT" value="0" force="true"/>
         <env name="ADMIN_EMAIL" value=""/>
         <env name="ADMIN_PASSWORD" value=""/>
         <env name="CORS_ALLOWED_ORIGINS" value="https://prasetyawebworks.web.id,https://satamu.prasetyawebworks.web.id"/>

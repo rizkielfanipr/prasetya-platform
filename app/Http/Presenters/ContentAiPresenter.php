@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Presenters;
 
 use App\Domain\Content\Ai\CopyBudget;
+use App\Domain\Content\Ai\CopyModel;
+use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Models\ContentGenerationRun;
 
@@ -37,17 +39,25 @@ final class ContentAiPresenter
     }
 
     /** @return array<string, mixed> */
-    public static function status(CopyGenerator $generator, CopyBudget $budget): array
+    public static function status(CopyGenerator $generator, CopyBudget $budget, CopyModels $models): array
     {
         $until = $budget->circuitOpenUntil();
+        $selected = $models->selected();
+        $real = $generator->provider() === 'openai_compatible';
 
         return [
             'provider' => $generator->provider(),
             'model' => $generator->model(),
             'unavailableReason' => $budget->unavailableReason(),
             'queue' => (string) config('content.ai.queue'),
-            'priceInputPerMillion' => (float) config('content.ai.copy.price_input_per_million'),
-            'priceOutputPerMillion' => (float) config('content.ai.copy.price_output_per_million'),
+            'priceInputPerMillion' => $real ? ($selected->priceInputPerMillion ?? 0.0) : 0.0,
+            'priceOutputPerMillion' => $real ? ($selected->priceOutputPerMillion ?? 0.0) : 0.0,
+            // Only a real provider has a choice; the list comes from the server's configuration.
+            'models' => $real ? array_map(static fn (CopyModel $m): array => [
+                'name' => $m->name,
+                'priceInputPerMillion' => $m->priceInputPerMillion,
+                'priceOutputPerMillion' => $m->priceOutputPerMillion,
+            ], $models->available()) : [],
             'maxOutputTokens' => (int) config('content.ai.copy.max_output_tokens'),
             'maxAttempts' => (int) config('content.ai.copy.max_attempts'),
             'timeoutSeconds' => (int) config('content.ai.copy.timeout_seconds'),

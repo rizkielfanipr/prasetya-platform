@@ -9,12 +9,27 @@ import { formatUsd, generationStatuses } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { AiStatus, GenerationRun } from '@/types/content';
-import { Link } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { Link, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, TriangleAlert } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 /** Pengaturan AI (ADR-0011): read-only status. Keys live in the server's environment and are never shown or entered here. */
 const props = defineProps<{ status: AiStatus; runs: GenerationRun[] }>();
+
+const modelForm = useForm({ model: props.status.model ?? '' });
+watch(
+    () => props.status.model,
+    (model) => {
+        modelForm.model = model ?? '';
+        modelForm.defaults();
+    },
+);
+const chosen = computed(() => props.status.models.find((m) => m.name === modelForm.model));
+
+function saveModel(): void {
+    modelForm.put(routes.contentSettingsModel, { preserveScroll: true });
+}
 
 const used = computed(() =>
     props.status.budget.weekLimit > 0 ? Math.min(100, Math.round((props.status.budget.spentThisWeek / props.status.budget.weekLimit) * 100)) : 0,
@@ -66,6 +81,31 @@ const columns: DataTableColumn[] = [
                     <dd class="mt-1">{{ status.maxOutputTokens }} token keluar · {{ status.maxAttempts }} percobaan · {{ status.timeoutSeconds }} detik</dd>
                 </div>
             </dl>
+            <form
+                v-if="status.models.length > 1"
+                class="mt-5 flex flex-wrap items-end gap-3 border-t pt-4"
+                aria-label="Pilih model AI"
+                @submit.prevent="saveModel"
+            >
+                <div class="flex min-w-60 flex-col gap-1.5">
+                    <label for="ai-model" class="text-sm font-semibold">Model untuk draft berikutnya</label>
+                    <select
+                        id="ai-model"
+                        v-model="modelForm.model"
+                        class="h-11 rounded-md border border-input bg-card px-3 text-sm"
+                        aria-describedby="ai-model-hint"
+                    >
+                        <option v-for="option in status.models" :key="option.name" :value="option.name">{{ option.name }}</option>
+                    </select>
+                    <p id="ai-model-hint" class="text-xs text-muted-foreground">
+                        <template v-if="chosen"
+                            >Harga: masuk {{ formatUsd(chosen.priceInputPerMillion) }} · keluar {{ formatUsd(chosen.priceOutputPerMillion) }} per 1 juta token. </template
+                        >Daftar model diatur di server (<code>CONTENT_TEXT_MODELS</code>). Jalankan <code>content:eval-copy --model=…</code> sebelum mengganti.
+                    </p>
+                </div>
+                <Button type="submit" :disabled="!modelForm.isDirty || modelForm.processing" :aria-busy="modelForm.processing">Simpan model</Button>
+            </form>
+
             <p v-if="status.circuitOpenUntil" class="mt-4 text-sm font-medium text-danger">
                 Provider gagal berulang kali; permintaan baru ditahan sampai {{ formatDateTime(status.circuitOpenUntil) }}.
             </p>

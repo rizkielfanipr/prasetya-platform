@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Payments\Contracts\NotificationVerifier;
 use App\Domain\Payments\Contracts\PaymentGateway;
@@ -44,8 +45,9 @@ class AppServiceProvider extends ServiceProvider
 
             return new FakeGateway;
         });
+        $this->app->singleton(CopyModels::class);
         $this->app->singleton(CopyGenerator::class, static fn ($app): CopyGenerator => match (config('content.ai.copy.provider')) {
-            'openai_compatible' => new OpenAiCompatibleCopyGenerator,
+            'openai_compatible' => new OpenAiCompatibleCopyGenerator($app->make(CopyModels::class)),
             'fake' => new FakeCopyGenerator,
             default => new UnconfiguredCopyGenerator,
         });
