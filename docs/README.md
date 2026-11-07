@@ -14,6 +14,8 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 | [`back-office-user-management-implementation-prompt.md`](back-office-user-management-implementation-prompt.md) | Coding-agent prompt for the user management plan (Indonesian) | Reference |
 | [`transaction-workspace-consolidation-plan.md`](transaction-workspace-consolidation-plan.md) | Konsolidasi Transaksi, Event Pembayaran, Rekonsiliasi, dan Audit tanpa kehilangan capability | Draft untuk persetujuan |
 | [`transaction-workspace-consolidation-implementation-prompt.md`](transaction-workspace-consolidation-implementation-prompt.md) | Prompt lengkap implementasi bertahap, test, rollout, dan rollback workspace Transaksi | Reference |
+| [`content-studio-ai-planning-plan.md`](content-studio-ai-planning-plan.md) | Content Studio, OpenAI generation, Hermes trend research/weekly planning, approval, dan posting Instagram manual | Draft untuk persetujuan |
+| [`content-studio-ai-implementation-prompt.md`](content-studio-ai-implementation-prompt.md) | Prompt coding-agent bertahap untuk Content Studio manual, OpenAI, research tools, Hermes/Docker, approval, dan posting manual | Reference |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) for consequential technical choices | Active |
 | [`assets/`](assets/) | Approved visual references used by design documentation | Reference |
 | [`api/README.md`](api/README.md), [`api/openapi.yaml`](api/openapi.yaml) | Public REST API conventions and contract | Active |
