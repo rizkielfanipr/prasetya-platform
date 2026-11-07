@@ -14,6 +14,13 @@ Phase 3 of [ADR-0011](../decisions/0011-content-studio-authority-boundary.md). A
 
 Personal subscriptions (Claude Pro, ChatGPT Plus, Command Code Go) do not include API access, and routing them through a proxy is not allowed for this system. Use a provider's API key with pay-as-you-go billing.
 
+### Candidate providers (owner notes)
+
+| Provider | Base URL | Notes (checked 2026-11-08) |
+|---|---|---|
+| DeepSeek | `https://api.deepseek.com` | Official API, pay as you go. Planned first choice |
+| KelontongAI | `https://api.kelontongai.my.id/v1` | Indonesian gateway, OpenAI-compatible, prepaid Coin via QRIS. Prices are far below the model makers' list prices and the terms do not say how models are sourced; no SLA; models may be withdrawn on provider policy changes; Coin expires after 14–60 days; privacy policy not reviewed. Acceptable for local evaluation with a small top-up; do not rely on it for production without confirming sourcing and data handling. Its prices are in Rupiah: convert to USD for `CONTENT_TEXT_PRICE_*` |
+
 ## Enable on a machine
 
 1. Create an API key at the provider and set a **monthly spending limit there** as well.
