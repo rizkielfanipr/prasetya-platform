@@ -12,10 +12,10 @@ import ContentTable from '@/features/content/ContentTable.vue';
 import { contentStatuses } from '@/lib/content';
 import { routes } from '@/lib/routes';
 import type { Paginated } from '@/types/backoffice';
-import type { ContentBrand, ContentListFilters, ContentRow } from '@/types/content';
+import type { ContentBrandOption, ContentListFilters, ContentRow } from '@/types/content';
 import { computed, ref, watch } from 'vue';
 
-const props = defineProps<{ filters: ContentListFilters; items: Paginated<ContentRow>; brands: ContentBrand[] }>();
+const props = defineProps<{ filters: ContentListFilters; items: Paginated<ContentRow>; brands: ContentBrandOption[] }>();
 
 const { apply, applyDebounced, loading, failed } = useUrlFilters(
     () => routes.contentItems,
@@ -29,10 +29,14 @@ watch(search, (value) => {
 });
 
 const brandName = (code: string) => props.brands.find((brand) => brand.code === code)?.name ?? code;
+const pillarName = (id: string) => props.brands.flatMap((brand) => brand.pillars).find((pillar) => pillar.id === id)?.name ?? id;
+const campaignName = (id: string) => props.brands.flatMap((brand) => brand.campaigns).find((campaign) => campaign.id === id)?.name ?? id;
 const active = computed<ActiveFilter[]>(() =>
     [
         props.filters.search ? { key: 'search', label: `Cari: ${props.filters.search}` } : null,
         props.filters.brand ? { key: 'brand', label: `Brand: ${brandName(props.filters.brand)}` } : null,
+        props.filters.pillar ? { key: 'pillar', label: `Pilar: ${pillarName(props.filters.pillar)}` } : null,
+        props.filters.campaign ? { key: 'campaign', label: `Kampanye: ${campaignName(props.filters.campaign)}` } : null,
         props.filters.status ? { key: 'status', label: `Status: ${contentStatuses[props.filters.status].label}` } : null,
     ].filter((filter): filter is ActiveFilter => filter !== null),
 );
@@ -44,7 +48,7 @@ function remove(key: string): void {
 
 function clear(): void {
     search.value = '';
-    apply({ search: null, brand: null, status: null, page: null });
+    apply({ search: null, brand: null, pillar: null, campaign: null, status: null, page: null });
 }
 
 function sortBy(key: string): void {

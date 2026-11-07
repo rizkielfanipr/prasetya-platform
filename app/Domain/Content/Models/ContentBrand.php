@@ -8,6 +8,8 @@ use Database\Factories\ContentBrandFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -15,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $code
  * @property string $name
  * @property bool $is_active
+ * @property int|null $current_profile_id
+ * @property-read ContentBrandProfile|null $currentProfile
  */
 class ContentBrand extends Model
 {
@@ -27,6 +31,41 @@ class ContentBrand extends Model
     public function uniqueIds(): array
     {
         return ['public_id'];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
+
+    /** @return BelongsTo<ContentBrandProfile, $this> */
+    public function currentProfile(): BelongsTo
+    {
+        return $this->belongsTo(ContentBrandProfile::class, 'current_profile_id');
+    }
+
+    /** @return HasMany<ContentBrandProfile, $this> */
+    public function profiles(): HasMany
+    {
+        return $this->hasMany(ContentBrandProfile::class)->orderByDesc('version');
+    }
+
+    /** @return HasMany<ContentPillar, $this> */
+    public function pillars(): HasMany
+    {
+        return $this->hasMany(ContentPillar::class)->orderByDesc('is_active')->orderBy('name');
+    }
+
+    /** @return HasMany<ContentCampaign, $this> */
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(ContentCampaign::class)->orderByDesc('is_active')->orderByDesc('starts_on');
+    }
+
+    /** @return HasMany<ContentFact, $this> */
+    public function facts(): HasMany
+    {
+        return $this->hasMany(ContentFact::class)->orderByRaw('retired_at is not null')->orderByDesc('id');
     }
 
     protected function casts(): array

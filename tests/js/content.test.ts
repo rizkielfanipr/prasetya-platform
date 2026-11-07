@@ -23,6 +23,7 @@ const revision = (overrides: Partial<ContentRevision> = {}): ContentRevision => 
     author: 'Penulis',
     submittedBy: 'Penulis',
     submittedAt: '2026-11-07T03:00:00Z',
+    brandRulesVersion: null,
     createdAt: '2026-11-07T02:00:00Z',
     updatedAt: '2026-11-07T03:00:00Z',
     asset: {
@@ -45,6 +46,9 @@ const row = (overrides: Partial<ContentRow> = {}): ContentRow => ({
     title: 'Kenapa website lambat',
     status: 'DRAFT',
     brand: { code: 'WEBWORKS', name: 'Prasetya Webworks' },
+    pillar: null,
+    campaign: null,
+    topic: null,
     plannedAt: '2026-11-09T03:00:00Z',
     plannedDay: '2026-11-09',
     revisionNumber: 1,

@@ -31,12 +31,14 @@ use LogicException;
  * @property int $author_user_id
  * @property int|null $submitted_by_user_id
  * @property Carbon|null $submitted_at
+ * @property int|null $brand_profile_id
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read ContentItem $item
  * @property-read ContentAsset|null $asset
  * @property-read User $author
  * @property-read User|null $submitter
+ * @property-read ContentBrandProfile|null $brandProfile
  */
 class ContentRevision extends Model
 {
@@ -97,6 +99,12 @@ class ContentRevision extends Model
     public function submitter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'submitted_by_user_id');
+    }
+
+    /** @return BelongsTo<ContentBrandProfile, $this> */
+    public function brandProfile(): BelongsTo
+    {
+        return $this->belongsTo(ContentBrandProfile::class, 'brand_profile_id');
     }
 
     protected function casts(): array

@@ -15,6 +15,8 @@ const props = defineProps<{
     noteLabel: string;
     noteRequired: boolean;
     destructive?: boolean;
+    /** The field the note is sent as: `note` for review decisions, `reason` for retiring a fact. */
+    noteField?: 'note' | 'reason';
 }>();
 const open = defineModel<boolean>('open', { default: false });
 const form = useForm({ revision: props.revisionId, note: '' });
@@ -26,8 +28,14 @@ watch(open, (value) => {
     }
 });
 
+const field = props.noteField ?? 'note';
+const noteError = () => (form.errors as Record<string, string | undefined>)[field];
+
 function submit(): void {
-    form.post(props.url, { preserveScroll: true, onSuccess: () => ((open.value = false), form.reset('note')), onError: () => undefined });
+    form.transform((data) => (field === 'note' ? data : { reason: data.note })).post(props.url, {
+        preserveScroll: true,
+        onSuccess: () => ((open.value = false), form.reset('note')),
+    });
 }
 </script>
 
@@ -45,7 +53,7 @@ function submit(): void {
             id="content-decision-note"
             v-slot="{ describedBy, invalid }"
             :label="noteRequired ? `${noteLabel} *` : noteLabel"
-            :error="form.errors.note"
+            :error="noteError()"
             :hint="noteRequired ? 'Wajib diisi.' : 'Opsional.'"
         >
             <Textarea id="content-decision-note" v-model="form.note" rows="4" maxlength="2000" :aria-describedby="describedBy" :aria-invalid="invalid" />

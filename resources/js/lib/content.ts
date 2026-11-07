@@ -1,7 +1,15 @@
 import type { StatusDefinition } from '@/lib/status';
 import { BUSINESS_TIMEZONE } from '@/lib/format';
-import type { ContentAction, ContentDecision, ContentFields, ContentRevision, ContentStatus } from '@/types/content';
-import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, Pencil, Send, XCircle } from '@lucide/vue';
+import type { BrandTab, CampaignPriority, ContentAction, ContentDecision, ContentFields, ContentRevision, ContentStatus, RuleSeverity } from '@/types/content';
+import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, Pencil, Send, TriangleAlert, XCircle } from '@lucide/vue';
+
+/** Each line of a textarea as one list entry; blank lines dropped. */
+export function linesToList(text: string): string[] {
+    return text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line !== '');
+}
 
 /** Content item statuses (ADR-0011, data-dictionary.md). */
 export const contentStatuses: Record<ContentStatus, StatusDefinition> = {
@@ -23,7 +31,7 @@ export const contentDecisions: Record<ContentDecision, { label: string; icon: Lu
 
 export const contentActionLabels: Record<ContentAction, string> = {
     edit: 'Simpan konten',
-    editDetails: 'Ubah judul & jadwal',
+    editDetails: 'Ubah rencana',
     submit: 'Ajukan untuk ditinjau',
     requestRevision: 'Minta revisi',
     approve: 'Setujui',
@@ -31,10 +39,43 @@ export const contentActionLabels: Record<ContentAction, string> = {
     markPublished: 'Tandai sudah dipublikasikan',
 };
 
-/** Content Studio sections. Brand & Template and Pengaturan AI arrive with the AI phases. */
+/** Content Studio sections. Pengaturan AI arrives with the AI phases. */
 export const contentSections = [
     { value: 'calendar', label: 'Kalender' },
     { value: 'items', label: 'Konten' },
+    { value: 'brands', label: 'Brand & Template' },
+] as const;
+
+export const brandTabs: readonly { value: BrandTab; label: string }[] = [
+    { value: 'rules', label: 'Aturan' },
+    { value: 'pillars', label: 'Pilar' },
+    { value: 'campaigns', label: 'Kampanye' },
+    { value: 'facts', label: 'Fakta disetujui' },
+    { value: 'activity', label: 'Aktivitas' },
+];
+
+export const campaignPriorities: Record<CampaignPriority, string> = { HIGH: 'Tinggi', NORMAL: 'Normal', LOW: 'Rendah' };
+
+export const ruleSeverities: Record<RuleSeverity, StatusDefinition> = {
+    ERROR: { label: 'Pelanggaran', tone: 'danger', icon: XCircle },
+    WARNING: { label: 'Peringatan', tone: 'warning', icon: TriangleAlert },
+};
+
+/** The list rules of a brand, in form order. Each line of the textarea is one entry. */
+export const brandListRules = [
+    {
+        key: 'forbiddenTerms',
+        name: 'forbidden_terms',
+        label: 'Kata terlarang',
+        hint: 'Satu per baris. Ditemukan sebagai kata utuh di caption, hashtag, dan alt text: pelanggaran.',
+    },
+    { key: 'forbiddenClaims', name: 'forbidden_claims', label: 'Klaim terlarang', hint: 'Satu per baris, misalnya "dijamin ranking 1". Pelanggaran.' },
+    { key: 'allowedCtas', name: 'allowed_ctas', label: 'CTA yang disetujui', hint: 'Satu per baris. Caption tanpa salah satunya mendapat peringatan.' },
+    { key: 'requiredHashtags', name: 'required_hashtags', label: 'Hashtag wajib', hint: 'Satu per baris, dengan atau tanpa #. Yang belum ada: peringatan.' },
+    { key: 'forbiddenHashtags', name: 'forbidden_hashtags', label: 'Hashtag terlarang', hint: 'Satu per baris. Pelanggaran.' },
+    { key: 'preferredTerms', name: 'preferred_terms', label: 'Kata yang dianjurkan', hint: 'Satu per baris. Panduan untuk penulis; tidak diperiksa.' },
+    { key: 'approvedExamples', name: 'approved_examples', label: 'Contoh caption yang disetujui', hint: 'Satu per baris. Panduan gaya.' },
+    { key: 'rejectedExamples', name: 'rejected_examples', label: 'Contoh caption yang ditolak', hint: 'Satu per baris, sebaiknya dengan alasannya.' },
 ] as const;
 
 export type ContentField = keyof ContentFields;

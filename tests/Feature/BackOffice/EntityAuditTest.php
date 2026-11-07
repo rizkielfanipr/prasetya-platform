@@ -113,8 +113,12 @@ it('finds every kind of audit the platform writes in at least one documented pla
     $item = draftItem($admin, complete: false);
     $content = array_map(fn (string $action): array => [$action, 'content_item', $item->public_id], ['content.created', 'content.revised', 'content.details_updated', 'content.submitted', 'content.revision_requested', 'content.approved', 'content.rejected', 'content.published']);
 
+    $brand = webworks();
+    $brandAudit = array_map(fn (string $action): array => [$action, 'content_brand', $brand->public_id], ['content.brand_rules_updated', 'content.pillar_created', 'content.pillar_updated', 'content.campaign_created', 'content.campaign_updated', 'content.fact_added', 'content.fact_retired']);
+
     $placed = [
         "/content/items/{$item->public_id}" => $content,
+        "/content/brands/{$brand->public_id}?tab=activity" => $brandAudit,
         "/transactions/{$order->public_id}" => [['order.note_added', 'order', $order->public_id], ['payment.paid', 'payment', $payment->public_id], ['payment.gateway_checked', 'payment', $payment->public_id]],
         "/users/{$sari->public_id}" => [['user.created', 'user', $sari->public_id], ['user.updated', 'user', $sari->public_id], ['user.activated', 'user', $sari->public_id], ['user.deactivated', 'user', $sari->public_id], ['user.password_reset', 'user', $sari->public_id]],
         '/settings/activity' => [['auth.login', 'user', $admin->public_id], ['auth.logout', 'user', $admin->public_id], ['user.profile_updated', 'user', $admin->public_id], ['user.password_changed', 'user', $admin->public_id], ['package.activated', 'package', 'SAT-SPESIAL'], ['package.deactivated', 'package', 'SAT-SPESIAL'], ['future.unknown', 'something', null]],

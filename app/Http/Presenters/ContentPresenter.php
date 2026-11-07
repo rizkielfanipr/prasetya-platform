@@ -25,7 +25,7 @@ final class ContentPresenter
     }
 
     /**
-     * Calendar and list rows. Needs brand and activeRevision.asset loaded.
+     * Calendar and list rows. Needs brand, pillar, campaign, and activeRevision.asset loaded.
      *
      * @return array<string, mixed>
      */
@@ -36,6 +36,9 @@ final class ContentPresenter
             'title' => $item->title,
             'status' => $item->status->value,
             'brand' => self::brand($item->brand),
+            'pillar' => $item->pillar === null ? null : ['id' => $item->pillar->public_id, 'name' => $item->pillar->name],
+            'campaign' => $item->campaign === null ? null : ['id' => $item->campaign->public_id, 'name' => $item->campaign->name],
+            'topic' => $item->topic,
             'plannedAt' => $item->planned_at->toIso8601ZuluString(),
             'plannedDay' => $item->planned_at->setTimezone(BusinessTime::zone())->toDateString(),
             'revisionNumber' => $item->activeRevision?->number,
@@ -73,6 +76,7 @@ final class ContentPresenter
             'hashtags' => $revision->hashtags,
             'altText' => $revision->alt_text,
             'visualDirection' => $revision->visual_direction,
+            'brandRulesVersion' => $revision->brandProfile?->version,
             'author' => $revision->author->name,
             'submittedBy' => $revision->submitter?->name,
             'submittedAt' => $revision->submitted_at?->toIso8601ZuluString(),

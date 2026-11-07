@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\BackOffice\Content;
 
-use App\Support\BusinessTime;
-use Carbon\CarbonImmutable;
+use App\Domain\Content\Support\ContentPlan;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,8 +26,8 @@ final class StoreContentItemRequest extends FormRequest
         return ['brand.exists' => 'Pilih brand yang aktif.', ...ContentDetailsRules::messages()];
     }
 
-    public function plannedAt(): CarbonImmutable
+    public function plan(): ContentPlan
     {
-        return BusinessTime::parseLocal((string) $this->validated('planned_at'));
+        return ContentDetailsRules::plan($this);
     }
 }

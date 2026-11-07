@@ -31,12 +31,13 @@ final class SubmitContentForReview
             $revision = $item->activeRevision;
             $previous = $item->status;
 
-            $revision->forceFill(['submitted_by_user_id' => $actor->id, 'submitted_at' => now()])->save();
+            // The brand rules it met, so a later change to the rules never rewrites why it passed.
+            $revision->forceFill(['submitted_by_user_id' => $actor->id, 'submitted_at' => now(), 'brand_profile_id' => $item->brand->current_profile_id])->save();
             $item->forceFill(['status' => ContentStatus::ReadyForReview])->save();
 
             ($this->audit)('content.submitted', 'content_item', $item->public_id, $actor,
                 ['status' => $previous->value],
-                ['status' => ContentStatus::ReadyForReview->value, 'revision' => $revision->number],
+                ['status' => ContentStatus::ReadyForReview->value, 'revision' => $revision->number, 'brand_rules_version' => $item->brand->currentProfile?->version],
             );
         });
     }

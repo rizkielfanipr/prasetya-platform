@@ -99,6 +99,13 @@ export const auditActionLabels: Record<string, string> = {
     'content.approved': 'Disetujui',
     'content.rejected': 'Ditolak',
     'content.published': 'Ditandai dipublikasikan',
+    'content.brand_rules_updated': 'Aturan brand diubah',
+    'content.pillar_created': 'Pilar ditambahkan',
+    'content.pillar_updated': 'Pilar diubah',
+    'content.campaign_created': 'Kampanye ditambahkan',
+    'content.campaign_updated': 'Kampanye diubah',
+    'content.fact_added': 'Fakta ditambahkan',
+    'content.fact_retired': 'Fakta tidak berlaku lagi',
 };
 
 /** Back-office user status (Pengguna). */

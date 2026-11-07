@@ -7,9 +7,14 @@ use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\ReviewContent;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\SubmitContentForReview;
+use App\Domain\Content\Actions\UpdateBrandProfile;
 use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentBrandProfile;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Support\ContentPlan;
+use App\Domain\Content\Support\ContentRuleValidator;
+use App\Domain\Content\Support\RuleFinding;
 use Database\Seeders\ContentBrandSeeder;
 use Database\Seeders\Support\DemoImage;
 use Illuminate\Http\UploadedFile;
@@ -52,7 +57,7 @@ function completeContent(array $overrides = []): array
 function draftItem(?User $writer = null, bool $complete = true, string $title = 'Kenapa website lambat merugikan'): ContentItem
 {
     $writer ??= admin();
-    $item = app(CreateContentItem::class)(webworks(), $title, now()->addDay(), $writer);
+    $item = app(CreateContentItem::class)(webworks(), new ContentPlan($title, now()->addDay()), $writer);
     if ($complete) {
         $image = postImage();
         app(SaveContentRevision::class)($item, revisionId($item), completeContent(), ['path' => (string) $image->getRealPath(), 'name' => 'post.png'], $writer);
@@ -87,4 +92,23 @@ function revisionId(ContentItem $item): string
 function contentPage(string $uri, ?User $viewer = null): array
 {
     return test()->actingAs($viewer ?? admin())->get($uri)->assertOk()->viewData('page')['props'];
+}
+
+/** @param  array<string, mixed>  $rules */
+function brandRules(array $rules = [], string $note = 'Aturan uji'): ContentBrandProfile
+{
+    $empty = array_fill_keys(ContentBrandProfile::LISTS, []);
+
+    return app(UpdateBrandProfile::class)(webworks()->refresh(), [...$empty, ...$rules], $note, admin());
+}
+
+/** @return list<string> finding codes for an item's current revision */
+function findingCodes(ContentItem $item): array
+{
+    $item->refresh();
+
+    return array_map(
+        static fn (RuleFinding $f): string => $f->code,
+        app(ContentRuleValidator::class)->check($item, $item->activeRevision),
+    );
 }

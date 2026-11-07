@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Actions\AddContentFact;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
 use App\Domain\Content\Actions\ReviewContent;
 use App\Domain\Content\Actions\SaveContentRevision;
+use App\Domain\Content\Actions\SavePillar;
 use App\Domain\Content\Actions\SubmitContentForReview;
+use App\Domain\Content\Actions\UpdateBrandProfile;
 use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Support\ContentPlan;
 use App\Support\BusinessTime;
 use Carbon\CarbonImmutable;
 use Database\Seeders\Support\DemoImage;
@@ -37,18 +41,42 @@ class ContentDemoSeeder extends Seeder
             return;
         }
 
+        // Illustrative rules for local and e2e only. Production gets no rules, pillars, or facts until the owner
+        // enters approved ones (ADR-0011, phase 2).
+        app(UpdateBrandProfile::class)($brand, [
+            'audience' => 'Pemilik UMKM yang baru mulai berjualan online. (Data contoh)',
+            'voice' => 'Ramah, jelas, tanpa istilah teknis yang tidak perlu. (Data contoh)',
+            'visual_guidance' => 'Latar polos warna brand, tipografi tebal, logo kecil di pojok bawah.',
+            'preferred_terms' => ['website rapi', 'usaha Anda'],
+            'forbidden_terms' => ['termurah', 'paling murah'],
+            'forbidden_claims' => ['dijamin ranking 1'],
+            'allowed_ctas' => ['Tanyakan kebutuhan Anda lewat DM'],
+            'required_hashtags' => ['#prasetyawebworks'],
+            'forbidden_hashtags' => [],
+            'approved_examples' => [],
+            'rejected_examples' => [],
+            'caption_max_length' => 600,
+            'hashtag_max' => 10,
+            'topic_repeat_days' => 14,
+        ], 'Data contoh untuk lokal dan e2e', $writer);
+        $pillars = [];
+        foreach ([['Edukasi', 50], ['Portofolio', 30], ['Promo', 20]] as [$name, $share]) {
+            $pillars[$name] = app(SavePillar::class)($brand, null, $name, 'Data contoh', $share, true, $writer);
+        }
+        app(AddContentFact::class)($brand, null, 'Contoh fakta: konsultasi awal gratis lewat DM.', 'Data contoh', null, $writer);
+
         $monday = CarbonImmutable::now(BusinessTime::zone())->startOfWeek(CarbonImmutable::MONDAY)->setTime(10, 0);
         $posts = [
-            ['Kenapa website lambat merugikan bisnis', 0, 'published', [42, 157, 143]],
-            ['3 tanda website Anda perlu diperbarui', 1, 'approved', [233, 196, 106]],
-            ['Cerita klien: toko roti go online', 2, 'review', [244, 162, 97]],
-            ['Checklist sebelum meluncurkan website', 3, 'revision', [231, 111, 81]],
-            ['Domain, hosting, dan SSL dalam satu menit', 4, 'draft', null],
-            ['Tanya jawab: berapa lama membuat website?', 5, 'empty', null],
+            ['Kenapa website lambat merugikan bisnis', 0, 'published', [42, 157, 143], 'Edukasi'],
+            ['3 tanda website Anda perlu diperbarui', 1, 'approved', [233, 196, 106], 'Edukasi'],
+            ['Cerita klien: toko roti go online', 2, 'review', [244, 162, 97], 'Portofolio'],
+            ['Checklist sebelum meluncurkan website', 3, 'revision', [231, 111, 81], 'Edukasi'],
+            ['Domain, hosting, dan SSL dalam satu menit', 4, 'draft', null, null],
+            ['Tanya jawab: berapa lama membuat website?', 5, 'empty', null, null],
         ];
 
-        foreach ($posts as [$title, $day, $state, $colour]) {
-            $item = app(CreateContentItem::class)($brand, $title, $monday->addDays($day)->utc(), $writer);
+        foreach ($posts as [$title, $day, $state, $colour, $pillar]) {
+            $item = app(CreateContentItem::class)($brand, new ContentPlan($title, $monday->addDays($day)->utc(), $pillar === null ? null : $pillars[$pillar]), $writer);
             if ($state === 'empty') {
                 continue;
             }

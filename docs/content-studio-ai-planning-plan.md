@@ -458,6 +458,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** brief yang sama dapat dinilai terhadap aturan brand tanpa bergantung pada prompt tersembunyi.
 
+**Status (2026-11-08):** selesai di branch `feat/content-brand-knowledge` (di atas Fase 1), menunggu review data brand. Brand & Template di `/content/brands/{id}`: aturan berversi, pilar dengan target, kampanye, fakta disetujui yang hanya bisa dinonaktifkan, dan audit. Validator deterministik (`ContentRuleValidator`) memblokir pengajuan bila ada pelanggaran dan mencatat versi aturan pada revisi yang diajukan. Production tidak mendapat seed aturan, pilar, atau fakta; semuanya diisi pemilik dari data yang disetujui. Rincian di [`data-dictionary.md`](data-dictionary.md#brand-rule-check).
+
 ### Fase 3 — OpenAI production
 
 - Provider abstraction untuk copy dan image.

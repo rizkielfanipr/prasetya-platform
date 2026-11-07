@@ -35,6 +35,7 @@ const byDay = computed(() => props.week.days.map((day) => ({ day, items: props.i
                             <ImageIcon v-if="item.hasImage" class="size-3.5" aria-label="Ada gambar" />
                         </span>
                         <span class="line-clamp-4 block text-sm font-semibold hyphens-auto" lang="id">{{ item.title }}</span>
+                        <span v-if="item.pillar" class="block text-xs text-muted-foreground">{{ item.pillar.name }}</span>
                         <!-- Wraps instead of overflowing in a narrow day column. -->
                         <span
                             class="inline-flex max-w-full items-start gap-1 rounded-md px-2 py-0.5 text-xs font-semibold xl:px-1.5 xl:text-[11px] 2xl:text-xs"

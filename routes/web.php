@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\BackOffice\AdminNoteController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
 use App\Http\Controllers\BackOffice\Content\ContentAssetController;
+use App\Http\Controllers\BackOffice\Content\ContentBrandController;
 use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
 use App\Http\Controllers\BackOffice\Content\ContentItemController;
 use App\Http\Controllers\BackOffice\DashboardController;
@@ -61,6 +62,19 @@ Route::middleware('auth')->group(function (): void {
     Route::post('content/items/{item:public_id}/reject', [ContentItemController::class, 'reject'])->name('content.items.reject');
     Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
     Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
+
+    // Brand & Template (ADR-0011, phase 2). Children are scoped to their brand.
+    Route::get('content/brands', [ContentBrandController::class, 'index'])->name('content.brands.index');
+    Route::scopeBindings()->prefix('content/brands/{brand:public_id}')->name('content.brands.')->group(function (): void {
+        Route::get('/', [ContentBrandController::class, 'show'])->name('show');
+        Route::put('rules', [ContentBrandController::class, 'updateRules'])->name('rules');
+        Route::post('pillars', [ContentBrandController::class, 'storePillar'])->name('pillars.store');
+        Route::put('pillars/{pillar:public_id}', [ContentBrandController::class, 'updatePillar'])->name('pillars.update');
+        Route::post('campaigns', [ContentBrandController::class, 'storeCampaign'])->name('campaigns.store');
+        Route::put('campaigns/{campaign:public_id}', [ContentBrandController::class, 'updateCampaign'])->name('campaigns.update');
+        Route::post('facts', [ContentBrandController::class, 'storeFact'])->name('facts.store');
+        Route::post('facts/{fact:public_id}/retire', [ContentBrandController::class, 'retireFact'])->name('facts.retire');
+    });
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/activity', SystemActivityController::class)->name('settings.activity');

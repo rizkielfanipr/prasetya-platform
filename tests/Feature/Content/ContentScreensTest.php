@@ -10,6 +10,7 @@ use App\Domain\Content\Actions\SubmitContentForReview;
 use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Support\ContentPlan;
 use App\Domain\Orders\Models\Order;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ beforeEach(fn () => contentSetUp());
 
 function planned(string $title, string $utc, ?ContentBrand $brand = null): ContentItem
 {
-    return app(CreateContentItem::class)($brand ?? webworks(), $title, CarbonImmutable::parse($utc), admin());
+    return app(CreateContentItem::class)($brand ?? webworks(), new ContentPlan($title, CarbonImmutable::parse($utc)), admin());
 }
 
 it('shows one week, Monday to Sunday in business time', function (): void {

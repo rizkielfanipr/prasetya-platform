@@ -6,12 +6,13 @@ import ContentDetailsDialog from '@/features/content/ContentDetailsDialog.vue';
 import ContentEditor from '@/features/content/ContentEditor.vue';
 import ContentPostingPackage from '@/features/content/ContentPostingPackage.vue';
 import ContentReviewPanel from '@/features/content/ContentReviewPanel.vue';
+import ContentRuleFindings from '@/features/content/ContentRuleFindings.vue';
 import ContentRevisionHistory from '@/features/content/ContentRevisionHistory.vue';
 import ContentStatusBadge from '@/features/content/ContentStatusBadge.vue';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { AuditEntry } from '@/types/backoffice';
-import type { ContentActions, ContentItem, ContentLimits, ContentRevision } from '@/types/content';
+import type { ContentActions, ContentItem, ContentLimits, ContentRevision, PlanOptions, RuleFinding } from '@/types/content';
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed } from 'vue';
@@ -24,6 +25,9 @@ const props = defineProps<{
     actions: ContentActions;
     activity: AuditEntry[];
     limits: ContentLimits;
+    findings: RuleFinding[];
+    brandRulesVersion: number | null;
+    planOptions: PlanOptions;
 }>();
 
 const postable = computed(() => props.item.status === 'APPROVED' || props.item.status === 'PUBLISHED');
@@ -37,8 +41,8 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
         </Link>
 
         <PanelCard title="Ringkasan">
-            <template #actions><ContentDetailsDialog :item="item" :blocked-reason="actions.editDetails" /></template>
-            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-5">
+            <template #actions><ContentDetailsDialog :item="item" :options="planOptions" :blocked-reason="actions.editDetails" /></template>
+            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                     <dt class="text-xs font-semibold text-muted-foreground">Status</dt>
                     <dd class="mt-1"><ContentStatusBadge :status="item.status" /></dd>
@@ -52,6 +56,14 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
                     <dd class="mt-1">{{ formatDateTime(item.plannedAt) }}</dd>
                 </div>
                 <div>
+                    <dt class="text-xs font-semibold text-muted-foreground">Pilar · kampanye</dt>
+                    <dd class="mt-1">{{ item.pillar?.name ?? 'Tanpa pilar' }} · {{ item.campaign?.name ?? 'tanpa kampanye' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold text-muted-foreground">Topik</dt>
+                    <dd class="mt-1">{{ item.topic ?? '—' }}</dd>
+                </div>
+                <div>
                     <dt class="text-xs font-semibold text-muted-foreground">Revisi aktif</dt>
                     <dd class="mt-1">{{ revision.number }}</dd>
                 </div>
@@ -63,6 +75,10 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
         </PanelCard>
 
         <PanelCard title="Tinjauan"><ContentReviewPanel :item="item" :revision="revision" :actions="actions" /></PanelCard>
+
+        <PanelCard title="Aturan brand" description="Pemeriksaan otomatis tanpa AI terhadap aturan, fakta, pilar, dan kampanye brand.">
+            <ContentRuleFindings :findings="findings" :version="brandRulesVersion" :submitted-version="revision.brandRulesVersion" />
+        </PanelCard>
 
         <PanelCard v-if="postable" title="Paket posting" description="Posting manual di Instagram dari revisi yang disetujui, lalu catat di sini.">
             <ContentPostingPackage :item="item" :revision="revision" :actions="actions" />

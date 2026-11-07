@@ -74,9 +74,6 @@ final class SaveContentRevision
             $wasApproved = $item->status === ContentStatus::Approved;
             $revision = $current->isSubmitted() ? $this->newRevision($item, $current, $actor) : $current;
             $revision->fill($values);
-            if ($wasApproved) {
-                $revision->fill(['submitted_by_user_id' => $actor->id, 'submitted_at' => now()]);
-            }
             $revision->save();
 
             if ($stored !== null && $imageChanged) {
@@ -98,7 +95,9 @@ final class SaveContentRevision
             $previousStatus = $item->status;
             $item->forceFill(['active_revision_id' => $revision->id]);
             if ($wasApproved) {
-                $this->availability->ensureComplete($revision->load('asset'));
+                $item->setRelation('activeRevision', $revision->load('asset'));
+                $this->availability->ensureReady($item, $revision);
+                $revision->forceFill(['submitted_by_user_id' => $actor->id, 'submitted_at' => now(), 'brand_profile_id' => $item->brand->current_profile_id])->save();
                 $item->forceFill(['status' => ContentStatus::ReadyForReview, 'approved_revision_id' => null]);
             }
             $item->save();

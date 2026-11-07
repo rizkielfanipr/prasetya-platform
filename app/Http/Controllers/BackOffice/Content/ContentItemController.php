@@ -20,6 +20,8 @@ use App\Domain\Content\Exceptions\InvalidContentImage;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\ContentRuleValidator;
+use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
 use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\Content\ContentFilterRequest;
@@ -41,14 +43,14 @@ final class ContentItemController
 {
     public function index(ContentFilterRequest $request): Response
     {
-        /** @var array{brand?: string|null, status?: string|null, search?: string|null, sort?: string|null, direction?: string|null} $filters */
+        /** @var array{brand?: string|null, pillar?: string|null, campaign?: string|null, status?: string|null, search?: string|null, sort?: string|null, direction?: string|null} $filters */
         $filters = $request->validated();
         $sort = $filters['sort'] ?? 'planned_at';
         $direction = $filters['direction'] ?? 'desc';
 
         $items = ContentCalendarController::filtered($filters)
             ->when($filters['search'] ?? null, static fn ($q, string $search) => $q->where('title', 'like', '%'.addcslashes($search, '%_\\').'%'))
-            ->with(['brand', 'activeRevision.asset'])
+            ->with(ContentCalendarController::ROW_RELATIONS)
             ->orderBy($sort, $direction)
             ->orderByDesc('id')
             ->paginate(20)
@@ -56,14 +58,13 @@ final class ContentItemController
 
         return Inertia::render('content/ContentListPage', [
             'filters' => [
-                'brand' => $filters['brand'] ?? null,
-                'status' => $filters['status'] ?? null,
+                ...ContentCalendarController::currentFilters($filters),
                 'search' => $filters['search'] ?? null,
                 'sort' => $sort,
                 'direction' => $direction,
             ],
             'items' => Paginated::present($items, ContentPresenter::row(...)),
-            'brands' => ContentCalendarController::brands(),
+            ...ContentCalendarController::options(),
         ]);
     }
 
@@ -72,17 +73,17 @@ final class ContentItemController
         $brand = ContentBrand::query()->where('code', (string) $request->validated('brand'))->firstOrFail();
 
         return $this->attempt(function () use ($create, $brand, $request): RedirectResponse {
-            $item = $create($brand, (string) $request->validated('title'), $request->plannedAt(), $this->actor($request));
+            $item = $create($brand, $request->plan(), $this->actor($request));
 
             return redirect()->route('content.items.show', $item)->with('success', 'Konten dibuat sebagai draft.');
         });
     }
 
-    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail): Response
+    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules): Response
     {
         $item->load([
-            'brand', 'creator', 'publication.actor', 'publication.revision',
-            'revisions.asset', 'revisions.decisions.actor', 'revisions.author', 'revisions.submitter',
+            'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'publication.actor', 'publication.revision',
+            'revisions.asset', 'revisions.decisions.actor', 'revisions.author', 'revisions.submitter', 'revisions.brandProfile',
         ]);
         /** @var ContentRevision $active */
         $active = $item->revisions->firstWhere('id', $item->active_revision_id);
@@ -95,6 +96,9 @@ final class ContentItemController
             'actions' => $availability->for($item, $this->actor($request)),
             'activity' => $trail->forContentItem($item->public_id)->latest('id')->limit(100)->get()->map(TransactionPresenter::audit(...))->all(),
             'limits' => ['maxHashtags' => SaveContentRevisionRequest::MAX_HASHTAGS, 'captionMax' => 2200],
+            'findings' => ContentBrandPresenter::findings($rules->check($item, $active)),
+            'brandRulesVersion' => $item->brand->currentProfile?->version,
+            'planOptions' => ContentBrandPresenter::planOptions($item->brand),
         ]);
     }
 
@@ -117,9 +121,9 @@ final class ContentItemController
     public function details(UpdateContentDetailsRequest $request, ContentItem $item, UpdateContentDetails $update): RedirectResponse
     {
         return $this->attempt(function () use ($update, $item, $request): RedirectResponse {
-            $update($item, (string) $request->validated('title'), $request->plannedAt(), $this->actor($request));
+            $update($item, $request->plan(), $this->actor($request));
 
-            return back()->with('success', 'Judul dan jadwal diperbarui.');
+            return back()->with('success', 'Rencana konten diperbarui.');
         });
     }
 

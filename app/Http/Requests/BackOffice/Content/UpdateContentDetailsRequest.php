@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\BackOffice\Content;
 
-use App\Support\BusinessTime;
-use Carbon\CarbonImmutable;
+use App\Domain\Content\Support\ContentPlan;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class UpdateContentDetailsRequest extends FormRequest
@@ -22,8 +21,8 @@ final class UpdateContentDetailsRequest extends FormRequest
         return ContentDetailsRules::messages();
     }
 
-    public function plannedAt(): CarbonImmutable
+    public function plan(): ContentPlan
     {
-        return BusinessTime::parseLocal((string) $this->validated('planned_at'));
+        return ContentDetailsRules::plan($this);
     }
 }

@@ -21,6 +21,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $public_id
  * @property int $content_brand_id
+ * @property int|null $content_pillar_id
+ * @property int|null $content_campaign_id
+ * @property string|null $topic
  * @property string $title
  * @property Carbon $planned_at
  * @property ContentStatus $status
@@ -30,6 +33,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read ContentBrand $brand
+ * @property-read ContentPillar|null $pillar
+ * @property-read ContentCampaign|null $campaign
  * @property-read ContentRevision|null $activeRevision
  * @property-read ContentPublication|null $publication
  * @property-read User $creator
@@ -56,6 +61,18 @@ class ContentItem extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(ContentBrand::class, 'content_brand_id');
+    }
+
+    /** @return BelongsTo<ContentPillar, $this> */
+    public function pillar(): BelongsTo
+    {
+        return $this->belongsTo(ContentPillar::class, 'content_pillar_id');
+    }
+
+    /** @return BelongsTo<ContentCampaign, $this> */
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(ContentCampaign::class, 'content_campaign_id');
     }
 
     /** @return BelongsTo<ContentRevision, $this> */

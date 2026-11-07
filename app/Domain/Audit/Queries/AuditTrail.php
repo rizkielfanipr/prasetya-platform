@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
  *
  * - Transactions: entity order or payment, on the transaction detail.
  * - A user: every entry whose entity is that user, on the user detail.
- * - Content: entity content_item, on the Content Studio item detail (ADR-0011).
+ * - Content: entity content_item on the Content Studio item detail, entity content_brand on Brand & Template
+ *   (ADR-0011).
  * - System: everything that is not a transaction or the management of a user (sign-in and sign-out, profile and
  *   password changes, packages, unknown entities), under Pengaturan → Aktivitas Sistem. Sign-in and sign-out are
  *   about a user too, so they also appear on that user's detail.
@@ -23,7 +24,7 @@ final class AuditTrail
     public const array TRANSACTION_ENTITIES = ['order', 'payment'];
 
     /** Entities with their own detail page outside transactions; they never appear in system activity. */
-    public const array CONTENT_ENTITIES = ['content_item'];
+    public const array CONTENT_ENTITIES = ['content_item', 'content_brand'];
 
     /** Actions that manage a user; they belong to that user's detail, not to system activity. */
     public const array USER_MANAGEMENT_ACTIONS = ['user.created', 'user.updated', 'user.activated', 'user.deactivated', 'user.password_reset'];
@@ -38,6 +39,12 @@ final class AuditTrail
     public function forContentItem(string $publicId): Builder
     {
         return AuditLog::query()->forEntities(['content_item' => [$publicId]]);
+    }
+
+    /** @return Builder<AuditLog> */
+    public function forContentBrand(string $publicId): Builder
+    {
+        return AuditLog::query()->forEntities(['content_brand' => [$publicId]]);
     }
 
     /**

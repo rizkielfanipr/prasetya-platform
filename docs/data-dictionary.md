@@ -28,72 +28,25 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `content_assets` | The image of a revision | One per revision. Private disk, path by SHA-256 checksum (deduplicated), MIME type from the bytes, size, width, height, original name, uploader |
 | `content_approvals` | Append-only review decisions | Revision, decision (`APPROVED`, `REVISION_REQUESTED`, `REJECTED`), note, actor, time. An approval names exactly one revision |
 | `content_publications` | The human statement that an item was posted | One per item. Revision posted, actual `published_at` (required), Instagram URL (optional), note, actor. Immutable |
-| `sessions`, `password_reset_tokens`, `cache`, `jobs`, `failed_jobs` | Laravel infrastructure | |
+| `content_brand_profiles` | Versioned brand rules (phase 2) | Append-only; unique (`content_brand_id`, `version`). Audience, voice, visual guidance; bounded JSON lists of short phrases (preferred and forbidden terms, forbidden claims, approved CTAs, required and forbidden hashtags, approved and rejected examples); caption length and hashtag limits; topic repeat days; change note, author. `content_brands.current_profile_id` points at the version in force |
+| `content_pillars` | Recurring themes of a brand | Unique (`content_brand_id`, `name`). Description, `target_share` (percent of a week's posts; active pillars total at most 100), `is_active` |
+| `content_campaigns` | Time-boxed pushes | Name, objective, `starts_on`/`ends_on` (business-time days, inclusive), priority (`HIGH`, `NORMAL`, `LOW`), `is_active` |
+| `content_facts` | Approved business facts content may state | Statement, source, optional campaign, optional `valid_until`. The statement never changes; correction retires it (`retired_at`, by, reason) and adds a new fact |
 
-Append-only tables refuse updates and deletes through their models. This is not a database-level guarantee: someone with SQL access can still change them.
+Phase 2 also adds `content_items.content_pillar_id`, `content_campaign_id`, and `topic` (nullable plan details), and `content_revisions.brand_profile_id`: the rules version a revision met when it was submitted.
 
-## Content item state machine
+### Brand rule check
 
-```text
-DRAFT -> READY_FOR_REVIEW -> APPROVED -> PUBLISHED
-              |    ^            |
-              v    |            v (edit: new revision)
-     REVISION_REQUESTED    READY_FOR_REVIEW
-DRAFT / READY_FOR_REVIEW -> REJECTED
-```
+`App\Domain\Content\Support\ContentRuleValidator` checks a revision against stored data only; the same input gives the same findings. Public text is the caption, hashtags, and alt text.
 
-Each transition is a named action in `App\Domain\Content\Actions` (submit, request revision, approve, reject, mark published, edit) and writes an audit entry on entity `content_item`. `APPROVED` needs an approver other than the submitter of that revision. `PUBLISHED` needs the item to be approved on its current revision. `REJECTED` and `PUBLISHED` are final. A planned date passing changes nothing.
-
-Editing: an unsubmitted revision (a draft, or the new revision after a revision request) is changed in place. A submitted revision is never changed; the first edit after a revision request creates revision N+1 (copying the fields and the image row) and the item stays `REVISION_REQUESTED` until it is submitted again. Editing `APPROVED` content creates revision N+1 already submitted by the editor, clears `approved_revision_id`, and moves the item to `READY_FOR_REVIEW`; someone other than that editor approves it. Every workflow request carries the revision id the user saw, and a request against an older revision is refused. Title and planned time are plan details: they change without a revision and keep an approval.
-
-## Order state machine
-
-```text
-DRAFT -> PENDING_PAYMENT -> CONFIRMED
-  |            |  |            ^
-  v            |  v            |
-CANCELLED <----+  EXPIRED -----+  (late verified payment)
-```
-
-The API creates orders directly in `PENDING_PAYMENT`. `DRAFT` is reserved. `CONFIRMED` and `CANCELLED` are final.
-
-## Payment state machine
-
-```text
-CREATED -> PENDING -> PAID
-   |          |        ^
-   |          +-> FAILED ----+
-   |          +-> EXPIRED ---+  (late verified payment)
-   |          +-> CANCELLED
-   +-> PAID, FAILED, EXPIRED, CANCELLED
-```
-
-`PAID` and `CANCELLED` are final. `FAILED` means a checkout could not be created, not that a customer's attempt was declined ([ADR-0007](decisions/0007-duitku-gateway.md)). Nothing in this release moves a payment to `CANCELLED`.
-
-## Webhook processing states
-
-| State | Meaning |
+| Finding | Severity |
 |---|---|
-| `VERIFIED` | Authentic, being processed. Remains only if the process died mid-way |
-| `PROCESSED` | Caused a state change |
-| `IGNORED` | Authentic, deliberately no change |
-| `DUPLICATE` | Same event as an earlier delivery, linked by `duplicate_of_id` |
-| `REJECTED` | See `rejection_reason`: `SOURCE_NOT_ALLOWED`, `MISSING_HEADERS`, `INVALID_SIGNATURE`, `CLIENT_MISMATCH`, `MALFORMED_PAYLOAD`, `UNKNOWN_INVOICE`, `AMOUNT_MISMATCH`, `INVALID_TRANSITION`, `UNSUPPORTED_STATUS` |
-| `FAILED` | Exception during processing; 500 sent so Duitku retries |
+| Forbidden term or claim (whole word, case-insensitive) | Error |
+| Caption over the brand maximum, hashtags over the maximum, forbidden hashtag | Error |
+| A price (`Rp …`) that no usable fact states (not retired, not expired on the planned day, brand-wide or the item's campaign) | Error |
+| Caption under the minimum, too few hashtags, required hashtag missing, no approved CTA | Warning |
+| A percentage no usable fact states | Warning |
+| Inactive pillar or campaign, planned outside the campaign period, the same topic within the repeat window | Warning |
+| No brand rules yet | Warning |
 
-`RECEIVED` exists in the enum for the documented model, and is not currently written.
-
-## Sensitive data
-
-`webhook_events.sanitized_payload` holds an allow-list only: `service.id`, `acquirer.id`, `channel.id`, `order.invoice_number`, `order.amount`, `transaction.status`, `.type`, `.date`, `.original_request_id`. Signatures and raw bodies are never stored; `payload_digest` is a SHA-256 of the body. For a failed verification nothing from the body is kept except that digest.
-
-Customer name, email, and phone exist on `customers` and `orders`. There is no automated retention or erasure yet.
-
-## Definitions used on the dashboard
-
-| Figure | Definition |
-|---|---|
-| Total paid, successful | `PAID` payments with `paid_at` in range |
-| Pending | `CREATED` or `PENDING` payments created in range |
-| Failed or expired | `FAILED` or `EXPIRED` payments created in range |
-| Active orders | `PENDING_PAYMENT` or `CONFIRMED` orders created in range. Fulfilment does not exist yet, so a confirmed order stays active |
+Errors block submission for review and an edit of approved content; warnings are shown to writer and reviewer.

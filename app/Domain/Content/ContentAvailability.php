@@ -9,6 +9,7 @@ use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\ContentRuleValidator;
 
 /**
  * Which workflow actions a user may take on an item now, and why not. The actions enforce exactly these answers; the
@@ -16,6 +17,8 @@ use App\Domain\Content\Models\ContentRevision;
  */
 final class ContentAvailability
 {
+    public function __construct(private readonly ContentRuleValidator $rules) {}
+
     public const array ACTIONS = ['edit', 'editDetails', 'submit', 'requestRevision', 'approve', 'reject', 'markPublished'];
 
     /** @return array<string, string|null> action => reason it is unavailable, or null when it is allowed */
@@ -55,7 +58,7 @@ final class ContentAvailability
             'submit' => match (true) {
                 ! in_array($status, [ContentStatus::Draft, ContentStatus::RevisionRequested], true) => 'Hanya draft atau konten yang diminta revisi yang dapat diajukan.',
                 $status === ContentStatus::RevisionRequested && $revision->isSubmitted() => 'Ubah konten sesuai catatan revisi sebelum mengajukan lagi.',
-                default => $this->missing($revision),
+                default => $this->notReady($item, $revision),
             },
             'requestRevision' => $status === ContentStatus::ReadyForReview ? null : 'Revisi hanya dapat diminta saat konten sedang ditinjau.',
             'approve' => match (true) {
@@ -73,13 +76,25 @@ final class ContentAvailability
         };
     }
 
-    /** @throws ContentActionRefused when the revision is not ready for review */
-    public function ensureComplete(ContentRevision $revision): void
+    /** @throws ContentActionRefused when the revision is incomplete or breaks a brand rule */
+    public function ensureReady(ContentItem $item, ContentRevision $revision): void
+    {
+        $reason = $this->notReady($item, $revision);
+        if ($reason !== null) {
+            throw ContentActionRefused::because($reason);
+        }
+    }
+
+    /** Why a revision cannot go to review yet: missing content first, then brand-rule errors. */
+    public function notReady(ContentItem $item, ContentRevision $revision): ?string
     {
         $missing = $this->missing($revision);
         if ($missing !== null) {
-            throw ContentActionRefused::because($missing);
+            return $missing;
         }
+        $errors = ContentRuleValidator::errors($this->rules->check($item, $revision));
+
+        return $errors === 0 ? null : "Perbaiki {$errors} pelanggaran aturan brand sebelum mengajukan.";
     }
 
     /** What a revision still lacks before review, as one sentence, or null when it is complete. */

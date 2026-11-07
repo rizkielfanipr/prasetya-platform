@@ -16,6 +16,8 @@ final class ContentFilterRequest extends FormRequest
     {
         return [
             'brand' => ['nullable', 'string', 'max:32'],
+            'pillar' => ['nullable', 'string', 'size:26'],
+            'campaign' => ['nullable', 'string', 'size:26'],
             'status' => ['nullable', Rule::enum(ContentStatus::class)],
             'week' => ['nullable', 'date_format:Y-m-d'],
             'search' => ['nullable', 'string', 'max:100'],

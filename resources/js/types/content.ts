@@ -10,11 +10,19 @@ export interface ContentBrand {
     name: string;
 }
 
+export interface NamedRef {
+    id: string;
+    name: string;
+}
+
 export interface ContentRow {
     id: string;
     title: string;
     status: ContentStatus;
     brand: ContentBrand;
+    pillar: NamedRef | null;
+    campaign: NamedRef | null;
+    topic: string | null;
     plannedAt: string;
     /** YYYY-MM-DD in business time. */
     plannedDay: string;
@@ -75,6 +83,8 @@ export interface ContentRevision extends ContentFields {
     author: string;
     submittedBy: string | null;
     submittedAt: string | null;
+    /** The brand rules version the revision was checked against when submitted. */
+    brandRulesVersion: number | null;
     createdAt: string;
     updatedAt: string;
     asset: ContentAsset | null;
@@ -83,6 +93,8 @@ export interface ContentRevision extends ContentFields {
 
 export interface ContentFilters {
     brand: string | null;
+    pillar: string | null;
+    campaign: string | null;
     status: ContentStatus | null;
 }
 
@@ -105,3 +117,91 @@ export interface ContentLimits {
     maxHashtags: number;
     captionMax: number;
 }
+
+export type CampaignPriority = 'HIGH' | 'NORMAL' | 'LOW';
+export type RuleSeverity = 'ERROR' | 'WARNING';
+
+export interface ContentPillar {
+    id: string;
+    name: string;
+    description: string | null;
+    targetShare: number;
+    isActive: boolean;
+}
+
+export interface ContentCampaign {
+    id: string;
+    name: string;
+    objective: string | null;
+    startsOn: string;
+    endsOn: string;
+    priority: CampaignPriority;
+    isActive: boolean;
+}
+
+export interface PlanOptions {
+    pillars: ContentPillar[];
+    campaigns: ContentCampaign[];
+}
+
+/** A brand with what an item of it can be planned with. */
+export type ContentBrandOption = ContentBrand & PlanOptions;
+
+export interface RuleFinding {
+    code: string;
+    severity: RuleSeverity;
+    message: string;
+    field: string | null;
+}
+
+export interface CompositionEntry {
+    brand: ContentBrand;
+    total: number;
+    unassigned: number;
+    pillars: { id: string; name: string; targetShare: number; count: number }[];
+}
+
+export interface BrandRules {
+    version: number;
+    audience: string | null;
+    voice: string | null;
+    visualGuidance: string | null;
+    preferredTerms: string[];
+    forbiddenTerms: string[];
+    forbiddenClaims: string[];
+    allowedCtas: string[];
+    requiredHashtags: string[];
+    forbiddenHashtags: string[];
+    approvedExamples: string[];
+    rejectedExamples: string[];
+    captionMinLength: number | null;
+    captionMaxLength: number | null;
+    hashtagMin: number | null;
+    hashtagMax: number | null;
+    topicRepeatDays: number | null;
+    changeNote: string;
+    createdBy: string;
+    createdAt: string;
+}
+
+export interface BrandRulesVersion {
+    version: number;
+    changeNote: string;
+    createdBy: string;
+    createdAt: string;
+}
+
+export interface ContentFact {
+    id: string;
+    statement: string;
+    source: string;
+    campaign: string | null;
+    validUntil: string | null;
+    createdBy: string;
+    createdAt: string;
+    retiredAt: string | null;
+    retiredBy: string | null;
+    retiredReason: string | null;
+}
+
+export type BrandTab = 'rules' | 'pillars' | 'campaigns' | 'facts' | 'activity';

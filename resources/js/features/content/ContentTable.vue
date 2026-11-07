@@ -12,7 +12,7 @@ defineEmits<{ retry: []; sort: [key: string] }>();
 
 const columns: DataTableColumn[] = [
     { key: 'title', label: 'Judul' },
-    { key: 'brand', label: 'Brand' },
+    { key: 'pillar', label: 'Pilar' },
     { key: 'planned_at', label: 'Rencana posting', sortable: true },
     { key: 'status', label: 'Status' },
     { key: 'revision', label: 'Revisi', align: 'right' },
@@ -36,8 +36,9 @@ const columns: DataTableColumn[] = [
         <template #cell-title="{ row }">
             <Link :href="routes.contentItem(row.id)" class="line-clamp-2 min-w-48 hover:underline">{{ row.title }}</Link>
         </template>
-        <template #cell-brand="{ row }"
-            ><span class="whitespace-nowrap">{{ row.brand.name }}</span></template
+        <template #cell-pillar="{ row }"
+            ><span class="whitespace-nowrap">{{ row.pillar?.name ?? '—' }}</span
+            ><span v-if="row.campaign" class="block text-xs whitespace-nowrap text-muted-foreground">{{ row.campaign.name }}</span></template
         >
         <template #cell-planned_at="{ row }"
             ><span class="whitespace-nowrap">{{ formatDateTime(row.plannedAt) }}</span></template
