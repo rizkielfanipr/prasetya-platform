@@ -5,11 +5,11 @@ Tests never touch real Duitku credentials or the network. Backend and browser te
 | Layer | Location | Proves | Command |
 |---|---|---|---|
 | Unit | `tests/Unit` | Money, transitions, idempotency decisions, redaction, invoice format | `vendor/bin/pest tests/Unit` |
-| Architecture | `tests/Architecture` | Domain has no HTTP or gateway dependency, only the adapters call out, strict types | `vendor/bin/pest tests/Architecture` |
-| Feature | `tests/Feature` | API envelope, validation, idempotency, CORS, rate limits, username sign-in, one access level, routes behind `auth`, user management, transaction workspace views, compatibility redirects with preserved filters, reconciliation, catalogue availability, Satamu filters and detail | `vendor/bin/pest tests/Feature` |
+| Architecture | `tests/Architecture` | Domain has no HTTP or gateway dependency, only the adapters call out, Content Studio never touches orders, payments, packages, or HTTP clients, strict types | `vendor/bin/pest tests/Architecture` |
+| Feature | `tests/Feature` | API envelope, validation, idempotency, CORS, rate limits, username sign-in, one access level, routes behind `auth`, user management, transaction workspace views, compatibility redirects with preserved filters, reconciliation, catalogue availability, Satamu filters and detail, the Content Studio workflow (every transition, four-eyes approval, immutable revisions, stale-revision refusal, approved edits returning to review, publishing rules, uploads judged by bytes, private download, audit placement, fixed query counts) | `vendor/bin/pest tests/Feature` |
 | Integration | `tests/Integration` | Duitku adapter with faked HTTP, webhook verification, status confirmation, duplicates, ordering, rollback, uniqueness, the Satamu order-to-paid flow | `vendor/bin/pest tests/Integration` |
-| Component | `tests/js` | Formatters, badges, table, filters, pagination, dialog, timelines | `npm test` |
-| Browser | `tests/e2e` | Critical flows, four-item navigation, legacy redirects, console stays clean, axe WCAG A and AA, keyboard, responsive overflow | `npm run test:e2e` |
+| Component | `tests/js` | Formatters, badges, table, filters, pagination, dialog, timelines, content week view, review actions with reasons, editor, revision comparison, copy feedback | `npm test` |
+| Browser | `tests/e2e` | Critical flows, sidebar navigation, a post from draft to published by two people, a revision loop, legacy redirects, console stays clean, axe WCAG A and AA, keyboard, responsive overflow | `npm run test:e2e` |
 
 ## Fixtures
 
@@ -17,6 +17,9 @@ Tests never touch real Duitku credentials or the network. Backend and browser te
 - `DemoDataSeeder` builds data through the real actions and the real signed callback path, so the demo cannot show a state the application cannot reach. Refused outside local and testing. Addresses are `@example.test`.
 - Packages start inactive except the approved Webworks ones. Tests that order Satamu call `activateSatamuPackages()`, which goes through `SetPackageAvailability` like an operator. `satamuOrderPayload()` is the documented Satamu request.
 - `useDuitkuSandbox()`, `duitkuCallback()`, and `sendDuitkuCallback()` in `tests/Support/helpers.php` run the real Duitku adapter and verifier against faked HTTP, with callbacks signed as Duitku signs them.
+- `ContentDemoSeeder` builds one week of Prasetya Webworks posts in every status through the real actions (`demo` writes, `demo2` reviews). Content tests reach states through the actions in `tests/Support/content.php`, never by setting a status.
+- `Database\Seeders\Support\DemoImage` writes valid PNGs without GD, because CI and cPanel do not install it. JPEG and WebP tests use minimal headers, which is all `finfo` and `getimagesize` read.
+- `phpunit.xml` sets `memory_limit=512M`: the whole suite plus the architecture scan peaks around 140 MB, over PHP's 128 MB default.
 - Browser tests fail on any console error, warning, or uncaught exception unless a test declares the expected HTTP failure.
 
 ## Satamu coverage

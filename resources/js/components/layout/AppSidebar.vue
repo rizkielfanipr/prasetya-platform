@@ -6,7 +6,7 @@ import { formatNumber } from '@/lib/format';
 import type { SharedProps } from '@/types/backoffice';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { LayoutDashboard, type LucideIcon, ReceiptText, Settings, Users } from '@lucide/vue';
+import { LayoutDashboard, type LucideIcon, Megaphone, ReceiptText, Settings, Users } from '@lucide/vue';
 
 defineEmits<{ navigate: [] }>();
 
@@ -14,14 +14,16 @@ const page = usePage<SharedProps>();
 // Issues needing action, shown on Transaksi (ADR-0010). The cached count never includes duplicate webhooks.
 const openIssues = computed(() => page.props.openIssueCount ?? 0);
 // One access level (ADR-0009): every signed-in user sees every item.
-const items: { label: string; href: string; icon: LucideIcon }[] = [
+const items: { label: string; href: string; icon: LucideIcon; section?: string }[] = [
     { label: 'Dashboard', href: routes.dashboard, icon: LayoutDashboard },
     { label: 'Transaksi', href: routes.transactions, icon: ReceiptText },
+    { label: 'Content Studio', href: routes.contentCalendar, icon: Megaphone, section: routes.content },
     { label: 'Pengguna', href: routes.users, icon: Users },
     { label: 'Pengaturan', href: routes.settings, icon: Settings },
 ];
 
 const isActive = (href: string): boolean => page.url === href || page.url.startsWith(`${href}/`) || page.url.startsWith(`${href}?`);
+const itemActive = (item: { href: string; section?: string }): boolean => isActive(item.section ?? item.href);
 </script>
 
 <template>
@@ -37,11 +39,11 @@ const isActive = (href: string): boolean => page.url === href || page.url.starts
                 :key="item.href"
                 :href="item.href"
                 class="flex h-12 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors duration-150 hover:bg-sidebar-active hover:text-white"
-                :class="isActive(item.href) ? 'bg-sidebar-active font-semibold text-white' : ''"
-                :aria-current="isActive(item.href) ? 'page' : undefined"
+                :class="itemActive(item) ? 'bg-sidebar-active font-semibold text-white' : ''"
+                :aria-current="itemActive(item) ? 'page' : undefined"
                 @click="$emit('navigate')"
             >
-                <component :is="item.icon" class="size-5 shrink-0" :class="isActive(item.href) ? 'text-primary' : ''" aria-hidden="true" />
+                <component :is="item.icon" class="size-5 shrink-0" :class="itemActive(item) ? 'text-primary' : ''" aria-hidden="true" />
                 <span class="flex-1">{{ item.label }}</span>
                 <span
                     v-if="item.href === routes.transactions && openIssues > 0"

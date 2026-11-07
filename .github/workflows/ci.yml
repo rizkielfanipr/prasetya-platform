@@ -160,6 +160,7 @@ jobs:
           # Catalogue from code: names and prices. Availability is never changed by a seed.
           "$SERVER_PHP" artisan db:seed --class=ApplicationSeeder --force --no-interaction
           "$SERVER_PHP" artisan db:seed --class=PackageSeeder --force --no-interaction
+          "$SERVER_PHP" artisan db:seed --class=ContentBrandSeeder --force --no-interaction
           "$SERVER_PHP" artisan optimize
           "$SERVER_PHP" artisan up
           REMOTE

@@ -203,8 +203,9 @@ Navigation order after the transaction workspace consolidation ([ADR-0010](decis
 
 1. Dashboard
 2. Transaksi
-3. Pengguna
-4. Pengaturan
+3. Content Studio ([ADR-0011](decisions/0011-content-studio-authority-boundary.md))
+4. Pengguna
+5. Pengaturan
 
 Event Pembayaran and Rekonsiliasi are secondary views under Transaksi. Transaction audit is on transaction detail, user audit is on user detail, and global/system audit is under Pengaturan → Aktivitas Sistem. The legacy GET routes redirect for at least one release cycle.
 
@@ -277,6 +278,22 @@ Audit lives with what it is about ([ADR-0010](decisions/0010-consolidated-transa
 
 - **Pengguna → a user** (`/users/{id}`, from the name in the list): username, status, last sign-in, created, the same **Aksi** menu as the list, and **Aktivitas**: every audit entry about this user (created, renamed, activated or deactivated, password set, signed in and out), newest first, up to 100.
 - **Pengaturan → Aktivitas Sistem** (`/settings/activity`, linked from Pengaturan, not in the sidebar): sign-in and sign-out, profile and password changes, packages, and unknown entities. Filters: search (action, actor, target), **Lingkup** (*Sistem* by default, *Semua audit* to search every entry), and date range. The table shows the action in words with its code below it.
+
+### Content Studio
+
+Manual planning, review, and posting records for single-image Instagram posts ([ADR-0011](decisions/0011-content-studio-authority-boundary.md)). Nothing here posts to Instagram, and a planned time passing changes nothing.
+
+- One sidebar item, **Content Studio** (`/content` opens the calendar). Secondary navigation, the same underline tabs as Transaksi: **Kalender** | **Konten**. *Brand & Template* and *Pengaturan AI* arrive with the AI phases.
+- **Kalender** (`/content/calendar?week=YYYY-MM-DD&brand=&status=`): one week, Monday to Sunday in WIB, with previous/next/*Minggu ini* links and a status filter (brand appears once there is more than one). From `xl` the days are seven columns; below that they are day cards in two columns (`md`) or one. Each item card shows the time, the title, an image indicator, and its status in words and colour. Today's day is labelled *Hari ini*, not by colour alone. **Buat konten** opens a dialog: working title and planned date-time (WIB); the brand is fixed while there is one.
+- **Konten** (`/content/items`): `DataTable` with search (title), brand and status filters, sorting by planned time or last change, and pagination. Columns: Judul, Brand, Rencana posting, Status, Revisi, Diubah.
+- **Item detail** (`/content/items/{id}`), top to bottom:
+  - **Ringkasan**: status, brand, planned time, active revision, creator, and **Ubah judul & jadwal** (dialog; plan only, never a new revision or a lost approval).
+  - **Tinjauan**: one sentence saying where the item is and who acts next, then the actions that fit the status (*Ajukan untuk ditinjau*, *Setujui*, *Minta revisi*, *Tolak*). An action the user cannot take stays visible, disabled, with the server's reason below it (`aria-describedby`); for example the submitter sees *Revisi ini Anda ajukan sendiri. Pengguna lain harus menyetujuinya.* Revision requests and rejections need a note; approval may carry one.
+  - **Paket posting** (approved or published only): **Unduh gambar**, copy buttons for caption + hashtags, caption, hashtags, and alt text (each announces *… disalin.* in a polite live region), the texts themselves, a four-step checklist that guides but is not stored, and **Tandai sudah dipublikasikan** (dialog: actual posting time in WIB, required; Instagram URL and note, optional). Once published it shows when, by whom, and the link.
+  - **Konten · revisi N**: Tujuan, Audiens, Brief*, Caption*, Hashtag, Alt text*, Arahan visual, each with a counter (hashtags count against 30), and the image at 4:5 with its size and type. Required-for-review fields carry `*`. Read-only, with the reason, while in review, rejected, or published. On approved content a warning explains that saving creates a new revision and returns it to review.
+  - **Riwayat revisi**: every revision with author, submission, and decisions with notes; **Bandingkan revisi** shows changed fields side by side (danger surface before, success surface after, each labelled with its revision number) and whether the image changed.
+  - **Aktivitas**: this item's audit, newest first, up to 100. Content audit never appears in system activity.
+- Images: JPEG, PNG, or WebP, exactly 4:5, at least 1080×1350, at most 8 MB. The browser previews a chosen file and warns early about the wrong size; the server decides from the bytes.
 
 ### Transaction detail
 

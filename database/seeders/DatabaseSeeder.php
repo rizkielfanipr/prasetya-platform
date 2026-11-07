@@ -10,10 +10,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([ApplicationSeeder::class, PackageSeeder::class, AdminUserSeeder::class]);
+        $this->call([ApplicationSeeder::class, PackageSeeder::class, ContentBrandSeeder::class, AdminUserSeeder::class]);
 
         if ($this->container->environment('local', 'testing', 'e2e')) {
-            $this->call(DemoDataSeeder::class);
+            $this->call([DemoDataSeeder::class, ContentDemoSeeder::class]);
         }
     }
 }

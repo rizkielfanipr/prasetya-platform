@@ -91,6 +91,14 @@ export const auditActionLabels: Record<string, string> = {
     'payment.gateway_checked': 'Status diperiksa ke gateway',
     'package.activated': 'Paket diaktifkan',
     'package.deactivated': 'Paket dinonaktifkan',
+    'content.created': 'Konten dibuat',
+    'content.revised': 'Konten diubah',
+    'content.details_updated': 'Judul atau jadwal diubah',
+    'content.submitted': 'Diajukan untuk ditinjau',
+    'content.revision_requested': 'Revisi diminta',
+    'content.approved': 'Disetujui',
+    'content.rejected': 'Ditolak',
+    'content.published': 'Ditandai dipublikasikan',
 };
 
 /** Back-office user status (Pengguna). */

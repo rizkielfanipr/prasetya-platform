@@ -446,6 +446,8 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** satu minggu konten dapat dikelola, disetujui, dan ditandai published sepenuhnya secara manual.
 
+**Status (2026-11-07):** selesai di branch `feat/content-studio`, menunggu UAT. Route: `/content` → `/content/calendar`, `/content/items`, `/content/items/{id}` (`PUT` konten, `PUT …/details`, `POST …/submit-review`, `…/request-revision`, `…/approve`, `…/reject`, `…/publication`), dan `/content/assets/{id}` (private, `?download=1`). Detail tampilan di [`design.md`](design.md#content-studio), aturan edit di [`data-dictionary.md`](data-dictionary.md#content-item-state-machine). Brand awal Prasetya Webworks lewat `ContentBrandSeeder` (ikut deploy). Belum ada OpenAI, Hermes, queue, atau scheduler.
+
 ### Fase 2 — Brand knowledge dan content rules
 
 - Brand profile, tone, visual guidance, examples, dan forbidden claims.

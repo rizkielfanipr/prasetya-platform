@@ -24,6 +24,8 @@
         </include>
     </source>
     <php>
+        <!-- The whole suite plus the architecture scan needs more than PHP's 128M default (peak ~140M at 404 tests). -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

@@ -1,0 +1,140 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Content\Actions;
+
+use App\Domain\Audit\Actions\RecordAudit;
+use App\Domain\Auth\Models\User;
+use App\Domain\Content\ContentAvailability;
+use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Exceptions\ContentActionRefused;
+use App\Domain\Content\Models\ContentAsset;
+use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\ContentAssetStore;
+use App\Domain\Content\Support\ContentImageInspector;
+use App\Domain\Content\Support\ContentItemLock;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Saves the post's content (ADR-0011, decision 6).
+ *
+ * - An unsubmitted revision (a draft, or the new revision after a revision request) is edited in place.
+ * - A submitted revision is never changed: the edit becomes a new revision that copies it.
+ * - Editing approved content creates that new revision already submitted by the editor, voids the approval for
+ *   publishing, and returns the item to review.
+ *
+ * The image is inspected and stored before the transaction; files are content-addressed, so an aborted save leaves
+ * at most an unreferenced file that a later upload of the same bytes reuses.
+ */
+final class SaveContentRevision
+{
+    public function __construct(
+        private readonly RecordAudit $audit,
+        private readonly ContentAvailability $availability,
+        private readonly ContentItemLock $lock,
+        private readonly ContentImageInspector $inspector,
+        private readonly ContentAssetStore $store,
+    ) {}
+
+    /**
+     * @param  array<string, string|null>  $fields  values for ContentRevision::FIELDS; missing keys keep their value
+     * @param  array{path: string, name: string}|null  $image
+     */
+    public function __invoke(ContentItem $item, string $expectedRevision, array $fields, ?array $image, User $actor): ContentRevision
+    {
+        $stored = null;
+        if ($image !== null) {
+            $inspected = $this->inspector->inspect($image['path']);
+            $stored = ['image' => $inspected, 'path' => $this->store->put($image['path'], $inspected), 'name' => mb_substr(basename($image['name']), 0, 255)];
+        }
+
+        return DB::transaction(function () use ($item, $expectedRevision, $fields, $stored, $actor): ContentRevision {
+            $item = $this->lock->lock($item, $expectedRevision);
+            $this->availability->ensure($item, $actor, 'edit');
+            /** @var ContentRevision $current */
+            $current = $item->activeRevision;
+
+            $values = [];
+            foreach (ContentRevision::FIELDS as $field) {
+                $values[$field] = array_key_exists($field, $fields) ? $this->clean($fields[$field]) : $current->{$field};
+            }
+            $changed = array_keys(array_filter($values, static fn (?string $value, string $field): bool => $value !== $current->{$field}, ARRAY_FILTER_USE_BOTH));
+            $imageChanged = $stored !== null && $stored['image']->checksum !== $current->asset?->checksum_sha256;
+
+            if ($changed === [] && ! $imageChanged) {
+                if ($current->isSubmitted()) {
+                    throw ContentActionRefused::because('Tidak ada perubahan untuk disimpan.');
+                }
+
+                return $current;
+            }
+
+            $wasApproved = $item->status === ContentStatus::Approved;
+            $revision = $current->isSubmitted() ? $this->newRevision($item, $current, $actor) : $current;
+            $revision->fill($values);
+            if ($wasApproved) {
+                $revision->fill(['submitted_by_user_id' => $actor->id, 'submitted_at' => now()]);
+            }
+            $revision->save();
+
+            if ($stored !== null && $imageChanged) {
+                ContentAsset::query()->where('content_revision_id', $revision->id)->delete();
+                ContentAsset::query()->create([
+                    'content_revision_id' => $revision->id,
+                    'disk' => $this->store->disk(),
+                    'path' => $stored['path'],
+                    'original_name' => $stored['name'],
+                    'mime_type' => $stored['image']->mimeType,
+                    'size_bytes' => $stored['image']->sizeBytes,
+                    'width' => $stored['image']->width,
+                    'height' => $stored['image']->height,
+                    'checksum_sha256' => $stored['image']->checksum,
+                    'uploaded_by_user_id' => $actor->id,
+                ]);
+            }
+
+            $previousStatus = $item->status;
+            $item->forceFill(['active_revision_id' => $revision->id]);
+            if ($wasApproved) {
+                $this->availability->ensureComplete($revision->load('asset'));
+                $item->forceFill(['status' => ContentStatus::ReadyForReview, 'approved_revision_id' => null]);
+            }
+            $item->save();
+
+            ($this->audit)('content.revised', 'content_item', $item->public_id, $actor,
+                ['revision' => $current->number, 'status' => $previousStatus->value],
+                ['revision' => $revision->number, 'status' => $item->status->value, 'fields' => $changed, 'image_changed' => $imageChanged],
+            );
+
+            return $revision;
+        });
+    }
+
+    private function newRevision(ContentItem $item, ContentRevision $from, User $actor): ContentRevision
+    {
+        $revision = ContentRevision::query()->create([
+            'content_item_id' => $item->id,
+            'number' => $from->number + 1,
+            'author_user_id' => $actor->id,
+            ...array_intersect_key($from->getAttributes(), array_flip(ContentRevision::FIELDS)),
+        ]);
+
+        if ($from->asset !== null) {
+            ContentAsset::query()->create([
+                ...array_intersect_key($from->asset->getAttributes(), array_flip(['disk', 'path', 'original_name', 'mime_type', 'size_bytes', 'width', 'height', 'checksum_sha256', 'uploaded_by_user_id'])),
+                'content_revision_id' => $revision->id,
+            ]);
+        }
+
+        return $revision;
+    }
+
+    private function clean(?string $value): ?string
+    {
+        $value = $value === null ? null : trim(str_replace("\r\n", "\n", $value));
+
+        return $value === '' ? null : $value;
+    }
+}

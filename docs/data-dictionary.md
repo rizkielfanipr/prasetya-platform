@@ -44,6 +44,8 @@ DRAFT / READY_FOR_REVIEW -> REJECTED
 
 Each transition is a named action in `App\Domain\Content\Actions` (submit, request revision, approve, reject, mark published, edit) and writes an audit entry on entity `content_item`. `APPROVED` needs an approver other than the submitter of that revision. `PUBLISHED` needs the item to be approved on its current revision. `REJECTED` and `PUBLISHED` are final. A planned date passing changes nothing.
 
+Editing: an unsubmitted revision (a draft, or the new revision after a revision request) is changed in place. A submitted revision is never changed; the first edit after a revision request creates revision N+1 (copying the fields and the image row) and the item stays `REVISION_REQUESTED` until it is submitted again. Editing `APPROVED` content creates revision N+1 already submitted by the editor, clears `approved_revision_id`, and moves the item to `READY_FOR_REVIEW`; someone other than that editor approves it. Every workflow request carries the revision id the user saw, and a request against an older revision is refused. Title and planned time are plan details: they change without a revision and keep an approval.
+
 ## Order state machine
 
 ```text

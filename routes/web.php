@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Controllers\BackOffice\AdminNoteController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
+use App\Http\Controllers\BackOffice\Content\ContentAssetController;
+use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
+use App\Http\Controllers\BackOffice\Content\ContentItemController;
 use App\Http\Controllers\BackOffice\DashboardController;
 use App\Http\Controllers\BackOffice\LegacyWorkspaceRedirectController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
@@ -43,6 +46,21 @@ Route::middleware('auth')->group(function (): void {
     Route::post('users/{user:public_id}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
     Route::post('users/{user:public_id}/activate', [UserController::class, 'activate'])->name('users.activate');
     Route::put('users/{user:public_id}/password', [UserController::class, 'password'])->name('users.password');
+
+    // Content Studio (ADR-0011). Manual workflow; nothing here posts to Instagram.
+    Route::get('content', [ContentCalendarController::class, 'home'])->name('content.home');
+    Route::get('content/calendar', ContentCalendarController::class)->name('content.calendar');
+    Route::get('content/items', [ContentItemController::class, 'index'])->name('content.items.index');
+    Route::post('content/items', [ContentItemController::class, 'store'])->name('content.items.store');
+    Route::get('content/items/{item:public_id}', [ContentItemController::class, 'show'])->name('content.items.show');
+    Route::put('content/items/{item:public_id}', [ContentItemController::class, 'update'])->name('content.items.update');
+    Route::put('content/items/{item:public_id}/details', [ContentItemController::class, 'details'])->name('content.items.details');
+    Route::post('content/items/{item:public_id}/submit-review', [ContentItemController::class, 'submit'])->name('content.items.submit');
+    Route::post('content/items/{item:public_id}/request-revision', [ContentItemController::class, 'requestRevision'])->name('content.items.request-revision');
+    Route::post('content/items/{item:public_id}/approve', [ContentItemController::class, 'approve'])->name('content.items.approve');
+    Route::post('content/items/{item:public_id}/reject', [ContentItemController::class, 'reject'])->name('content.items.reject');
+    Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
+    Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/activity', SystemActivityController::class)->name('settings.activity');

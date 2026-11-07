@@ -15,6 +15,10 @@ arch('models do not call gateways')
     ->expect('App\Domain\Payments\Contracts\PaymentGateway')
     ->not->toBeUsedIn(['App\Domain\Payments\Models', 'App\Domain\Orders\Models']);
 
+arch('content studio never touches orders, payments, packages, or gateways (ADR-0011)')
+    ->expect('App\Domain\Content')
+    ->not->toUse(['App\Domain\Orders', 'App\Domain\Payments', 'App\Domain\Packages', 'App\Domain\Customers', 'Illuminate\Support\Facades\Http']);
+
 arch('controllers do not open transactions')
     ->expect('App\Http\Controllers')
     ->not->toUse('Illuminate\Support\Facades\DB');

@@ -6,7 +6,17 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     expect(overflow).toBeLessThanOrEqual(0);
 }
 
-const pages = ['/dashboard', '/transactions', '/transactions?view=attention', '/transactions?view=events', '/users', '/settings', '/settings/activity'];
+const pages = [
+    '/dashboard',
+    '/transactions',
+    '/transactions?view=attention',
+    '/transactions?view=events',
+    '/users',
+    '/settings',
+    '/settings/activity',
+    '/content/calendar',
+    '/content/items',
+];
 
 for (const [name, width, height] of [
     ['mobile', 360, 740],
@@ -22,6 +32,12 @@ for (const [name, width, height] of [
             await page.waitForLoadState('networkidle');
             await expectNoHorizontalOverflow(page);
         }
+
+        // A seeded content item, with its image, editor, and history.
+        await page.goto('/content/items?search=Cerita');
+        await page.getByRole('link', { name: 'Cerita klien: toko roti go online' }).click();
+        await page.waitForLoadState('networkidle');
+        await expectNoHorizontalOverflow(page);
     });
 }
 

@@ -26,7 +26,7 @@ The release folder (`DEPLOY_PATH`, `public_html/platform.prasetyawebworks.web.id
 2. Preflight over SSH: stops before copying anything if `.env` is missing, PHP is older than 8.4.1, or a required extension is missing.
 3. `php artisan down --retry=30` (skipped on the first deploy). Duitku callbacks in this window get 503 and are retried by Duitku.
 4. `rsync --delete` of the release. Never touched on the server: `.env`, `storage/`, `bootstrap/cache/`, and cPanel's `public/.user.ini`, `public/php.ini`, `public/.well-known/`. `public/.htaccess` is copied only when it does not exist yet, because cPanel may add its PHP handler there.
-5. `migrate --force`, the `ApplicationSeeder` and `PackageSeeder` (names and prices; availability is never changed), `optimize`, `up`.
+5. `migrate --force`, the `ApplicationSeeder`, `PackageSeeder` (names and prices; availability is never changed), and `ContentBrandSeeder` (the approved Content Studio brands), `optimize`, `up`.
 6. `/.env`, `/composer.json`, and `/vendor/autoload.php` must not answer 200, and `GET /api/v1/health` must answer 200.
 
 The root `.htaccess` sends every request into `public/` and denies dotfiles, as a safety net if the document root is ever the project folder instead of `public/`.
@@ -166,6 +166,8 @@ The release that introduced usernames derived them from the old email addresses 
 mysqldump --single-transaction --routines prasetya_platform | gzip > backup-$(date +%F).sql.gz
 gunzip -c backup-YYYY-MM-DD.sql.gz | mysql prasetya_platform_restore_test
 ```
+
+Content Studio images are files, not rows: back up `storage/app/private/content-assets/` with the database (`tar czf content-assets-$(date +%F).tgz -C storage/app/private content-assets`). Files are named by checksum and never change, so an incremental copy is enough. Never serve that folder publicly.
 
 Daily, kept off the server. **Restoration has not been proven yet.** M11 requires a restore into a scratch database, followed by checking counts of `payments`, `webhook_events`, and `audit_logs` and opening one transaction.
 
