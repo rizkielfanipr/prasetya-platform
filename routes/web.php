@@ -10,6 +10,7 @@ use App\Http\Controllers\BackOffice\PaymentEventController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
 use App\Http\Controllers\BackOffice\SettingsController;
 use App\Http\Controllers\BackOffice\TransactionController;
+use App\Http\Controllers\BackOffice\UserController;
 use App\Http\Controllers\Dev\FakeCheckoutController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,13 @@ Route::middleware('auth')->group(function (): void {
     Route::post('reconciliation/payments/{payment}/check-status', [ReconciliationController::class, 'checkStatus'])->name('reconciliation.check-status');
 
     Route::get('audit-log', AuditLogController::class)->name('audit-log.index');
+
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::post('users', [UserController::class, 'store'])->name('users.store');
+    Route::put('users/{user:public_id}', [UserController::class, 'update'])->name('users.update');
+    Route::post('users/{user:public_id}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('users/{user:public_id}/activate', [UserController::class, 'activate'])->name('users.activate');
+    Route::put('users/{user:public_id}/password', [UserController::class, 'password'])->name('users.password');
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');

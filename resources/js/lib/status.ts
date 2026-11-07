@@ -75,6 +75,12 @@ export const sourceLabels: Record<string, string> = {
     ADMIN: 'Admin',
 };
 
+/** Back-office user status (Pengguna). */
+export const userStatuses: Record<'active' | 'inactive', StatusDefinition> = {
+    active: { label: 'Aktif', tone: 'success', icon: CheckCircle2 },
+    inactive: { label: 'Nonaktif', tone: 'neutral', icon: Ban },
+};
+
 export const reconciliationGroups: Record<ReconciliationGroup, { label: string; description: string }> = {
     orders_without_attempt: { label: 'Pesanan tanpa percobaan bayar', description: 'Pesanan masih menunggu, tetapi checkout belum pernah dibuat.' },
     orders_without_success: {

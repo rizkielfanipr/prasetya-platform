@@ -1,24 +1,13 @@
 <script setup lang="ts">
 import PanelCard from '@/components/layout/PanelCard.vue';
-import DataTable, { type DataTableColumn } from '@/components/shared/DataTable.vue';
 import StatusBadge from '@/components/shared/StatusBadge.vue';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import type { StatusDefinition } from '@/lib/status';
 import type { SettingsAdmin } from '@/types/backoffice';
 import { Ban, CheckCircle2, Clock } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = defineProps<{ admin: SettingsAdmin }>();
-
-const columns: DataTableColumn[] = [
-    { key: 'name', label: 'Nama' },
-    { key: 'username', label: 'Username' },
-    { key: 'active', label: 'Status' },
-    { key: 'lastLogin', label: 'Masuk terakhir' },
-];
-
-const active: StatusDefinition = { label: 'Aktif', tone: 'success', icon: CheckCircle2 };
-const inactive: StatusDefinition = { label: 'Nonaktif', tone: 'neutral', icon: Ban };
 
 const gatewayStatus = computed<StatusDefinition>(() => {
     if (props.admin.gateway.driver === 'fake') {
@@ -74,18 +63,5 @@ const gatewayStatus = computed<StatusDefinition>(() => {
                 <dd class="mt-1 break-all">{{ admin.application.allowedOrigins.join(', ') }}</dd>
             </div>
         </dl>
-    </PanelCard>
-
-    <PanelCard title="Pengguna admin" description="Akun baru dibuat lewat php artisan platform:create-admin." flush>
-        <DataTable caption="Pengguna admin" :columns="columns" :rows="admin.users" :row-key="(row) => row.id">
-            <template #cell-name="{ row }"
-                ><span class="whitespace-nowrap">{{ row.name }}</span></template
-            >
-            <template #cell-username="{ row }">{{ row.username }}</template>
-            <template #cell-active="{ row }"><StatusBadge :status="row.isActive ? active : inactive" /></template>
-            <template #cell-lastLogin="{ row }"
-                ><span class="whitespace-nowrap">{{ formatDateTime(row.lastLoginAt) }}</span></template
-            >
-        </DataTable>
     </PanelCard>
 </template>

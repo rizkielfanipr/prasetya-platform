@@ -3,7 +3,7 @@ import { brands } from '@/lib/brands';
 import { copy } from '@/lib/copy';
 import { routes } from '@/lib/routes';
 import { Link, usePage } from '@inertiajs/vue3';
-import { CreditCard, FileSearch, LayoutDashboard, type LucideIcon, ReceiptText, Scale, Settings } from '@lucide/vue';
+import { CreditCard, FileSearch, LayoutDashboard, type LucideIcon, ReceiptText, Scale, Settings, Users } from '@lucide/vue';
 
 defineEmits<{ navigate: [] }>();
 
@@ -15,6 +15,7 @@ const items: { label: string; href: string; icon: LucideIcon }[] = [
     { label: 'Event Pembayaran', href: routes.paymentEvents, icon: CreditCard },
     { label: 'Rekonsiliasi', href: routes.reconciliation, icon: Scale },
     { label: 'Audit Log', href: routes.auditLog, icon: FileSearch },
+    { label: 'Pengguna', href: routes.users, icon: Users },
     { label: 'Pengaturan', href: routes.settings, icon: Settings },
 ];
 

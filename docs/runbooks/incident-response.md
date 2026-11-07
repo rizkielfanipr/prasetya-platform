@@ -32,7 +32,7 @@ Operational events are JSON lines in `storage/logs/operations-YYYY-MM-DD.log`: `
 
 **API key compromised.** Rotate it in the Duitku dashboard, update `.env`, run `php artisan config:cache`. Review `PROCESSED` events since the suspected time against Duitku's report. Also rotate `APP_KEY` if the server was accessed, noting that this invalidates sessions and encrypted data.
 
-**Admin account compromised.** Set `is_active = 0` on the user: sessions end on their next request. Reset the password, and review `audit_logs` by actor.
+**Admin account compromised.** Every account has full access ([ADR-0009](../decisions/0009-single-access-users-username-login.md)), so act at once. In **Pengguna**, deactivate the account: its sessions and "remember me" end immediately. If you cannot sign in, run `php artisan platform:reset-password <username>` on the server for another account first. Review **Audit Log** by actor, including `user.*` entries for users the attacker may have created or reactivated, and deactivate those too. Set a new password with **Atur kata sandi** before reactivating the account.
 
 **Database lost.** Restore per [`deployment.md`](deployment.md), then replay callbacks from Duitku.
 

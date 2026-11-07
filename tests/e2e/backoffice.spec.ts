@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { expectNoAxeViolations, login, test, USERS } from './support';
+import { expectNoAxeViolations, login, test } from './support';
 
 test.beforeEach(async ({ page }) => {
     await login(page);
@@ -122,10 +122,11 @@ test('settings show gateway status without credentials', async ({ page }) => {
     await page.goto('/settings');
     await expect(page.getByTestId('gateway-status')).toContainText('Gateway fake');
     await expect(page.locator('body')).not.toContainText('e2e-secret-not-real');
-    await expect(page.getByRole('table', { name: 'Pengguna admin' })).toContainText(USERS.admin);
+    // Users moved to their own screen (Pengguna).
+    await expect(page.getByRole('table', { name: 'Pengguna admin' })).toHaveCount(0);
 });
 
-for (const path of ['/dashboard', '/transactions', '/payment-events', '/reconciliation', '/audit-log', '/settings']) {
+for (const path of ['/dashboard', '/transactions', '/payment-events', '/reconciliation', '/audit-log', '/users', '/settings']) {
     test(`no accessibility violations on ${path}`, async ({ page }) => {
         await page.goto(path);
         await page.waitForLoadState('networkidle');

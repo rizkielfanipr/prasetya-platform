@@ -150,7 +150,7 @@ With CI, roll back by opening the last good run in **Actions** and choosing **Re
 
 ## Back-office accounts
 
-Users sign in with a username ([ADR-0009](../decisions/0009-single-access-users-username-login.md)). On the server, in the release folder (`$PHP` is `/opt/cpanel/ea-php84/root/usr/bin/php`):
+Users sign in with a username ([ADR-0009](../decisions/0009-single-access-users-username-login.md)), and any signed-in user manages the others in **Pengguna**. The command line is for the first account and for recovery when nobody can sign in. On the server, in the release folder (`$PHP` is `/opt/cpanel/ea-php84/root/usr/bin/php`):
 
 ```sh
 $PHP artisan platform:list-users                       # username, name, status, last sign-in

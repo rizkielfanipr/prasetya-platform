@@ -223,8 +223,24 @@ export interface ReconciliationIssue {
     at: string;
 }
 
+export interface UserRow {
+    id: string;
+    name: string;
+    username: string;
+    isActive: boolean;
+    isSelf: boolean;
+    /** Why the user cannot be deactivated (themselves, or the last active user); null when they can. */
+    deactivateBlockedReason: string | null;
+    lastLoginAt: string | null;
+    createdAt: string;
+}
+
+export interface UserFilters {
+    search: string | null;
+    status: 'active' | 'inactive' | null;
+}
+
 export interface SettingsAdmin {
-    users: { id: string; name: string; username: string; isActive: boolean; lastLoginAt: string | null }[];
     gateway: { driver: string; environment: string; configured: boolean; notificationPath: string };
     application: { environment: string; timezone: string; allowedOrigins: string[]; pendingThresholdMinutes: number; failedJobs: number };
 }

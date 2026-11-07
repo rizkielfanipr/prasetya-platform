@@ -21,7 +21,7 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `payment_events` | Append-only timeline per attempt | Unique (`webhook_event_id`, `type`) |
 | `webhook_events` | Evidence of each delivery | `primary_dedupe_key` unique on first delivery only |
 | `idempotency_keys` | Public mutation guard | Unique (`scope`, `idempotency_key`); stores a fingerprint and a resource reference |
-| `audit_logs` | Append-only record of sensitive actions | Actor, action, entity, previous and new state, reason, request id |
+| `audit_logs` | Append-only record of sensitive actions | Actor, action, entity, previous and new state, reason, request id. User changes: `user.created`, `user.updated`, `user.activated`, `user.deactivated`, `user.password_reset`, never with a password |
 | `sessions`, `password_reset_tokens`, `cache`, `jobs`, `failed_jobs` | Laravel infrastructure | |
 
 Append-only tables refuse updates and deletes through their models. This is not a database-level guarantee: someone with SQL access can still change them.

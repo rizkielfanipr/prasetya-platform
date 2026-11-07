@@ -22,13 +22,6 @@ final class SettingsController
     {
         return Inertia::render('settings/SettingsPage', [
             'admin' => [
-                'users' => User::query()->orderBy('name')->get()->map(static fn (User $u): array => [
-                    'id' => $u->public_id,
-                    'name' => $u->name,
-                    'username' => $u->username,
-                    'isActive' => $u->is_active,
-                    'lastLoginAt' => $u->last_login_at?->toIso8601ZuluString(),
-                ])->all(),
                 // Whether and where, never what: no credential value is read into this array.
                 'gateway' => [
                     'driver' => (string) config('platform.payment_gateway'),
