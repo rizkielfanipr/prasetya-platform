@@ -119,7 +119,7 @@ Satamu uses the same order and Duitku core ([ADR-0008](../decisions/0008-satamu-
 
    The command shows code, brand, name, and price and asks for confirmation; the audit log records `package.activated` with the reason.
 7. In satamu-invitation, set `PUBLIC_PLATFORM_API_URL: 'https://platform.prasetyawebworks.web.id'` in `.github/workflows/deploy.yml` and push to `main`.
-8. Watch the first orders: Transaksi filtered by Satamu, Event Pembayaran, Rekonsiliasi, failed jobs, and the `operations` log.
+8. Watch the first orders: Transaksi → Semua filtered by Satamu, Transaksi → Event Pembayaran and Perlu Ditinjau, failed jobs, and the `operations` log.
 
 ### Rollback
 

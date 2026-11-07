@@ -4,7 +4,9 @@ import EmptyState from '@/components/shared/EmptyState.vue';
 import StatusBadge from '@/components/shared/StatusBadge.vue';
 import { formatDateTime } from '@/lib/format';
 import { userStatuses } from '@/lib/status';
+import { routes } from '@/lib/routes';
 import type { UserRow } from '@/types/backoffice';
+import { Link } from '@inertiajs/vue3';
 import UserRowActions from './UserRowActions.vue';
 
 defineProps<{ rows: UserRow[]; loading: boolean; failed: boolean; filtered: boolean }>();
@@ -23,7 +25,7 @@ const columns: DataTableColumn[] = [
 <template>
     <DataTable caption="Daftar pengguna" :columns="columns" :rows="rows" :row-key="(row) => row.id" :loading="loading" :failed="failed" @retry="$emit('retry')">
         <template #cell-name="{ row }">
-            <span class="whitespace-nowrap">{{ row.name }}</span>
+            <Link :href="routes.user(row.id)" class="whitespace-nowrap hover:underline">{{ row.name }}</Link>
             <span v-if="row.isSelf" class="ml-1 text-xs font-normal text-muted-foreground">(Anda)</span>
         </template>
         <template #cell-username="{ row }"

@@ -272,6 +272,13 @@ One workspace with three views ([ADR-0010](decisions/0010-consolidated-transacti
 - Rows whose evidence has no order show the invoice and *Transaksi tidak ditemukan* instead of a link.
 - The sidebar item **Transaksi** and the **Perlu Ditinjau** tab show the number of issues needing action (never duplicates). The header bell opens Perlu Ditinjau.
 
+### User detail and system activity
+
+Audit lives with what it is about ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)).
+
+- **Pengguna → a user** (`/users/{id}`, from the name in the list): username, status, last sign-in, created, the same **Aksi** menu as the list, and **Aktivitas**: every audit entry about this user (created, renamed, activated or deactivated, password set, signed in and out), newest first, up to 100.
+- **Pengaturan → Aktivitas Sistem** (`/settings/activity`, linked from Pengaturan, not in the sidebar): sign-in and sign-out, profile and password changes, packages, and unknown entities. Filters: search (action, actor, target), **Lingkup** (*Sistem* by default, *Semua audit* to search every entry), and date range. The table shows the action in words with its code below it.
+
 ### Transaction detail
 
 Everything needed to investigate and check one transaction ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)).

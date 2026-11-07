@@ -20,4 +20,5 @@ export const routes = {
     settings: '/settings',
     settingsProfile: '/settings/profile',
     settingsPassword: '/settings/password',
+    settingsActivity: '/settings/activity',
 } as const;

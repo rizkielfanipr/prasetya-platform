@@ -16,6 +16,7 @@ const pages = [
     '/audit-log',
     '/users',
     '/settings',
+    '/settings/activity',
 ];
 
 for (const [name, width, height] of [

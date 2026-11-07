@@ -256,6 +256,14 @@ export interface UserRow {
     createdAt: string;
 }
 
+export interface AuditFilters {
+    search: string | null;
+    /** Aktivitas Sistem only: 'all' searches every entry; empty means system activity. */
+    scope?: 'system' | 'all' | null;
+    date_from: string | null;
+    date_to: string | null;
+}
+
 export interface PaymentEventFilters {
     search: string | null;
     status: WebhookStatus | null;
