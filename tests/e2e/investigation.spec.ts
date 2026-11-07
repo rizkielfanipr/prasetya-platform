@@ -49,7 +49,7 @@ test('the detail tabs work with the keyboard and keep the tab in the URL', async
 });
 
 test('an order without checkout explains the empty payment section', async ({ page }) => {
-    await page.goto('/reconciliation?group=orders_without_attempt');
+    await page.goto('/transactions?view=attention&group=orders_without_attempt');
     const row = page.getByRole('table', { name: 'Isu rekonsiliasi' }).locator('tbody tr').first();
     await row.getByRole('link').first().click();
 

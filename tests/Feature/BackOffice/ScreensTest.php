@@ -140,15 +140,16 @@ it('lists payment events with verification and duplicate state', function (): vo
     sendNotification($body);
     sendNotification($body, secret: 'bad');
 
-    $this->actingAs(admin())->get('/payment-events')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('payments/PaymentEventsPage')
+    $this->actingAs(admin())->get('/transactions?view=events')->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('transactions/TransactionWorkspacePage')
+        ->where('view', 'events')
         ->where('events.meta.total', 3)
         ->where('events.data.0.signatureValid', false)
         ->where('events.data.0.diagnostics', null)
         ->where('events.data.1.isDuplicate', true));
 
-    $this->get('/payment-events?status=DUPLICATE')->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 1));
-    $this->get("/payment-events?search={$payment->gateway_invoice_number}")->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 2));
+    $this->get('/transactions?view=events&status=DUPLICATE')->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 1));
+    $this->get("/transactions?view=events&search={$payment->gateway_invoice_number}")->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 2));
 });
 
 it('finds orders with no attempt only after the threshold', function (): void {
@@ -205,8 +206,9 @@ it('never changes data when viewed', function (): void {
     sendNotification(notificationBody($cancelled->gateway_invoice_number, $cancelled->amount));
     $auditCount = AuditLog::query()->count();
 
-    $this->actingAs(admin())->get('/reconciliation?group=paid_inconsistent')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('reconciliation/ReconciliationPage')
+    $this->actingAs(admin())->get('/transactions?view=attention&group=paid_inconsistent')->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('transactions/TransactionWorkspacePage')
+        ->where('view', 'attention')
         ->where('group', 'paid_inconsistent')
         ->has('issues.data', 1));
 
@@ -228,8 +230,8 @@ it('lists audit entries with search', function (): void {
     $payment = pendingPayment();
     sendNotification(notificationBody($payment->gateway_invoice_number, $payment->amount));
 
-    $this->actingAs(admin())->get('/audit-log?search=payment.paid')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('audit/AuditLogPage')
+    $this->actingAs(admin())->get('/settings/activity?scope=all&search=payment.paid')->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('settings/SystemActivityPage')
         ->where('logs.meta.total', 1)
         ->where('logs.data.0.actor', 'Sistem')
         ->where('logs.data.0.newState.payment_status', 'PAID'));

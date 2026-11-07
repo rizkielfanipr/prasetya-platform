@@ -9,9 +9,9 @@ use Inertia\Testing\AssertableInertia;
 
 /* One access level (ADR-0009): every active user can use every screen and action; guests and inactive users cannot. */
 
-it('lets any active user open every screen', function (string $uri): void {
+it('lets any active user open every current screen', function (string $uri): void {
     $this->actingAs(admin())->get($uri)->assertOk();
-})->with(['/dashboard', '/transactions', '/payment-events', '/reconciliation', '/audit-log', '/settings']);
+})->with(['/dashboard', '/transactions', '/transactions?view=events', '/transactions?view=attention', '/users', '/settings', '/settings/activity']);
 
 it('renders a missing record as a designed page', function (): void {
     $this->actingAs(admin())->get('/transactions/01jzzzzzzzzzzzzzzzzzzzzzzz')

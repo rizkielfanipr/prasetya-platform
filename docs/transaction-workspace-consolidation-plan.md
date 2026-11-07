@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft untuk persetujuan |
+| Status | Fase 1–4 diimplementasikan; Fase 5 ditunda sampai masa kompatibilitas selesai |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-07 |
 | Decision | [ADR-0010](decisions/0010-consolidated-transaction-workspace.md) |

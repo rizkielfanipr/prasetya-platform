@@ -6,7 +6,7 @@ import { formatNumber } from '@/lib/format';
 import type { SharedProps } from '@/types/backoffice';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { CreditCard, FileSearch, LayoutDashboard, type LucideIcon, ReceiptText, Scale, Settings, Users } from '@lucide/vue';
+import { LayoutDashboard, type LucideIcon, ReceiptText, Settings, Users } from '@lucide/vue';
 
 defineEmits<{ navigate: [] }>();
 
@@ -17,9 +17,6 @@ const openIssues = computed(() => page.props.openIssueCount ?? 0);
 const items: { label: string; href: string; icon: LucideIcon }[] = [
     { label: 'Dashboard', href: routes.dashboard, icon: LayoutDashboard },
     { label: 'Transaksi', href: routes.transactions, icon: ReceiptText },
-    { label: 'Event Pembayaran', href: routes.paymentEvents, icon: CreditCard },
-    { label: 'Rekonsiliasi', href: routes.reconciliation, icon: Scale },
-    { label: 'Audit Log', href: routes.auditLog, icon: FileSearch },
     { label: 'Pengguna', href: routes.users, icon: Users },
     { label: 'Pengaturan', href: routes.settings, icon: Settings },
 ];

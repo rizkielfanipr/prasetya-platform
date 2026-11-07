@@ -127,13 +127,7 @@ it('finds every kind of audit the platform writes in at least one documented pla
     }
 });
 
-it('keeps the old Audit Log page showing every entry', function (): void {
-    $admin = admin();
-    $order = Order::factory()->create();
-    audit('order.note_added', 'order', $order->public_id, $admin);
-    audit('auth.login', 'user', $admin->public_id, $admin);
-
-    $this->actingAs($admin);
-
-    expect(actionsOn('/audit-log'))->toContain('order.note_added', 'auth.login');
+it('redirects the old Audit Log route to all system activity', function (): void {
+    $this->actingAs(admin())->get('/audit-log?search=payment.paid&page=2')
+        ->assertRedirect('/settings/activity?scope=all&search=payment.paid&page=2');
 });

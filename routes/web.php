@@ -3,10 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\BackOffice\AdminNoteController;
-use App\Http\Controllers\BackOffice\AuditLogController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
 use App\Http\Controllers\BackOffice\DashboardController;
-use App\Http\Controllers\BackOffice\PaymentEventController;
+use App\Http\Controllers\BackOffice\LegacyWorkspaceRedirectController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
 use App\Http\Controllers\BackOffice\SettingsController;
 use App\Http\Controllers\BackOffice\SystemActivityController;
@@ -30,12 +29,12 @@ Route::middleware('auth')->group(function (): void {
     Route::get('transactions/{order}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('transactions/{order}/notes', [AdminNoteController::class, 'store'])->name('transactions.notes.store');
 
-    Route::get('payment-events', PaymentEventController::class)->name('payment-events.index');
+    Route::get('payment-events', [LegacyWorkspaceRedirectController::class, 'paymentEvents'])->name('payment-events.index');
 
-    Route::get('reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
+    Route::get('reconciliation', [LegacyWorkspaceRedirectController::class, 'reconciliation'])->name('reconciliation.index');
     Route::post('reconciliation/payments/{payment}/check-status', [ReconciliationController::class, 'checkStatus'])->name('reconciliation.check-status');
 
-    Route::get('audit-log', AuditLogController::class)->name('audit-log.index');
+    Route::get('audit-log', [LegacyWorkspaceRedirectController::class, 'auditLog'])->name('audit-log.index');
 
     Route::get('users', [UserController::class, 'index'])->name('users.index');
     Route::post('users', [UserController::class, 'store'])->name('users.store');

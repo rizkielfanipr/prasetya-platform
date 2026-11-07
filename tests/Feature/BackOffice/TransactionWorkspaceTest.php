@@ -127,13 +127,16 @@ it('counts only issues needing action on the badge, never duplicate deliveries',
         ->and($props['openIssueCount'])->toBe(0);
 });
 
-it('keeps the old Event Pembayaran and Rekonsiliasi pages working on the same data', function (): void {
-    sendNotification(notificationBody('PW-209901-000001', 1000))->assertOk();
+it('redirects legacy workspace routes while preserving compatible filters', function (): void {
+    $this->actingAs(admin())
+        ->get('/payment-events?search=SAT-1&status=REJECTED&date_from=2026-11-01&date_to=2026-11-07&page=2&group=ignored')
+        ->assertRedirect('/transactions?view=events&search=SAT-1&status=REJECTED&date_from=2026-11-01&date_to=2026-11-07&page=2');
 
-    $this->actingAs(admin())->get('/payment-events?status=REJECTED')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('payments/PaymentEventsPage')->where('events.meta.total', 1)->where('filters.status', 'REJECTED'));
-    $this->get('/reconciliation?group=unmatched_payments')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('reconciliation/ReconciliationPage')->where('group', 'unmatched_payments')->where('issues.meta.total', 1));
+    $this->get('/reconciliation?group=unmatched_payments&page=3&status=ignored')
+        ->assertRedirect('/transactions?view=attention&group=unmatched_payments&page=3');
+
+    $this->get('/audit-log?search=payment.paid&date_from=2026-11-01&date_to=2026-11-07&page=4&status=ignored')
+        ->assertRedirect('/settings/activity?scope=all&search=payment.paid&date_from=2026-11-01&date_to=2026-11-07&page=4');
 });
 
 /** Queries for one GET, after a warm-up request so caches and lazy boot do not count. */

@@ -6,10 +6,10 @@ Tests never touch real Duitku credentials or the network. Backend and browser te
 |---|---|---|---|
 | Unit | `tests/Unit` | Money, transitions, idempotency decisions, redaction, invoice format | `vendor/bin/pest tests/Unit` |
 | Architecture | `tests/Architecture` | Domain has no HTTP or gateway dependency, only the adapters call out, strict types | `vendor/bin/pest tests/Architecture` |
-| Feature | `tests/Feature` | API envelope, validation, idempotency, CORS, rate limits, username sign-in, one access level, routes behind `auth`, user management (Pengguna), user commands, username backfill, screens, reconciliation, catalogue availability, Satamu back-office filters and detail | `vendor/bin/pest tests/Feature` |
+| Feature | `tests/Feature` | API envelope, validation, idempotency, CORS, rate limits, username sign-in, one access level, routes behind `auth`, user management, transaction workspace views, compatibility redirects with preserved filters, reconciliation, catalogue availability, Satamu filters and detail | `vendor/bin/pest tests/Feature` |
 | Integration | `tests/Integration` | Duitku adapter with faked HTTP, webhook verification, status confirmation, duplicates, ordering, rollback, uniqueness, the Satamu order-to-paid flow | `vendor/bin/pest tests/Integration` |
 | Component | `tests/js` | Formatters, badges, table, filters, pagination, dialog, timelines | `npm test` |
-| Browser | `tests/e2e` | Critical flows, console stays clean, axe WCAG A and AA, keyboard, responsive overflow | `npm run test:e2e` |
+| Browser | `tests/e2e` | Critical flows, four-item navigation, legacy redirects, console stays clean, axe WCAG A and AA, keyboard, responsive overflow | `npm run test:e2e` |
 
 ## Fixtures
 

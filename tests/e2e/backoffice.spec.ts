@@ -87,7 +87,7 @@ test('open transaction detail: payment and order status are separate', async ({ 
 });
 
 test('inspect payment events with sanitised diagnostics', async ({ page }) => {
-    await page.goto('/payment-events');
+    await page.goto('/transactions?view=events');
     await expect(page.getByRole('table', { name: 'Event pembayaran dari gateway' })).toBeVisible();
 
     await page.locator('#filter-status').click();
@@ -95,14 +95,14 @@ test('inspect payment events with sanitised diagnostics', async ({ page }) => {
     await expect(page).toHaveURL(/status=REJECTED/);
     await expect(page.getByText('Tanda tangan tidak valid').first()).toBeVisible();
 
-    await page.goto('/payment-events?status=PROCESSED');
+    await page.goto('/transactions?view=events&status=PROCESSED');
     await page.getByText('Lihat', { exact: true }).first().click();
     await expect(page.locator('pre').first()).toContainText('merchantOrderId');
     await expect(page.locator('body')).not.toContainText('fake-key-not-real');
 });
 
 test('view a reconciliation issue and run an audited gateway check', async ({ page }) => {
-    await page.goto('/reconciliation');
+    await page.goto('/transactions?view=attention');
     await page.getByTestId('group-amount_mismatch').click();
     await expect(page).toHaveURL(/group=amount_mismatch/);
     const firstRow = page.getByRole('table', { name: 'Isu rekonsiliasi' }).locator('tbody tr').first();
@@ -123,7 +123,7 @@ test('view a reconciliation issue and run an audited gateway check', async ({ pa
     await page.getByRole('button', { name: 'Periksa sekarang' }).click();
     await expect(page.getByText('Tidak ada data yang berubah').first()).toBeVisible();
 
-    await page.goto('/audit-log?search=payment.gateway_checked');
+    await page.goto('/settings/activity?scope=all&search=payment.gateway_checked');
     await expect(page.getByRole('table', { name: 'Audit log' })).toContainText('uji browser');
 });
 
@@ -135,7 +135,7 @@ test('settings show gateway status without credentials', async ({ page }) => {
     await expect(page.getByRole('table', { name: 'Pengguna admin' })).toHaveCount(0);
 });
 
-for (const path of ['/dashboard', '/transactions', '/payment-events', '/reconciliation', '/audit-log', '/users', '/settings']) {
+for (const path of ['/dashboard', '/transactions', '/transactions?view=events', '/transactions?view=attention', '/users', '/settings', '/settings/activity']) {
     test(`no accessibility violations on ${path}`, async ({ page }) => {
         await page.goto(path);
         await page.waitForLoadState('networkidle');

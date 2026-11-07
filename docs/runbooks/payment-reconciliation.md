@@ -4,7 +4,7 @@ Reconciliation only shows problems. Nothing repairs records automatically, and n
 
 Where to work ([ADR-0010](../decisions/0010-consolidated-transaction-workspace.md)):
 
-- **Transaksi → Perlu Ditinjau** (`/transactions?view=attention&group=<group>`) lists the groups below. The old `/reconciliation` page still works during the transition.
+- **Transaksi → Perlu Ditinjau** (`/transactions?view=attention&group=<group>`) lists the groups below. Bookmarks to `/reconciliation` redirect here during the compatibility release.
 - **Transaksi → Event Pembayaran** (`/transactions?view=events`) finds any webhook delivery by invoice, status, or date, including deliveries for an invoice no order matches (*Transaksi tidak ditemukan*).
 - **The transaction detail → Pembayaran** shows that order's open issues and each payment attempt with **Cek status** and the last check; **→ Aktivitas** shows its status history, payment events, webhooks, notes, and audit in one timeline.
 

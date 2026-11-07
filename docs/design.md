@@ -199,15 +199,14 @@ Do not invent additional shadow tiers.
 - Brand context appears near the bottom: Webworks and Satamu.
 - Tablet/mobile sidebar becomes an accessible drawer.
 
-Navigation order for the first release ([ADR-0002](decisions/0002-mvp-payment-monitoring-scope.md)):
+Navigation order after the transaction workspace consolidation ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)):
 
 1. Dashboard
 2. Transaksi
-3. Event Pembayaran
-4. Rekonsiliasi
-5. Audit Log
-6. Pengguna
-7. Pengaturan
+3. Pengguna
+4. Pengaturan
+
+Event Pembayaran and Rekonsiliasi are secondary views under Transaksi. Transaction audit is on transaction detail, user audit is on user detail, and global/system audit is under Pengaturan → Aktivitas Sistem. The legacy GET routes redirect for at least one release cycle.
 
 Every signed-in user sees every item: there is one access level ([ADR-0009](decisions/0009-single-access-users-username-login.md)). Pelanggan and Paket & Layanan return with their CRUD scope.
 
