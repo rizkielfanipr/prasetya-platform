@@ -6,6 +6,7 @@ namespace App\Http\Presenters;
 
 use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Enums\PaymentStatus;
+use App\Domain\Payments\Enums\ReconciliationGroup;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\WebhookEvent;
 use Illuminate\Database\Eloquent\Model;
@@ -55,6 +56,18 @@ final class ReconciliationPresenter
             ],
             default => throw new \LogicException('Unsupported reconciliation record.'),
         };
+    }
+
+    /**
+     * An issue of one transaction, with its group so the page can explain it and say whether it needs action.
+     *
+     * @return array<string, mixed>
+     */
+    public static function scoped(ReconciliationGroup $group, Model $record): array
+    {
+        $row = self::row($record);
+
+        return [...$row, 'key' => $group->value.'-'.$row['key'], 'group' => $group->value, 'needsAction' => $group->needsAction()];
     }
 
     /** Only payments not already PAID: a check on a settled payment could not change anything. */

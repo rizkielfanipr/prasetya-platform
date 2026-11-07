@@ -122,7 +122,7 @@ it('shows a complete sanitised transaction detail', function (): void {
         ->has('transaction.payments.0.events')
         ->has('transaction.statusHistory')
         ->has('webhooks', 1)
-        ->has('audit', 1));
+        ->where('activity', fn ($activity): bool => collect($activity)->where('source', 'audit')->count() === 1));
 
     expect($response->getContent())->not->toContain('411111')->not->toContain('fake-key-not-real');
 });

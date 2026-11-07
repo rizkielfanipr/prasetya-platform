@@ -24,7 +24,7 @@ it('shows evidence and audit to any active user', function (): void {
 
     $this->actingAs(admin())->get("/transactions/{$payment->order->public_id}")
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->has('webhooks')->has('audit'));
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('webhooks')->has('activity')->has('reconciliationIssues'));
 });
 
 it('shows the gateway and application panels to any active user', function (): void {

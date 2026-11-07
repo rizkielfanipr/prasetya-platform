@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\BackOffice;
 
 use App\Domain\Audit\Models\AuditLog;
-use App\Domain\Auth\Models\User;
 use App\Domain\Orders\Models\Order;
-use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\WebhookEvent;
+use App\Domain\Payments\Queries\ReconciliationReport;
 use App\Domain\Payments\Queries\TransactionQuery;
+use App\Http\Presenters\ReconciliationPresenter;
+use App\Http\Presenters\TransactionActivityPresenter;
 use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\TransactionFilterRequest;
 use App\Support\Paginated;
@@ -20,7 +21,6 @@ final class TransactionController
 {
     public function index(TransactionFilterRequest $request, TransactionQuery $query): Response
     {
-
         $filters = $request->validated();
 
         return Inertia::render('transactions/TransactionListPage', [
@@ -30,18 +30,20 @@ final class TransactionController
         ]);
     }
 
-    public function show(Order $order): Response
+    public function show(Order $order, ReconciliationReport $report): Response
     {
-        $paymentIds = Payment::query()->where('order_id', $order->id)->pluck('id');
+        $order->loadMissing(['payments.events']);
+        $paymentIds = $order->payments->pluck('public_id');
 
-        // Every active user sees evidence and audit (ADR-0009: one access level).
+        $webhooks = WebhookEvent::query()->whereIn('payment_id', $order->payments->pluck('id'))->with('payment.order')->latest('received_at')->orderByDesc('id')->limit(50)->get();
+        $audit = AuditLog::query()->forEntities(['order' => [$order->public_id], 'payment' => $paymentIds])->latest('id')->limit(50)->get();
+
+        // Every active user sees evidence and audit (ADR-0009). Everything here belongs to this order only (ADR-0010).
         return Inertia::render('transactions/TransactionDetailPage', [
             'transaction' => TransactionPresenter::detail($order),
-            'webhooks' => WebhookEvent::query()->whereIn('payment_id', $paymentIds)->with('payment.order')->latest('received_at')->limit(50)->get()->map(TransactionPresenter::webhook(...))->all(),
-            'audit' => AuditLog::query()
-                ->where(fn ($q) => $q->where(['entity_type' => 'order', 'entity_id' => $order->public_id])
-                    ->orWhere(fn ($p) => $p->where('entity_type', 'payment')->whereIn('entity_id', Payment::query()->where('order_id', $order->id)->select('public_id'))))
-                ->latest('id')->limit(50)->get()->map(TransactionPresenter::audit(...))->all(),
+            'webhooks' => $webhooks->map(TransactionPresenter::webhook(...))->all(),
+            'reconciliationIssues' => array_map(static fn (array $issue): array => ReconciliationPresenter::scoped($issue['group'], $issue['record']), $report->forOrder($order)),
+            'activity' => TransactionActivityPresenter::timeline($order, $webhooks, $audit),
         ]);
     }
 }

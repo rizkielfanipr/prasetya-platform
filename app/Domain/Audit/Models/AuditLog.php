@@ -6,6 +6,8 @@ namespace App\Domain\Audit\Models;
 
 use App\Domain\Auth\Models\User;
 use App\Support\Eloquent\AppendOnly;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -34,6 +36,22 @@ class AuditLog extends Model
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_user_id');
+    }
+
+    /**
+     * Entries about the given entities, so each screen shows only its own audit (ADR-0010).
+     *
+     * @param  Builder<self>  $query
+     * @param  array<string, iterable<string>>  $entities  entity type => public ids
+     */
+    #[Scope]
+    protected function forEntities(Builder $query, array $entities): void
+    {
+        $query->where(static function (Builder $any) use ($entities): void {
+            foreach ($entities as $type => $ids) {
+                $any->orWhere(static fn (Builder $one) => $one->where('entity_type', $type)->whereIn('entity_id', collect($ids)->all()));
+            }
+        });
     }
 
     protected function casts(): array

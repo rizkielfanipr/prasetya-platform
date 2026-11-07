@@ -66,12 +66,21 @@ test('open transaction detail: payment and order status are separate', async ({ 
 
     await expect(page.getByText('Status pembayaran', { exact: true })).toBeVisible();
     await expect(page.getByText('Status pesanan', { exact: true })).toBeVisible();
+
+    await page.getByRole('tab', { name: /Pembayaran/ }).click();
     await expect(page.getByText('Percobaan 1')).toBeVisible();
-    await expect(page.getByText(/Status berubah: Menunggu → Berhasil/)).toBeVisible();
+    await page
+        .getByText(/^Kejadian/)
+        .first()
+        .click();
+    await expect(page.getByText(/Status berubah: Menunggu → Berhasil/).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Riwayat webhook' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Riwayat audit' })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Aktivitas' }).click();
+    await expect(page.getByRole('list', { name: 'Aktivitas transaksi' })).toContainText('Pembayaran tercatat lunas');
     await expect(page.locator('body')).not.toContainText('fake-key-not-real');
 
+    await page.getByRole('tab', { name: 'Ringkasan' }).click();
     await page.getByLabel('Tambah catatan').fill('Catatan dari browser test');
     await page.getByRole('button', { name: 'Simpan' }).click();
     await expect(page.getByText('Catatan dari browser test')).toBeVisible();

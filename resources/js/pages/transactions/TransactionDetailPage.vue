@@ -1,23 +1,43 @@
 <script setup lang="ts">
 import AppLayout from '@/components/layout/AppLayout.vue';
 import PanelCard from '@/components/layout/PanelCard.vue';
-import AuditTimeline from '@/components/shared/AuditTimeline.vue';
 import BrandBadge from '@/components/shared/BrandBadge.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import OrderStatusBadge from '@/components/shared/OrderStatusBadge.vue';
 import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge.vue';
-import PaymentSummary from '@/components/shared/PaymentSummary.vue';
-import PaymentTimeline from '@/components/shared/PaymentTimeline.vue';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WebhookEventTable from '@/features/payments/WebhookEventTable.vue';
 import AdminNotesPanel from '@/features/transactions/AdminNotesPanel.vue';
-import OrderHistoryList from '@/features/transactions/OrderHistoryList.vue';
+import PaymentAttemptCard from '@/features/transactions/PaymentAttemptCard.vue';
+import TransactionActivityTimeline from '@/features/transactions/TransactionActivityTimeline.vue';
+import TransactionIssuesPanel from '@/features/transactions/TransactionIssuesPanel.vue';
 import { formatCurrency, formatDateTime, formatPhone } from '@/lib/format';
 import { routes } from '@/lib/routes';
-import type { AuditEntry, TransactionDetail, WebhookEventRow } from '@/types/backoffice';
-import { Link } from '@inertiajs/vue3';
+import { transactionDetailTabs, type TransactionDetailTab } from '@/lib/transaction-tabs';
+import type { TransactionActivityEntry, TransactionDetail, TransactionIssue, WebhookEventRow } from '@/types/backoffice';
+import { Link, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 
-defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[]; audit: AuditEntry[] }>();
+const props = defineProps<{
+    transaction: TransactionDetail;
+    webhooks: WebhookEventRow[];
+    reconciliationIssues: TransactionIssue[];
+    activity: TransactionActivityEntry[];
+}>();
+
+const page = usePage();
+const tab = ref<TransactionDetailTab>(transactionDetailTabs.fromUrl(page.url));
+
+// Keep the tab in the URL (bookmarks, and the redirect back after Cek status) without adding history entries.
+watch(tab, (value) => {
+    const url = new URL(window.location.href);
+    if (value === 'summary') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', value);
+    window.history.replaceState(window.history.state, '', url);
+});
+
+const openIssues = computed(() => props.reconciliationIssues.filter((issue) => issue.needsAction).length);
 </script>
 
 <template>
@@ -26,7 +46,7 @@ defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[]; audit
             <ArrowLeft class="size-4" aria-hidden="true" />Kembali ke transaksi
         </Link>
 
-        <section aria-label="Ringkasan" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section aria-label="Status transaksi" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div class="rounded-xl border bg-card p-5">
                 <p class="text-xs font-semibold text-muted-foreground">Brand</p>
                 <p class="mt-2"><BrandBadge :brand="transaction.brand" /></p>
@@ -45,72 +65,89 @@ defineProps<{ transaction: TransactionDetail; webhooks: WebhookEventRow[]; audit
             </div>
         </section>
 
-        <div class="grid gap-4 lg:gap-6 xl:grid-cols-3">
-            <div class="min-w-0 space-y-4 lg:space-y-6 xl:col-span-2">
+        <Tabs v-model="tab">
+            <TabsList aria-label="Bagian detail transaksi">
+                <TabsTrigger value="summary">Ringkasan</TabsTrigger>
+                <TabsTrigger value="payments">
+                    Pembayaran
+                    <span
+                        v-if="openIssues > 0"
+                        class="rounded-full bg-warning-surface px-2 py-0.5 text-[11px] font-bold text-warning tabular"
+                        :aria-label="`${openIssues} isu perlu ditinjau`"
+                        >{{ openIssues }}</span
+                    >
+                </TabsTrigger>
+                <TabsTrigger value="activity">Aktivitas</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="summary">
+                <div class="grid gap-4 lg:gap-6 xl:grid-cols-3">
+                    <div class="min-w-0 space-y-4 lg:space-y-6 xl:col-span-2">
+                        <PanelCard title="Pesanan">
+                            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                                <div v-for="item in transaction.items" :key="item.packageCode">
+                                    <dt class="text-xs font-semibold text-muted-foreground">Paket (harga saat pesan)</dt>
+                                    <dd>
+                                        {{ item.packageName }} × {{ item.quantity }} · <span class="tabular">{{ formatCurrency(item.lineAmount) }}</span>
+                                    </dd>
+                                </div>
+                                <div v-for="detail in transaction.brandDetails" :key="detail.label">
+                                    <dt class="text-xs font-semibold text-muted-foreground">{{ detail.label }}</dt>
+                                    <dd class="break-words">{{ detail.value }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold text-muted-foreground">Dibuat</dt>
+                                    <dd>{{ formatDateTime(transaction.createdAt) }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold text-muted-foreground">Batas bayar pesanan</dt>
+                                    <dd>{{ formatDateTime(transaction.expiresAt) }}</dd>
+                                </div>
+                            </dl>
+                        </PanelCard>
+                        <AdminNotesPanel :order-id="transaction.id" :notes="transaction.notes" />
+                    </div>
+                    <div class="min-w-0">
+                        <PanelCard title="Pelanggan">
+                            <dl class="space-y-3">
+                                <div>
+                                    <dt class="text-xs font-semibold text-muted-foreground">Nama</dt>
+                                    <dd>{{ transaction.customer.name }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold text-muted-foreground">Email</dt>
+                                    <dd class="break-all">{{ transaction.customer.email }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold text-muted-foreground">Telepon</dt>
+                                    <dd>{{ formatPhone(transaction.customer.phone) }}</dd>
+                                </div>
+                            </dl>
+                        </PanelCard>
+                    </div>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="payments" class="space-y-4 lg:space-y-6">
+                <TransactionIssuesPanel :issues="reconciliationIssues" />
                 <PanelCard title="Percobaan pembayaran" :description="`${transaction.payments.length} percobaan`">
                     <EmptyState
                         v-if="transaction.payments.length === 0"
                         title="Belum ada percobaan pembayaran"
                         description="Checkout belum pernah dibuat untuk pesanan ini."
                     />
-                    <div v-for="payment in transaction.payments" :key="payment.id" class="border-t py-5 first:border-t-0 first:pt-0 last:pb-0">
-                        <h3 class="mb-3 text-base font-bold">Percobaan {{ payment.attempt }}</h3>
-                        <PaymentSummary :payment="payment" />
-                        <h4 class="mt-5 mb-3 font-sans font-semibold">Kejadian</h4>
-                        <PaymentTimeline :events="payment.events" />
-                    </div>
+                    <PaymentAttemptCard v-for="payment in transaction.payments" :key="payment.id" :payment="payment" />
                 </PanelCard>
-
                 <PanelCard title="Riwayat webhook" flush>
                     <WebhookEventTable :rows="webhooks" compact />
                 </PanelCard>
-            </div>
+            </TabsContent>
 
-            <div class="min-w-0 space-y-4 lg:space-y-6">
-                <PanelCard title="Pelanggan">
-                    <dl class="space-y-3">
-                        <div>
-                            <dt class="text-xs font-semibold text-muted-foreground">Nama</dt>
-                            <dd>{{ transaction.customer.name }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold text-muted-foreground">Email</dt>
-                            <dd class="break-all">{{ transaction.customer.email }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold text-muted-foreground">Telepon</dt>
-                            <dd>{{ formatPhone(transaction.customer.phone) }}</dd>
-                        </div>
-                    </dl>
+            <TabsContent value="activity">
+                <PanelCard title="Aktivitas" description="Status pesanan, pembayaran, webhook, catatan, dan audit transaksi ini, terbaru di atas.">
+                    <TransactionActivityTimeline :entries="activity" />
                 </PanelCard>
-
-                <PanelCard title="Pesanan">
-                    <dl class="space-y-3">
-                        <div v-for="item in transaction.items" :key="item.packageCode">
-                            <dt class="text-xs font-semibold text-muted-foreground">Paket (harga saat pesan)</dt>
-                            <dd>
-                                {{ item.packageName }} × {{ item.quantity }} · <span class="tabular">{{ formatCurrency(item.lineAmount) }}</span>
-                            </dd>
-                        </div>
-                        <div v-for="detail in transaction.brandDetails" :key="detail.label">
-                            <dt class="text-xs font-semibold text-muted-foreground">{{ detail.label }}</dt>
-                            <dd class="break-words">{{ detail.value }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold text-muted-foreground">Dibuat</dt>
-                            <dd>{{ formatDateTime(transaction.createdAt) }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold text-muted-foreground">Batas bayar pesanan</dt>
-                            <dd>{{ formatDateTime(transaction.expiresAt) }}</dd>
-                        </div>
-                    </dl>
-                </PanelCard>
-
-                <PanelCard title="Riwayat status pesanan"><OrderHistoryList :entries="transaction.statusHistory" /></PanelCard>
-                <AdminNotesPanel :order-id="transaction.id" :notes="transaction.notes" />
-                <PanelCard title="Riwayat audit"><AuditTimeline :entries="audit" /></PanelCard>
-            </div>
-        </div>
+            </TabsContent>
+        </Tabs>
     </AppLayout>
 </template>

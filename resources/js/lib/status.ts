@@ -75,6 +75,24 @@ export const sourceLabels: Record<string, string> = {
     ADMIN: 'Admin',
 };
 
+/** Audit actions written by the platform. Unknown actions fall back to their code. */
+export const auditActionLabels: Record<string, string> = {
+    'auth.login': 'Masuk',
+    'auth.logout': 'Keluar',
+    'user.created': 'Pengguna ditambahkan',
+    'user.updated': 'Nama pengguna diubah',
+    'user.activated': 'Pengguna diaktifkan',
+    'user.deactivated': 'Pengguna dinonaktifkan',
+    'user.password_reset': 'Kata sandi diatur oleh admin',
+    'user.password_changed': 'Kata sandi diganti sendiri',
+    'user.profile_updated': 'Profil diperbarui',
+    'order.note_added': 'Catatan admin ditambahkan',
+    'payment.paid': 'Pembayaran tercatat lunas',
+    'payment.gateway_checked': 'Status diperiksa ke gateway',
+    'package.activated': 'Paket diaktifkan',
+    'package.deactivated': 'Paket dinonaktifkan',
+};
+
 /** Back-office user status (Pengguna). */
 export const userStatuses: Record<'active' | 'inactive', StatusDefinition> = {
     active: { label: 'Aktif', tone: 'success', icon: CheckCircle2 },

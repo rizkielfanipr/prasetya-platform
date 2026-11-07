@@ -260,6 +260,17 @@ Columns:
 
 The complete transaction page may add payment method and Duitku reference. On small screens, use horizontal scrolling with a sticky invoice column or switch to compact transaction cards; never compress every column until text is unreadable.
 
+### Transaction detail
+
+Everything needed to investigate and check one transaction ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)).
+
+- The four status cards (brand, amount, payment status, order status) stay above the tabs, so payment and order status are always visible and always separate.
+- Three tabs (`Tabs`, keyboard arrows, the active tab marked by a bar and bold text, not colour alone), kept in the URL as `?tab=summary|payments|activity`:
+  - **Ringkasan**: order and package snapshot, brand details, created and expiry times, admin notes, customer.
+  - **Pembayaran**: *Perlu ditinjau* (this transaction's reconciliation issues, each marked *Perlu tindakan* or *Informasi* in words), then each payment attempt (`PaymentAttemptCard`: summary, the last gateway check, **Cek status** while the attempt is not paid, and its events behind a disclosure), then the webhook evidence. The tab shows the number of issues needing action.
+  - **Aktivitas**: one newest-first timeline of order status history, payment events, webhooks, admin notes, and audit, each labelled with its source.
+- **Cek status** opens the same reason dialog as before and returns to the same tab with the outcome as a toast.
+
 ### Pengguna
 
 User management for a single access level ([ADR-0009](decisions/0009-single-access-users-username-login.md)).
