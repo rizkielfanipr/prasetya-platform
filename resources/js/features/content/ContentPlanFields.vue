@@ -55,9 +55,9 @@ const selectClass = 'h-11 w-full rounded-md border border-input bg-card px-3 tex
                     <option v-for="option in pillars" :key="option.id" :value="option.id">{{ option.name }}{{ option.isActive ? '' : ' (nonaktif)' }}</option>
                 </select>
             </FormField>
-            <FormField :id="`${idPrefix}-campaign`" v-slot="{ describedBy, invalid }" label="Kampanye" :error="errors.campaign">
+            <FormField :id="`${idPrefix}-campaign`" v-slot="{ describedBy, invalid }" label="Campaign" :error="errors.campaign">
                 <select :id="`${idPrefix}-campaign`" v-model="campaign" :class="selectClass" :aria-describedby="describedBy" :aria-invalid="invalid">
-                    <option value="">Tanpa kampanye</option>
+                    <option value="">Tanpa campaign</option>
                     <option v-for="option in campaigns" :key="option.id" :value="option.id">{{ option.name }}{{ option.isActive ? '' : ' (nonaktif)' }}</option>
                 </select>
             </FormField>

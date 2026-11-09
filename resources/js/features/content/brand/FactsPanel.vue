@@ -36,7 +36,7 @@ const retired = computed(() => props.facts.filter((fact) => fact.retiredAt !== n
                     <p class="text-xs font-semibold text-muted-foreground">{{ contentFactCategories[fact.category] }}</p>
                     <p class="font-medium break-words">{{ fact.statement }}</p>
                     <p class="text-xs text-muted-foreground">
-                        Sumber: {{ fact.source }}<template v-if="fact.campaign"> · Kampanye {{ fact.campaign }}</template
+                        Sumber: {{ fact.source }}<template v-if="fact.campaign"> · Campaign {{ fact.campaign }}</template
                         ><template v-if="fact.validUntil"> · berlaku sampai {{ formatDate(`${fact.validUntil}T00:00:00+07:00`) }}</template> ·
                         {{ fact.createdBy }},
                         {{ formatDateTime(fact.createdAt) }}

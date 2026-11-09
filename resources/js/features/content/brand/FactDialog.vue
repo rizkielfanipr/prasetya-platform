@@ -68,7 +68,7 @@ function submit(): void {
                 <Input id="fact-source" v-model="form.source" class="h-11" maxlength="255" :aria-describedby="describedBy" :aria-invalid="invalid" />
             </FormField>
             <div class="grid gap-4 sm:grid-cols-2">
-                <FormField id="fact-campaign" v-slot="{ describedBy, invalid }" label="Khusus kampanye" :error="form.errors.campaign">
+                <FormField id="fact-campaign" v-slot="{ describedBy, invalid }" label="Khusus campaign" :error="form.errors.campaign">
                     <select
                         id="fact-campaign"
                         v-model="form.campaign"

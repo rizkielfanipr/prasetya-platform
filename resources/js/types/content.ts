@@ -153,8 +153,12 @@ export interface ContentCampaign {
     objective: string | null;
     startsOn: string;
     endsOn: string;
+    /** Legacy (ADR-0011): kept readable, no longer asked for. */
     priority: CampaignPriority;
+    /** Legacy manual switch; false only for campaigns switched off by hand in the old workflow. */
     isActive: boolean;
+    /** Derived from the period in business time. */
+    period: 'upcoming' | 'running' | 'ended';
 }
 
 export interface PlanOptions {

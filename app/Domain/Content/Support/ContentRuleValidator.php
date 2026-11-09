@@ -173,10 +173,10 @@ final class ContentRuleValidator
         $campaign = $item->campaign;
         if ($campaign !== null) {
             if (! $campaign->is_active) {
-                $findings[] = $this->warning('inactive_campaign', "Kampanye \"{$campaign->name}\" sudah tidak aktif.");
+                $findings[] = $this->warning('inactive_campaign', "Campaign \"{$campaign->name}\" sudah tidak aktif.");
             }
             if (! $campaign->covers($item->planned_at->setTimezone(BusinessTime::zone()))) {
-                $findings[] = $this->warning('outside_campaign', "Rencana posting di luar periode kampanye \"{$campaign->name}\".");
+                $findings[] = $this->warning('outside_campaign', "Rencana posting di luar periode campaign \"{$campaign->name}\".");
             }
         }
 

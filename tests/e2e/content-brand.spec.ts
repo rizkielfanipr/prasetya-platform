@@ -56,3 +56,30 @@ test('Brand Knowledge and campaign planning have no accessibility violations', a
     await expect(page.getByRole('heading', { name: 'Campaign' })).toBeVisible();
     await expectNoAxeViolations(page);
 });
+
+test('a campaign needs only a name, a period, and an objective, and shows whether it runs', async ({ page }) => {
+    const name = `Campaign uji ${Date.now().toString(36)}`;
+    await login(page, USERS.admin);
+    await page.goto('/content/calendar?manage_campaigns=1');
+
+    await page.getByRole('button', { name: 'Tambah campaign' }).first().click();
+    const dialog = page.getByRole('alertdialog', { name: 'Tambah campaign' });
+    await expect(dialog.getByLabel('Prioritas')).toHaveCount(0);
+    await expect(dialog.getByRole('checkbox')).toHaveCount(0);
+    await expectNoAxeViolations(page);
+    await dialog.getByLabel('Nama *').fill(name);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    await dialog.getByLabel('Tanggal mulai *').fill(today);
+    await dialog.getByLabel('Tanggal selesai *').fill(today);
+    await dialog.getByLabel('Tujuan').fill('Uji campaign minimal');
+    await dialog.getByRole('button', { name: 'Simpan campaign' }).click();
+
+    const row = page.getByTestId(`campaign-row-${name}`);
+    await expect(row).toContainText('Berjalan');
+
+    // It is offered for a new post planned today.
+    await page.getByRole('button', { name: 'Tambah konten' }).click();
+    const create = page.getByRole('alertdialog', { name: 'Tambah konten' });
+    await create.getByLabel('Jadwal posting (WIB) *').fill(`${today}T10:00`);
+    await expect(create.getByLabel('Campaign')).toContainText(name);
+});

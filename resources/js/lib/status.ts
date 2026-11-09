@@ -120,8 +120,8 @@ export const auditActionLabels: Record<string, string> = {
     'content.brand_knowledge_assist_failed': 'Bantuan AI Brand Knowledge gagal',
     'content.pillar_created': 'Pilar ditambahkan',
     'content.pillar_updated': 'Pilar diubah',
-    'content.campaign_created': 'Kampanye ditambahkan',
-    'content.campaign_updated': 'Kampanye diubah',
+    'content.campaign_created': 'Campaign ditambahkan',
+    'content.campaign_updated': 'Campaign diubah',
     'content.fact_added': 'Fakta ditambahkan',
     'content.fact_retired': 'Fakta tidak berlaku lagi',
 };

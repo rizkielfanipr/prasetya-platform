@@ -17,6 +17,12 @@ final class BusinessTime
         return (string) config('platform.business_timezone');
     }
 
+    /** Today's date in business time, as Y-m-d. */
+    public static function today(): string
+    {
+        return CarbonImmutable::now(self::zone())->toDateString();
+    }
+
     public static function parseLocal(string $value): CarbonImmutable
     {
         $parsed = CarbonImmutable::createFromFormat(self::LOCAL_FORMAT, $value, self::zone());

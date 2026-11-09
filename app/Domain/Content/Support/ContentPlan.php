@@ -29,7 +29,7 @@ final readonly class ContentPlan
      */
     public function attributesFor(ContentBrand $brand, ?int $currentPillarId = null, ?int $currentCampaignId = null): array
     {
-        foreach ([[$this->pillar, $currentPillarId, 'Pilar'], [$this->campaign, $currentCampaignId, 'Kampanye']] as [$choice, $current, $label]) {
+        foreach ([[$this->pillar, $currentPillarId, 'Pilar'], [$this->campaign, $currentCampaignId, 'Campaign']] as [$choice, $current, $label]) {
             if ($choice === null) {
                 continue;
             }

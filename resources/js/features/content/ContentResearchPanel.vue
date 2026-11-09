@@ -61,7 +61,7 @@ function uncite(sourceId: string): void {
             <ul class="space-y-1 text-sm">
                 <li>
                     {{ internal.facts }} knowledge berlaku untuk tanggal ini<template v-if="internal.campaigns.length">
-                        · kampanye berjalan: {{ internal.campaigns.map((c) => c.name).join(', ') }}</template
+                        · campaign berjalan: {{ internal.campaigns.map((c) => c.name).join(', ') }}</template
                     >.
                 </li>
                 <li v-if="internal.similar.length === 0" class="text-muted-foreground">Tidak ada konten mirip dalam 90 hari sekitar tanggal ini.</li>

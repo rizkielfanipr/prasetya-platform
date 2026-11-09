@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\BackOffice\Content;
 
-use App\Domain\Content\Enums\CampaignPriority;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
@@ -59,7 +58,6 @@ final class ContentCalendarController
             ],
             'reminders' => self::reminders($queue),
             'manageCampaigns' => $request->boolean('manage_campaigns'),
-            'priorities' => array_map(static fn (CampaignPriority $priority): string => $priority->value, CampaignPriority::cases()),
             ...self::options(),
         ];
 

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Actions\SaveCampaign;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Ai\CopyBudget;
 use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
+use App\Domain\Content\Enums\CampaignPriority;
 use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentBrandKnowledgeAssist;
@@ -17,6 +19,7 @@ use App\Domain\Content\Models\ContentBrandProfile;
 use App\Domain\Content\Models\ContentCampaign;
 use App\Domain\Content\Models\ContentFact;
 use App\Domain\Content\Models\ContentPillar;
+use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia;
 
 /* ADR-0011, phase 2: brand rules are versioned, facts are only retired, and every change is audited on the brand. */
@@ -252,6 +255,35 @@ it('validates campaign periods and priorities', function (): void {
 
     expect($campaign->refresh()->ends_on->toDateString())->toBe('2027-01-05')
         ->and(AuditLog::query()->where('action', 'content.campaign_updated')->sole()->new_state)->toMatchArray(['ends_on' => '2027-01-05', 'priority' => 'NORMAL']);
+});
+
+it('creates a campaign with only name, period, and objective, and keeps legacy fields when they are not sent', function (): void {
+    $this->actingAs(admin())->post(brandUri('/campaigns'), ['name' => 'Ramadan', 'starts_on' => '2026-11-09', 'ends_on' => '2026-11-30', 'objective' => 'Pesanan lebaran'])
+        ->assertSessionHas('success');
+    $campaign = ContentCampaign::query()->sole();
+    expect($campaign->priority)->toBe(CampaignPriority::Normal)->and($campaign->is_active)->toBeTrue();
+
+    // A legacy campaign switched off by hand with a high priority keeps both when edited through the minimal form.
+    $campaign->update(['priority' => CampaignPriority::High, 'is_active' => false]);
+    $this->put(brandUri("/campaigns/{$campaign->public_id}"), ['name' => 'Ramadan 2026', 'starts_on' => '2026-11-09', 'ends_on' => '2026-11-30', 'objective' => 'Pesanan lebaran'])
+        ->assertSessionHas('success');
+    expect($campaign->refresh())->name->toBe('Ramadan 2026')->priority->toBe(CampaignPriority::High)->is_active->toBeFalse();
+    $this->put(brandUri("/campaigns/{$campaign->public_id}"), ['name' => 'Ramadan 2026', 'starts_on' => '2026-11-09', 'ends_on' => '2026-11-30', 'is_active' => true])
+        ->assertSessionHas('success');
+    expect($campaign->refresh()->is_active)->toBeTrue();
+});
+
+it('derives whether a campaign runs from its period in WIB, at the day boundary', function (): void {
+    $save = static fn (string $name, string $from, string $to) => app(SaveCampaign::class)(webworks(), null, $name, null, CarbonImmutable::parse($from), CarbonImmutable::parse($to), CampaignPriority::Normal, true, admin());
+    $save('Lalu', '2026-11-01', '2026-11-08');
+    $save('Kini', '2026-11-09', '2026-11-09');
+    $save('Nanti', '2026-11-10', '2026-11-20');
+
+    // 2026-11-08 17:00 UTC is already 9 November 00:00 WIB.
+    $this->travelTo(CarbonImmutable::parse('2026-11-08T17:00:00Z'));
+    $periods = collect(contentPage('/content/calendar')['brands'][0]['campaigns'])->pluck('period', 'name')->all();
+
+    expect($periods)->toEqual(['Lalu' => 'ended', 'Kini' => 'running', 'Nanti' => 'upcoming']);
 });
 
 it('adds facts with their source and only ever retires them', function (): void {

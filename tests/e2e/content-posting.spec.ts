@@ -51,7 +51,7 @@ test('the Kalender is the workspace: four sections, a status filter, a list view
     await page.goto('/content/calendar?view=list&status=READY');
     await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
     await expect(page.getByRole('heading', { name: 'Paket posting' })).toBeVisible();
-    await expect(page.getByText('Centang semua langkah checklist dulu.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tandai sudah diposting' })).toBeEnabled();
 });
 
 test('the Kalender filters work from the keyboard', async ({ page }) => {

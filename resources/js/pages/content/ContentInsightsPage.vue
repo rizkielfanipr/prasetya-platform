@@ -29,7 +29,7 @@ const windowOptions = computed(() => props.windows.map((d) => ({ value: String(d
 const brandOptions = computed(() => props.brands.map((b) => ({ value: b.code, label: b.name })));
 const tables = computed<{ key: string; title: string; rows: InsightGroup[] }[]>(() => [
     { key: 'pillar', title: 'Per pilar', rows: props.summary.byPillar },
-    { key: 'campaign', title: 'Per kampanye', rows: props.summary.byCampaign },
+    { key: 'campaign', title: 'Per campaign', rows: props.summary.byCampaign },
     { key: 'topic', title: 'Per topik (10 teratas)', rows: props.summary.byTopic },
 ]);
 const t = computed(() => props.summary.totals);

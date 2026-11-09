@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Disetujui; implementasi bertahap (Fase 0–3 selesai) |
+| Status | Disetujui; implementasi bertahap (Fase 0–4 selesai) |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-09 |
 | Decision | [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) |
@@ -317,6 +317,13 @@ Rollback mengembalikan status target ke status kompatibel (`READY -> APPROVED`, 
 - Sederhanakan campaign dan turunkan active state dari periode.
 
 **Exit:** Ready dapat diposting manual dan dicatat dengan langkah minimum.
+
+**Status (2026-11-09): selesai** di branch `feat/simplify-content-studio`.
+
+- **Paket posting**: pratinjau gambar, Bagikan ke Instagram (bila perangkat mendukung berbagi file), Unduh gambar, Salin caption (termasuk hashtag), Salin hashtag, Salin alt text, dan Tandai sudah diposting. Tidak ada checklist.
+- **Dialog posting**: waktu posting aktual wajib (default sekarang, WIB), URL Instagram dan catatan opsional. `checklist` di request menjadi opsional; bila dikirim tetap divalidasi dan disimpan sebagai bukti; publikasi lama dengan checklist tetap ditampilkan. Publikasi tetap immutable dan diaudit; audit hanya memuat `checklist` bila ada.
+- **Campaign**: form hanya Nama, Tanggal mulai, Tanggal selesai, Tujuan. `priority` dan `is_active` opsional di request (default `NORMAL` dan aktif untuk campaign baru, tidak berubah bila tidak dikirim). Status *Berjalan / Akan datang / Selesai* diturunkan dari periode WIB; campaign yang dinonaktifkan manual di alur lama tampil *Nonaktif (manual)* dengan opsi *Aktifkan lagi*. Konten baru menolak campaign yang tidak berjalan pada tanggalnya; konten lama tetap hanya mendapat warning. Istilah UI diseragamkan menjadi *campaign*.
+- Hasil: Pest 559, Vitest 104, e2e 71 hijau, termasuk posting tanpa checklist, form campaign minimal dengan axe, dan batas hari WIB. Query (e2e, median): Kalender 14 query; Kelola campaign 14 query; detail Ready 28 query 18,6 ms; detail Published 29 query 15,6 ms. Screenshot 360×780, 768×1024, 1280×900 tanpa overflow.
 
 ### Fase 5 — Weekly AI planner
 

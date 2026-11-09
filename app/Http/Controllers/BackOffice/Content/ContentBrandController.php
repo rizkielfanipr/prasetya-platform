@@ -13,7 +13,6 @@ use App\Domain\Content\Actions\SaveBrandKnowledge;
 use App\Domain\Content\Actions\SaveCampaign;
 use App\Domain\Content\Actions\SavePillar;
 use App\Domain\Content\Actions\UpdateBrandProfile;
-use App\Domain\Content\Enums\CampaignPriority;
 use App\Domain\Content\Enums\ContentFactCategory;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Exceptions\InvalidBrandGuide;
@@ -179,12 +178,12 @@ final class ContentBrandController
                 is_string($objective) ? $objective : null,
                 CarbonImmutable::parse((string) $request->validated('starts_on')),
                 CarbonImmutable::parse((string) $request->validated('ends_on')),
-                CampaignPriority::from((string) $request->validated('priority')),
-                $request->boolean('is_active'),
+                $request->priority($campaign),
+                $request->isActive($campaign),
                 $this->actor($request),
             );
 
-            return back()->with('success', "Kampanye {$saved->name} disimpan.");
+            return back()->with('success', "Campaign {$saved->name} disimpan.");
         });
     }
 

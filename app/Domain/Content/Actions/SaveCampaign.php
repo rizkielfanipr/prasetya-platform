@@ -30,10 +30,10 @@ final class SaveCampaign
         User $actor,
     ): ContentCampaign {
         if ($campaign !== null && $campaign->content_brand_id !== $brand->id) {
-            throw ContentActionRefused::because('Kampanye ini milik brand lain.');
+            throw ContentActionRefused::because('Campaign ini milik brand lain.');
         }
         if ($endsOn->toDateString() < $startsOn->toDateString()) {
-            throw ContentActionRefused::because('Tanggal selesai kampanye tidak boleh sebelum tanggal mulai.');
+            throw ContentActionRefused::because('Tanggal selesai campaign tidak boleh sebelum tanggal mulai.');
         }
 
         return DB::transaction(function () use ($brand, $campaign, $name, $objective, $startsOn, $endsOn, $priority, $isActive, $actor): ContentCampaign {

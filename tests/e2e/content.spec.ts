@@ -71,17 +71,11 @@ test('one person takes an idea to a posted post, with AI and without opening Pen
     await expect(page.getByTestId('status-summary')).toContainText('Revisi 2 siap diposting');
     await expect(page.getByTestId('more-settings')).toHaveAttribute('aria-expanded', 'false');
 
-    // Posting package: copy, download, then record the human posting, all by the same person.
+    // Posting package: image, copy, download, then record the human posting, all by the same person. No checklist.
+    await expect(page.getByTestId('posting-image')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Unduh gambar' })).toHaveAttribute('href', /\/content\/assets\/.+download=1/);
-    await expect(page.getByRole('button', { name: 'Tandai sudah diposting' })).toBeDisabled();
-    for (const step of [
-        'Gambar dari paket ini sudah diunggah ke Instagram',
-        'Caption dan hashtag ditempel apa adanya',
-        'Alt text diisi di Pengaturan lanjutan Instagram',
-        'Diposting dari akun brand yang benar',
-    ]) {
-        await page.getByRole('checkbox', { name: step }).check();
-    }
+    await expect(page.getByRole('button', { name: 'Salin caption' })).toBeVisible();
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
     await page.getByRole('button', { name: 'Tandai sudah diposting' }).click();
     const publish = page.getByRole('alertdialog', { name: 'Tandai sudah diposting?' });
     await expect(publish.getByLabel('Waktu diposting (WIB) *')).not.toHaveValue('');
@@ -175,14 +169,6 @@ test('content pages have no accessibility violations', async ({ page }) => {
     await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
     await settled(page);
     await expectNoAxeViolations(page);
-    for (const step of [
-        'Gambar dari paket ini sudah diunggah ke Instagram',
-        'Caption dan hashtag ditempel apa adanya',
-        'Alt text diisi di Pengaturan lanjutan Instagram',
-        'Diposting dari akun brand yang benar',
-    ]) {
-        await page.getByRole('checkbox', { name: step }).check();
-    }
     await page.getByRole('button', { name: 'Tandai sudah diposting' }).click();
     await settled(page);
     await expectNoAxeViolations(page);

@@ -18,13 +18,11 @@ import ContentReminders from '@/features/content/ContentReminders.vue';
 import ContentStatusFilter from '@/features/content/ContentStatusFilter.vue';
 import ContentTable from '@/features/content/ContentTable.vue';
 import ContentWeekView from '@/features/content/ContentWeekView.vue';
-import { campaignPriorities, contentStatuses } from '@/lib/content';
+import { campaignPeriods, campaignPriorities, contentStatuses } from '@/lib/content';
 import { formatDate } from '@/lib/format';
 import { routes } from '@/lib/routes';
-import { userStatuses } from '@/lib/status';
 import type { Paginated } from '@/types/backoffice';
 import type {
-    CampaignPriority,
     CompositionEntry,
     ContentBrandOption,
     ContentCalendarFilters,
@@ -51,7 +49,6 @@ const props = defineProps<{
     reminders: PostingReminders;
     brands: (ContentBrandOption & { id: string })[];
     manageCampaigns: boolean;
-    priorities: CampaignPriority[];
 }>();
 
 const campaignOpen = ref(false);
@@ -172,16 +169,23 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
                     </div>
                     <EmptyState v-if="brand.campaigns.length === 0" title="Belum ada campaign" />
                     <ul v-else class="divide-y rounded-lg border">
-                        <li v-for="campaign in brand.campaigns" :key="campaign.id" class="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <li
+                            v-for="campaign in brand.campaigns"
+                            :key="campaign.id"
+                            class="flex flex-wrap items-center justify-between gap-3 p-4"
+                            :data-testid="`campaign-row-${campaign.name}`"
+                        >
                             <div class="min-w-0 flex-1">
                                 <p class="font-semibold">{{ campaign.name }}</p>
                                 <p class="text-sm text-muted-foreground">
-                                    {{ day(campaign.startsOn) }} – {{ day(campaign.endsOn) }} · prioritas
-                                    {{ campaignPriorities[campaign.priority].toLowerCase() }}
+                                    {{ day(campaign.startsOn) }} – {{ day(campaign.endsOn)
+                                    }}<template v-if="campaign.priority !== 'NORMAL'">
+                                        · prioritas {{ campaignPriorities[campaign.priority].toLowerCase() }}</template
+                                    >
                                 </p>
                                 <p v-if="campaign.objective" class="text-sm break-words">{{ campaign.objective }}</p>
                             </div>
-                            <StatusBadge :status="campaign.isActive ? userStatuses.active : userStatuses.inactive" />
+                            <StatusBadge :status="campaignPeriods[campaign.isActive ? campaign.period : 'off']" />
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -195,7 +199,7 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
                     </ul>
                 </section>
             </div>
-            <CampaignDialog v-if="campaignBrand" v-model:open="campaignOpen" :brand-id="campaignBrand" :campaign="editingCampaign" :priorities="priorities" />
+            <CampaignDialog v-if="campaignBrand" v-model:open="campaignOpen" :brand-id="campaignBrand" :campaign="editingCampaign" />
         </PanelCard>
 
         <div class="space-y-3">

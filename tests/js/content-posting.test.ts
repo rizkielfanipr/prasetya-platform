@@ -1,7 +1,7 @@
 import ContentPostingPackage from '@/features/content/ContentPostingPackage.vue';
 import { dueLabel } from '@/lib/content';
 import type { ContentActions, ContentItem, ContentRevision } from '@/types/content';
-import { flushPromises, mount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const item = (overrides: Partial<ContentItem> = {}): ContentItem =>
@@ -27,25 +27,35 @@ describe('ContentPostingPackage', () => {
         expect(mountPackage().get('[data-testid="due-banner"]').text()).toContain('Terlambat');
     });
 
-    it('enables marking published only after every checklist step, and remembers the steps', async () => {
+    it('lets a Ready post be marked posted straight away, with no checklist', () => {
         const wrapper = mountPackage();
-        expect(publishButton(wrapper)?.attributes('disabled')).toBeDefined();
-        expect(wrapper.get('#reason-checklist').text()).toBe('Centang semua langkah checklist dulu.');
-
-        for (const step of ['image', 'caption', 'alt_text', 'account']) {
-            await wrapper.get(`#step-${step}`).trigger('click');
-        }
-        await flushPromises();
 
         expect(publishButton(wrapper)?.attributes('disabled')).toBeUndefined();
-        expect(JSON.parse(window.sessionStorage.getItem('content-checklist:item-1:rev-1') ?? '[]')).toHaveLength(4);
-
-        const again = mountPackage();
-        await flushPromises();
-        expect(publishButton(again)?.attributes('disabled')).toBeUndefined();
+        expect(wrapper.find('[type="checkbox"], [role="checkbox"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('Checklist');
     });
 
-    it('shows the confirmed checklist as evidence once published', () => {
+    it('offers the copy buttons the post needs: caption with hashtags, hashtags, and alt text', () => {
+        const labels = mountPackage()
+            .findAll('button')
+            .map((b) => b.text());
+
+        expect(labels).toContain('Salin caption');
+        expect(labels).toContain('Salin hashtag');
+        expect(labels).toContain('Salin alt text');
+        expect(labels).not.toContain('Salin caption + hashtag');
+    });
+
+    it('explains why a post cannot be marked yet', () => {
+        const wrapper = mount(ContentPostingPackage, {
+            props: { item: item(), revision, actions: { markPublished: 'Tandai siap posting dulu sebelum mencatat posting.' } as ContentActions },
+        });
+
+        expect(publishButton(wrapper)?.attributes('disabled')).toBeDefined();
+        expect(wrapper.get('#reason-markPublished').text()).toBe('Tandai siap posting dulu sebelum mencatat posting.');
+    });
+
+    it('still shows a checklist confirmed on an older publication as evidence', () => {
         const wrapper = mountPackage(
             item({
                 status: 'PUBLISHED',

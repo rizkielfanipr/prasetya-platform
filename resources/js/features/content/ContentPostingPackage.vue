@@ -1,41 +1,24 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { dueLabel, postingSteps } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
-import type { ContentActions, ContentItem, ContentRevision, PostingStep } from '@/types/content';
+import type { ContentActions, ContentItem, ContentRevision } from '@/types/content';
 import { Download, ExternalLink, Share2 } from '@lucide/vue';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import ContentPublishDialog from './ContentPublishDialog.vue';
 import CopyButton from './CopyButton.vue';
 
 /**
- * Everything needed to post by hand, from the revision marked Ready only (ADR-0012). The checklist is ticked as
- * you go, survives switching to the Instagram app, and is sent as evidence when the post is marked published.
+ * Everything needed to post by hand, from the revision marked Ready only (ADR-0012, phase 4): the image, Bagikan ke
+ * Instagram where the device can share files, Unduh gambar, the copy buttons, and Tandai sudah diposting. There is no
+ * required checklist; a checklist recorded on an older publication is still shown as evidence.
  */
 const props = defineProps<{ item: ContentItem; revision: ContentRevision; actions: ContentActions }>();
 const publishOpen = ref(false);
 
 const captionWithTags = computed(() => [props.revision.caption, props.revision.hashtags].filter((part) => part).join('\n\n'));
-const storageKey = computed(() => `content-checklist:${props.item.id}:${props.revision.id}`);
-const checked = ref<PostingStep[]>([]);
-const complete = computed(() => postingSteps.every((step) => checked.value.includes(step.value)));
 const due = computed(() => dueLabel(props.item.dueState, 0));
-
-onMounted(() => {
-    try {
-        const saved: unknown = JSON.parse(window.sessionStorage.getItem(storageKey.value) ?? '[]');
-        checked.value = Array.isArray(saved) ? postingSteps.map((s) => s.value).filter((v) => saved.includes(v)) : [];
-    } catch {
-        checked.value = [];
-    }
-});
-watch(checked, (value) => window.sessionStorage.setItem(storageKey.value, JSON.stringify(value)), { deep: true });
-
-function toggle(step: PostingStep, on: boolean): void {
-    checked.value = on ? [...checked.value.filter((v) => v !== step), step] : checked.value.filter((v) => v !== step);
-}
 
 // Phones can hand the image straight to Instagram; the caption goes to the clipboard first.
 const canShare = ref(false);
@@ -84,65 +67,72 @@ async function share(): Promise<void> {
             :class="item.dueState === 'overdue' ? 'bg-danger-surface text-danger' : 'bg-warning-surface text-warning'"
             data-testid="due-banner"
         >
-            {{ due }}: rencana {{ formatDateTime(item.plannedAt) }}. Posting manual, lalu tandai di bawah.
+            {{ due }}: rencana {{ formatDateTime(item.plannedAt) }}. Posting manual, lalu tandai sudah diposting.
         </p>
 
-        <div class="flex flex-wrap gap-2">
-            <Button v-if="revision.asset && canShare && !item.publication" size="sm" class="gap-1.5" :disabled="sharing" :aria-busy="sharing" @click="share">
-                <Share2 class="size-4" aria-hidden="true" />Bagikan ke Instagram
-            </Button>
-            <Button
+        <div class="grid gap-5 sm:grid-cols-[10rem_minmax(0,1fr)]">
+            <img
                 v-if="revision.asset"
-                as="a"
-                :href="revision.asset.downloadUrl"
-                :download="revision.asset.fileName"
-                variant="outline"
-                size="sm"
-                class="gap-1.5"
-            >
-                <Download class="size-4" aria-hidden="true" />Unduh gambar
-            </Button>
-            <CopyButton :text="captionWithTags" label="Salin caption + hashtag" done="Caption dan hashtag disalin." />
-            <CopyButton :text="revision.caption ?? ''" label="Salin caption" done="Caption disalin." />
-            <CopyButton :text="revision.hashtags ?? ''" label="Salin hashtag" done="Hashtag disalin." />
-            <CopyButton :text="revision.altText ?? ''" label="Salin alt text" done="Alt text disalin." />
+                :src="revision.asset.url"
+                :alt="revision.altText ?? ''"
+                class="aspect-[4/5] w-40 rounded-lg border object-cover"
+                loading="lazy"
+                data-testid="posting-image"
+            />
+            <p v-else class="flex aspect-[4/5] w-40 items-center justify-center rounded-lg border p-3 text-center text-xs text-muted-foreground">
+                Belum ada gambar
+            </p>
+            <div class="min-w-0 space-y-4">
+                <div class="flex flex-wrap gap-2">
+                    <Button
+                        v-if="revision.asset && canShare && !item.publication"
+                        size="sm"
+                        class="gap-1.5"
+                        :disabled="sharing"
+                        :aria-busy="sharing"
+                        @click="share"
+                    >
+                        <Share2 class="size-4" aria-hidden="true" />Bagikan ke Instagram
+                    </Button>
+                    <Button
+                        v-if="revision.asset"
+                        as="a"
+                        :href="revision.asset.downloadUrl"
+                        :download="revision.asset.fileName"
+                        variant="outline"
+                        size="sm"
+                        class="gap-1.5"
+                    >
+                        <Download class="size-4" aria-hidden="true" />Unduh gambar
+                    </Button>
+                    <CopyButton :text="captionWithTags" label="Salin caption" done="Caption dan hashtag disalin." />
+                    <CopyButton v-if="revision.hashtags" :text="revision.hashtags" label="Salin hashtag" done="Hashtag disalin." />
+                    <CopyButton v-if="revision.altText" :text="revision.altText" label="Salin alt text" done="Alt text disalin." />
+                </div>
+                <p class="text-xs text-muted-foreground">Salin caption sudah termasuk hashtag. Alt text diisi di Pengaturan lanjutan Instagram.</p>
+                <dl class="space-y-3 text-sm">
+                    <div>
+                        <dt class="text-xs font-semibold text-muted-foreground">Caption</dt>
+                        <dd class="mt-1 break-words whitespace-pre-line">{{ revision.caption ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-muted-foreground">Hashtag</dt>
+                        <dd class="mt-1 break-words">{{ revision.hashtags ?? '—' }}</dd>
+                    </div>
+                </dl>
+            </div>
         </div>
-
-        <dl class="space-y-3 text-sm">
-            <div>
-                <dt class="text-xs font-semibold text-muted-foreground">Caption</dt>
-                <dd class="mt-1 break-words whitespace-pre-line">{{ revision.caption ?? '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs font-semibold text-muted-foreground">Hashtag</dt>
-                <dd class="mt-1 break-words">{{ revision.hashtags ?? '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs font-semibold text-muted-foreground">Alt text</dt>
-                <dd class="mt-1 break-words">{{ revision.altText ?? '—' }}</dd>
-            </div>
-        </dl>
-
-        <fieldset v-if="!item.publication" class="space-y-2" aria-describedby="checklist-hint">
-            <legend class="text-sm font-semibold">Checklist posting ({{ checked.length }}/{{ postingSteps.length }})</legend>
-            <p id="checklist-hint" class="text-xs text-muted-foreground">Semua langkah wajib dicentang; checklist ikut dicatat sebagai bukti.</p>
-            <div v-for="step in postingSteps" :key="step.value" class="flex items-center gap-2">
-                <Checkbox :id="`step-${step.value}`" :model-value="checked.includes(step.value)" @update:model-value="toggle(step.value, $event === true)" />
-                <label :for="`step-${step.value}`" class="text-sm">{{ step.label }}</label>
-            </div>
-        </fieldset>
 
         <div v-if="!item.publication" class="flex flex-col items-start gap-1">
             <Button
-                :disabled="actions.markPublished !== null || !complete"
-                :aria-describedby="actions.markPublished ? 'reason-markPublished' : !complete ? 'reason-checklist' : undefined"
+                :disabled="actions.markPublished !== null"
+                :aria-describedby="actions.markPublished ? 'reason-markPublished' : undefined"
                 @click="publishOpen = true"
             >
                 Tandai sudah diposting
             </Button>
             <p v-if="actions.markPublished" id="reason-markPublished" class="text-xs text-muted-foreground">{{ actions.markPublished }}</p>
-            <p v-else-if="!complete" id="reason-checklist" class="text-xs text-muted-foreground">Centang semua langkah checklist dulu.</p>
         </div>
-        <ContentPublishDialog v-model:open="publishOpen" :item="item" :revision="revision" :checklist="checked" />
+        <ContentPublishDialog v-model:open="publishOpen" :item="item" :revision="revision" />
     </div>
 </template>

@@ -11,6 +11,7 @@ use App\Domain\Content\Models\ContentCampaign;
 use App\Domain\Content\Models\ContentFact;
 use App\Domain\Content\Models\ContentPillar;
 use App\Domain\Content\Support\RuleFinding;
+use App\Support\BusinessTime;
 
 /** Brand knowledge for the screen; resources/js/types/content.ts mirrors it. */
 final class ContentBrandPresenter
@@ -82,6 +83,12 @@ final class ContentBrandPresenter
             'endsOn' => $campaign->ends_on->toDateString(),
             'priority' => $campaign->priority->value,
             'isActive' => $campaign->is_active,
+            // Derived from the period in business time (ADR-0012); the manual switch above is legacy.
+            'period' => match (true) {
+                $campaign->starts_on->toDateString() > BusinessTime::today() => 'upcoming',
+                $campaign->ends_on->toDateString() < BusinessTime::today() => 'ended',
+                default => 'running',
+            },
         ];
     }
 

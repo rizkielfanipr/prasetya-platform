@@ -31,7 +31,7 @@ final class ContentDetailsRules
         return [
             'planned_at.date_format' => 'Isi tanggal dan jam rencana posting.',
             'pillar.exists' => 'Pilih pilar yang ada.',
-            'campaign.exists' => 'Pilih kampanye yang ada.',
+            'campaign.exists' => 'Pilih campaign yang ada.',
         ];
     }
 

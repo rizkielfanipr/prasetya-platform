@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class PostingQueue
 {
-    /** The posting checklist a person confirms when marking a post published, kept as evidence. */
+    /** Steps a person may confirm when marking a post published, kept as evidence; optional since ADR-0012 phase 4. */
     public const array CHECKLIST = ['image', 'caption', 'alt_text', 'account'];
 
     /** @return Builder<ContentItem> */

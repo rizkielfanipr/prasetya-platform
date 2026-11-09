@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
 use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Enums\ContentStatus;
-use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Models\ContentAsset;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentPublication;
@@ -85,11 +85,24 @@ it('marks rows waiting to be posted so the calendar can remind', function (): vo
     expect(collect($items)->firstWhere('title', 'Kemarin')['dueState'])->toBe('overdue');
 });
 
-it('requires every checklist step and keeps it as evidence', function (): void {
+it('records a post with only the posting time: no checklist, URL, or note needed', function (): void {
     $item = readyAt('Siap', '2026-11-10T01:00:00Z');
 
-    publish($item, ['image', 'caption'])->assertSessionHasErrors('checklist');
+    $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => '2026-11-10T12:00'])
+        ->assertSessionHas('success', 'Konten ditandai sudah diposting.');
+
+    $publication = ContentPublication::query()->sole();
+    expect($publication->checklist)->toBeNull()->and($publication->url)->toBeNull()->and($publication->note)->toBeNull()
+        ->and($item->refresh()->status)->toBe(ContentStatus::Published)
+        ->and(AuditLog::query()->where('action', 'content.published')->sole()->new_state)->not->toHaveKey('checklist')
+        ->and(fn () => $publication->update(['note' => 'diubah']))->toThrow(LogicException::class);
+});
+
+it('still validates a checklist that is sent and keeps it as evidence', function (): void {
+    $item = readyAt('Siap', '2026-11-10T01:00:00Z');
+
     publish($item, ['image', 'caption', 'alt_text', 'hack'])->assertSessionHasErrors('checklist.3');
+    publish($item, ['image', 'image'])->assertSessionHasErrors('checklist.1');
     expect($item->refresh()->status)->toBe(ContentStatus::Ready);
 
     publish($item)->assertSessionHas('success');
@@ -100,11 +113,12 @@ it('requires every checklist step and keeps it as evidence', function (): void {
         ->and(contentPage('/content/calendar')['reminders']['total'])->toBe(0);
 });
 
-it('refuses an incomplete checklist in the domain too', function (): void {
+it('keeps only known checklist steps in the domain', function (): void {
     $item = readyAt('Siap', '2026-11-10T01:00:00Z');
 
-    expect(fn () => app(MarkContentPublished::class)($item, revisionId($item), now(), null, null, admin(), ['image']))
-        ->toThrow(ContentActionRefused::class, 'Centang semua langkah checklist posting sebelum menandai sudah diposting.');
+    $publication = app(MarkContentPublished::class)($item, revisionId($item), now(), null, null, admin(), ['caption', 'hack', 'image']);
+
+    expect($publication->checklist)->toBe(['image', 'caption']);
 });
 
 it('never publishes overdue posts by itself', function (): void {

@@ -25,7 +25,7 @@ final class AddContentFact
     public function __invoke(ContentBrand $brand, ?ContentCampaign $campaign, string $statement, string $source, ?CarbonInterface $validUntil, User $actor, ContentFactCategory $category = ContentFactCategory::General): ContentFact
     {
         if ($campaign !== null && $campaign->content_brand_id !== $brand->id) {
-            throw ContentActionRefused::because('Kampanye ini milik brand lain.');
+            throw ContentActionRefused::because('Campaign ini milik brand lain.');
         }
 
         return DB::transaction(function () use ($brand, $campaign, $statement, $source, $validUntil, $actor, $category): ContentFact {

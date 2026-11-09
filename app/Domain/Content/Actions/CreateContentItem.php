@@ -12,6 +12,7 @@ use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\ContentPlan;
+use App\Support\BusinessTime;
 use Illuminate\Support\Facades\DB;
 
 /** Plans a new post: a draft item whose first revision holds the idea as its brief, or nothing. */
@@ -25,6 +26,10 @@ final class CreateContentItem
             throw ContentActionRefused::because('Brand ini tidak aktif.');
         }
         $attributes = $plan->attributesFor($brand);
+        // A new post is offered only campaigns that run on its day (WIB); an existing one keeps a warning instead.
+        if ($plan->campaign !== null && ! $plan->campaign->covers($plan->plannedAt->setTimezone(BusinessTime::zone()))) {
+            throw ContentActionRefused::because("Campaign \"{$plan->campaign->name}\" tidak berjalan pada tanggal ini.");
+        }
 
         $brief = $brief === null || trim($brief) === '' ? null : trim(str_replace("\r\n", "\n", $brief));
 

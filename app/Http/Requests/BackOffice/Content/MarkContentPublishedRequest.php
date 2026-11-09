@@ -11,7 +11,10 @@ use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** A person's statement that the post is live: the actual posting time is required, the Instagram URL optional. */
+/**
+ * A person's statement that the post is live (ADR-0012): the actual posting time is required; the Instagram URL, note,
+ * and posting checklist are optional. A checklist that is sent is still validated and kept as evidence.
+ */
 final class MarkContentPublishedRequest extends FormRequest
 {
     /** @return array<string, mixed> */
@@ -28,7 +31,7 @@ final class MarkContentPublishedRequest extends FormRequest
                 }
             }],
             'note' => ['nullable', 'string', 'max:1000'],
-            'checklist' => ['required', 'array', 'size:'.count(PostingQueue::CHECKLIST)],
+            'checklist' => ['nullable', 'array', 'max:'.count(PostingQueue::CHECKLIST)],
             'checklist.*' => ['string', 'distinct', Rule::in(PostingQueue::CHECKLIST)],
         ];
     }
@@ -36,7 +39,7 @@ final class MarkContentPublishedRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ['checklist.required' => 'Centang semua langkah checklist posting.', 'checklist.size' => 'Centang semua langkah checklist posting.', 'published_at.required' => 'Isi waktu konten benar-benar diposting.', 'published_at.date_format' => 'Isi tanggal dan jam konten diposting.'];
+        return ['published_at.required' => 'Isi waktu konten benar-benar diposting.', 'published_at.date_format' => 'Isi tanggal dan jam konten diposting.'];
     }
 
     /** @return list<string> */

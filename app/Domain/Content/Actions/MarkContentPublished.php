@@ -33,13 +33,11 @@ final class MarkContentPublished
         private readonly ContentItemLock $lock,
     ) {}
 
-    /** @param  list<string>  $checklist  the PostingQueue::CHECKLIST steps the person confirms */
-    public function __invoke(ContentItem $item, string $expectedRevision, CarbonInterface $publishedAt, ?string $url, ?string $note, User $actor, array $checklist = PostingQueue::CHECKLIST): ContentPublication
+    /** @param  list<string>  $checklist  PostingQueue::CHECKLIST steps the person confirmed, if any; optional since ADR-0012 phase 4 */
+    public function __invoke(ContentItem $item, string $expectedRevision, CarbonInterface $publishedAt, ?string $url, ?string $note, User $actor, array $checklist = []): ContentPublication
     {
         $checklist = array_values(array_intersect(PostingQueue::CHECKLIST, $checklist));
-        if (count($checklist) !== count(PostingQueue::CHECKLIST)) {
-            throw ContentActionRefused::because('Centang semua langkah checklist posting sebelum menandai sudah diposting.');
-        }
+        $checklist = $checklist === [] ? null : $checklist;
         if ($publishedAt->isAfter(now()->addMinutes(self::FUTURE_SKEW_MINUTES))) {
             throw ContentActionRefused::because('Waktu posting tidak boleh di masa depan. Tandai setelah konten benar-benar diposting.');
         }
@@ -74,7 +72,7 @@ final class MarkContentPublished
                     'revision' => $revision->number,
                     'published_at' => $publication->published_at->toIso8601ZuluString(),
                     'url' => $publication->url,
-                    'checklist' => $checklist,
+                    ...($checklist === null ? [] : ['checklist' => $checklist]),
                 ],
                 $publication->note,
             );

@@ -3,6 +3,7 @@ import { BUSINESS_TIMEZONE } from '@/lib/format';
 import type {
     BrandTab,
     CampaignPriority,
+    ContentCampaign,
     ContentAction,
     ContentDecision,
     ContentFields,
@@ -164,6 +165,14 @@ export const contentFactCategories = {
     POLICY: 'Kebijakan',
     EVIDENCE: 'Bukti atau pencapaian',
 } as const;
+
+/** A campaign's state from its period in WIB (ADR-0012), always in words; a manual switch-off from the old workflow wins. */
+export const campaignPeriods: Record<ContentCampaign['period'] | 'off', StatusDefinition> = {
+    running: { label: 'Berjalan', tone: 'success', icon: CheckCircle2 },
+    upcoming: { label: 'Akan datang', tone: 'info', icon: Clock },
+    ended: { label: 'Selesai', tone: 'neutral', icon: Circle },
+    off: { label: 'Nonaktif (manual)', tone: 'neutral', icon: Ban },
+};
 
 export const campaignPriorities: Record<CampaignPriority, string> = { HIGH: 'Tinggi', NORMAL: 'Normal', LOW: 'Rendah' };
 

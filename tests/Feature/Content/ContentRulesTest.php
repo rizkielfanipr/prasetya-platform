@@ -7,6 +7,7 @@ use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\RetireContentFact;
 use App\Domain\Content\Actions\SaveCampaign;
 use App\Domain\Content\Actions\SaveContentRevision;
+use App\Domain\Content\Actions\UpdateContentDetails;
 use App\Domain\Content\Enums\CampaignPriority;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\ContentBrand;
@@ -89,7 +90,9 @@ it('warns about campaign periods, inactive plans, and repeated topics', function
     $pillar = ContentPillar::query()->create(['content_brand_id' => webworks()->id, 'name' => 'Edukasi', 'target_share' => 50]);
 
     $first = app(CreateContentItem::class)(webworks(), new ContentPlan('SEO dasar', CarbonImmutable::parse('2026-11-10T03:00:00Z'), topic: 'SEO'), admin());
-    $second = app(CreateContentItem::class)(webworks(), new ContentPlan('SEO lanjutan', CarbonImmutable::parse('2026-11-20T03:00:00Z'), $pillar, $campaign, ' seo '), admin());
+    // Created inside the campaign, then moved outside it: an existing item keeps a warning, never a refusal.
+    $second = app(CreateContentItem::class)(webworks(), new ContentPlan('SEO lanjutan', CarbonImmutable::parse('2026-12-05T03:00:00Z'), $pillar, $campaign, ' seo '), admin());
+    app(UpdateContentDetails::class)($second, new ContentPlan('SEO lanjutan', CarbonImmutable::parse('2026-11-20T03:00:00Z'), $pillar, $campaign, ' seo '), admin());
     $pillar->update(['is_active' => false]);
 
     expect(findingCodes($second))->toBe(['topic_repeated', 'inactive_pillar', 'outside_campaign'])

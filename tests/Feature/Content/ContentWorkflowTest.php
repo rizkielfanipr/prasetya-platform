@@ -92,6 +92,11 @@ it('takes an optional campaign of the brand when creating from an idea', functio
         ->assertSessionHas('success');
 
     expect(ContentItem::query()->sole()->content_campaign_id)->toBe($campaign->id);
+
+    // A campaign that does not run on the planned day (WIB) is not offered, and refused if sent anyway.
+    $this->post('/content/items', ['brand' => 'WEBWORKS', 'idea' => 'Terlalu awal', 'planned_at' => '2026-10-31T23:59', 'campaign' => $campaign->public_id])
+        ->assertSessionHas('error', 'Campaign "Akhir tahun" tidak berjalan pada tanggal ini.');
+    expect(ContentItem::query()->count())->toBe(1);
 });
 
 it('validates a new item', function (array $payload, string $field): void {
