@@ -82,10 +82,12 @@ Route::middleware('auth')->group(function (): void {
     Route::post('content/generation-runs/{run:public_id}/feedback', [ContentAiController::class, 'feedback'])->name('content.generation-runs.feedback');
     Route::put('content/settings/model', [ContentAiController::class, 'selectModel'])->name('content.settings.model');
 
-    // Brand & Template (ADR-0011, phase 2). Children are scoped to their brand.
+    // Brand Knowledge (ADR-0011). Campaign writes remain brand-scoped although their UI lives in Calendar planning.
     Route::get('content/brands', [ContentBrandController::class, 'index'])->name('content.brands.index');
     Route::scopeBindings()->prefix('content/brands/{brand:public_id}')->name('content.brands.')->group(function (): void {
         Route::get('/', [ContentBrandController::class, 'show'])->name('show');
+        Route::put('knowledge', [ContentBrandController::class, 'updateKnowledge'])->name('knowledge');
+        Route::post('knowledge/assist', [ContentBrandController::class, 'assistKnowledge'])->middleware('throttle:10,1')->name('knowledge.assist');
         Route::put('rules', [ContentBrandController::class, 'updateRules'])->name('rules');
         Route::post('pillars', [ContentBrandController::class, 'storePillar'])->name('pillars.store');
         Route::put('pillars/{pillar:public_id}', [ContentBrandController::class, 'updatePillar'])->name('pillars.update');

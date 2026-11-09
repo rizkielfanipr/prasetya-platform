@@ -4,15 +4,17 @@
 |---|---|
 | Status | Draft untuk persetujuan |
 | Owner | Prasetya Group |
-| Last updated | 2026-11-07 |
-| Decision | ADR penggunaan Hermes dan batas kewenangan agent belum dibuat |
-| Related | [`architecture.md`](architecture.md), [`design.md`](design.md), [`data-dictionary.md`](data-dictionary.md), [`security/threat-model.md`](security/threat-model.md), [`testing/strategy.md`](testing/strategy.md) |
+| Last updated | 2026-11-08 |
+| Decision | ADR-0011; target penyederhanaan di ADR-0012; KelontongAI dipilih untuk copy, gambar tetap manual |
+| Related | [`content-studio-simplification-plan.md`](content-studio-simplification-plan.md), [`architecture.md`](architecture.md), [`design.md`](design.md), [`data-dictionary.md`](data-dictionary.md), [`security/threat-model.md`](security/threat-model.md), [`testing/strategy.md`](testing/strategy.md) |
+
+> **Arah produk 2026-11-08:** [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) dan [rencana penyederhanaan](content-studio-simplification-plan.md) mengusulkan workflow creator-owned tanpa approval formal. Bagian approval di dokumen ini tetap menjelaskan implementasi dan riwayat fase yang sudah ada sampai migrasi status dilaksanakan; bagian tersebut bukan target UX berikutnya.
 
 ## Tujuan
 
 Membangun modul **Content Studio** untuk merencanakan konten Instagram mingguan, melakukan riset tren, menyusun strategi dan brief, menghasilkan caption serta gambar, menjalankan approval manusia, dan menyiapkan paket posting manual.
 
-Sistem harus mengurangi pekerjaan operasional tanpa menyerahkan keputusan publikasi kepada AI. Laravel tetap menjadi sumber data, pemilik workflow, dan audit trail. Hermes digunakan sebagai **AI Content Strategist** untuk riset dan perencanaan setelah fondasi manual serta generator OpenAI stabil.
+Sistem harus mengurangi pekerjaan operasional tanpa menyerahkan keputusan publikasi kepada AI. Laravel tetap menjadi sumber data, pemilik workflow, dan audit trail. Hermes digunakan sebagai **AI Content Strategist** untuk riset dan perencanaan setelah fondasi manual serta AI copy KelontongAI stabil.
 
 ## Keputusan produk saat ini
 
@@ -21,8 +23,8 @@ Sistem harus mengurangi pekerjaan operasional tanpa menyerahkan keputusan publik
 | Kanal awal | Instagram feed, gambar tunggal |
 | Perencanaan | Mingguan, dengan item konten per hari |
 | Strategi dan riset | Hermes Agent setelah research tools tersedia |
-| Caption dan structured output | OpenAI API |
-| Gambar | OpenAI Image API |
+| Caption dan structured output | KelontongAI Chat Completions API |
+| Gambar | Upload manual; image generator tidak digunakan |
 | Approval | Wajib dilakukan pengguna Content Studio |
 | Publikasi | Manual: download gambar, salin caption, lalu tandai sudah diposting |
 | Instagram API | Tidak digunakan pada scope awal |
@@ -136,9 +138,9 @@ Prasetya Platform / Content Studio
         +------------------------------+
         |                              |
         v                              v
-OpenAI API                      Hermes Agent
+KelontongAI Copy API            Hermes Agent
   - structured copy              - research
-  - image generation             - weekly strategy
+                                 - weekly strategy
                                  - content briefs
         |                              |
         +--------------+---------------+
@@ -159,7 +161,7 @@ OpenAI API                      Hermes Agent
 | Laravel Queue | Generation, agent run, asset processing, retry, dan timeout |
 | Laravel Scheduler | Memulai weekly planning run dan reminder |
 | Hermes | Riset, analisis, strategi, brief, dan koordinasi generation |
-| OpenAI | Model teks/reasoning dan image generation |
+| KelontongAI | Model teks untuk structured copy |
 | MySQL | Source of truth untuk data Content Studio |
 | Redis | Queue, lock, rate limit, dan cache non-authoritative |
 | Storage | Asset gambar original dan final |
@@ -182,9 +184,8 @@ Docker Desktop
         |
         v
 Hermes container
-  - OpenAI provider
+  - model provider
   - web research
-  - image generation
   - Content Studio tools (setelah tersedia)
 ```
 
@@ -321,7 +322,6 @@ Hermes tidak mengakses database secara langsung. Laravel menyediakan internal to
 - `submit_weekly_plan_draft`
 - `submit_content_brief_draft`
 - `request_copy_generation`
-- `request_image_generation`
 - `submit_revision_draft`
 - `complete_agent_run`
 
@@ -341,10 +341,10 @@ Setiap tool tulis memerlukan idempotency key, agent run id, dan expected revisio
 
 ## Strategi model dan credential
 
-### OpenAI
+### Provider AI
 
-- Gunakan satu model teks/reasoning yang mendukung tool use dan structured output.
-- Gunakan OpenAI Image API untuk generation dan editing gambar.
+- Gunakan satu model teks/reasoning KelontongAI yang mendukung structured output.
+- Gambar dibuat di luar sistem dan diunggah manual sampai provider image yang valid diputuskan melalui ADR baru.
 - Model identifier harus berupa konfigurasi, bukan hard-coded di domain logic.
 - Prompt disimpan sebagai versi; perubahan prompt tidak berlaku retroaktif pada run lama.
 - Output model dianggap untrusted dan selalu divalidasi.
@@ -352,14 +352,14 @@ Setiap tool tulis memerlukan idempotency key, agent run id, dan expected revisio
 ### Credential
 
 - API key tidak disimpan dalam tabel Content Studio atau dikirim ke browser.
-- Gunakan credential service account/project terpisah untuk agent reasoning dan image generation bila tersedia.
+- Gunakan credential service account/project terpisah untuk agent reasoning bila tersedia.
 - Hermes menerima key melalui environment atau secret injection pada service-nya.
 - Laravel hanya memegang credential yang benar-benar diperlukan olehnya.
 - Log dan audit tidak boleh memuat API key, Authorization header, atau raw response sensitif.
 
 ### Budget awal
 
-Nilai final ditentukan setelah spike, tetapi sistem harus mendukung:
+**Keputusan pemilik (2026-11-08): tidak ada batas biaya di aplikasi.** Batas biaya per run, per minggu, per revisi, dan per hari serta kewajiban harga per token dihapus; pengeluaran dikendalikan lewat batas belanja di dashboard provider. Pengaman teknis tetap ada (satu run per konten, circuit breaker, batas token keluaran, percobaan, dan timeout). Daftar di bawah adalah rencana awal dan kini hanya berlaku untuk batas teknis agen (Fase 5):
 
 - maksimum agent turn per weekly run;
 - maksimum search dan extract call;
@@ -458,19 +458,18 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** brief yang sama dapat dinilai terhadap aturan brand tanpa bergantung pada prompt tersembunyi.
 
-**Status (2026-11-08):** selesai di branch `feat/content-brand-knowledge` (di atas Fase 1), menunggu review data brand. Brand & Template di `/content/brands/{id}`: aturan berversi, pilar dengan target, kampanye, fakta disetujui yang hanya bisa dinonaktifkan, dan audit. Validator deterministik (`ContentRuleValidator`) memblokir pengajuan bila ada pelanggaran dan mencatat versi aturan pada revisi yang diajukan. Production tidak mendapat seed aturan, pilar, atau fakta; semuanya diisi pemilik dari data yang disetujui. Rincian di [`data-dictionary.md`](data-dictionary.md#brand-rule-check).
+**Status (2026-11-08):** pengalaman utama telah disederhanakan menjadi satu halaman **Brand Knowledge** dengan satu textarea bebas. Setiap simpan membuat versi immutable dan maksimal 100 chunk deterministik; prompt copy `copy-v4` mengambil maksimal enam chunk relevan berdasarkan judul, topik, objective, audience, dan brief. Ini adalah RAG/retrieval, bukan training atau fine-tuning. Tahap awal memakai keyword ranking tanpa vector database; embedding dapat ditambahkan pada chunk nanti. Campaign tetap di Kalender/Perencanaan. Structured rules, pillar, dan facts fase sebelumnya dipertahankan untuk validator dan kompatibilitas record lama tetapi tidak lagi menjadi tab utama. Rincian di [`data-dictionary.md`](data-dictionary.md#brand-rule-check).
 
-### Fase 3 — OpenAI production
+### Fase 3 — KelontongAI copy production
 
-- Provider abstraction untuk copy dan image.
+- Provider abstraction untuk copy.
 - Structured copy generation.
-- Image generation/editing.
 - Queue, retry, timeout, idempotency, usage, cost, dan prompt versioning.
 - Partial regeneration dan revision history.
 
-**Exit:** pengguna dapat membuat serta merevisi caption dan gambar dari brief, lalu meng-approve hasilnya.
+**Exit:** pengguna dapat membuat serta merevisi caption dari brief, mengunggah gambar manual, lalu meng-approve hasilnya.
 
-**Status (2026-11-08):** selesai untuk **teks** di branch `feat/content-ai-copy` (di atas Fase 2), menunggu evaluasi kualitas dan biaya dengan key asli. Keputusan pemilik: teks lewat adapter OpenAI-compatible (rencana: DeepSeek), **gambar tetap unggah manual**, budget $0,50 per run dan $5 per minggu. Tanpa key, provider `fake` dipakai untuk demo dan test; production tetap `none` sampai ada host queue worker. Generasi dan penyuntingan gambar AI belum dibangun. Cara mengaktifkan di [`runbooks/content-studio-ai.md`](runbooks/content-studio-ai.md).
+**Status (2026-11-08):** selesai untuk **teks** di branch `feat/content-ai-copy` (di atas Fase 2), menunggu evaluasi kualitas dan biaya dengan key asli. Copy prompt `copy-v4` menerima Brand Knowledge hasil retrieval dan tetap memperlakukan seluruh DATA sebagai bahan, bukan instruksi. Keputusan pemilik: teks lewat adapter OpenAI-compatible, **gambar tetap unggah manual**; batas biaya di aplikasi kemudian dihapus atas keputusan pemilik (pengeluaran dibatasi di provider). Tanpa key, provider `fake` dipakai untuk demo dan test; production tetap `none` sampai ada host queue worker. Generasi dan penyuntingan gambar AI belum dibangun. Cara mengaktifkan di [`runbooks/content-studio-ai.md`](runbooks/content-studio-ai.md).
 
 ### Fase 4 — Research tools
 
@@ -482,7 +481,7 @@ Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya
 
 **Exit:** research run menghasilkan kumpulan sumber yang dapat diaudit dan digunakan oleh planner.
 
-**Status (2026-11-08):** selesai di branch `feat/content-research` (di atas Fase 6), menunggu security review dan key Tavily. Sumber internal didahulukan (fakta berlaku, kampanye berjalan, konten mirip dalam 90 hari). Pencarian web lewat kontrak `WebSearch` (Tavily, `fake`, atau `none`) berjalan di queue tanpa Hermes; hasil disaring `UrlPolicy` (hanya http/https port standar, tanpa kredensial, tanpa alamat privat/lokal/metadata, daftar blokir dan izin domain), dikanonisasi dan dideduplikasi, diberi tingkat kepercayaan, dan disimpan sebagai metadata plus ringkasan terbatas, bukan artikel. Sumber manual membaca judul lewat `SafePageReader` (cek IP hasil DNS, pin koneksi, cek ulang setiap redirect, HTML saja, batas waktu dan ukuran). Sumber yang dipakai ikut dibaca AI sebagai bahan latar tak tepercaya (prompt `copy-v3`). Hermes nanti memakai tool riset ini, bukan key atau skill search sendiri.
+**Status (2026-11-08):** selesai di branch `feat/content-research` (di atas Fase 6), menunggu security review dan key Tavily. Sumber internal didahulukan (Brand Knowledge aktif, fakta legacy berlaku, kampanye berjalan, konten mirip dalam 90 hari). Pencarian web lewat kontrak `WebSearch` berjalan di queue tanpa Hermes; hasil disaring `UrlPolicy`, dikanonisasi, dideduplikasi, dan disimpan sebagai metadata plus ringkasan terbatas. Sumber yang dipakai ikut dibaca AI sebagai bahan latar tak tepercaya (prompt `copy-v4`). Hermes nanti memakai tool riset ini, bukan key atau skill search sendiri.
 
 ### Fase 5 — Hermes Content Strategist
 
@@ -629,18 +628,18 @@ Log menggunakan run id dan content public id, bukan caption penuh atau secret.
 ## Rollback
 
 - Nonaktifkan scheduler weekly agent run.
-- Nonaktifkan tool credential Hermes dan OpenAI tanpa menghapus data Content Studio.
+- Nonaktifkan tool credential Hermes dan KelontongAI tanpa menghapus data Content Studio.
 - Hentikan queue khusus generation/agent, bukan queue pembayaran platform.
 - Kembali ke pembuatan konten manual.
 - Pertahankan research, generation, revision, approval, dan audit history.
 - Jangan menghapus asset approved/published saat rollback.
-- Jika Hermes bermasalah, Content Studio manual dan OpenAI direct generation harus tetap dapat digunakan secara independen.
+- Jika Hermes bermasalah, Content Studio manual dan KelontongAI copy generation harus tetap dapat digunakan secara independen.
 
 ## Exit criteria keseluruhan
 
 - Content Studio manual dapat digunakan tanpa AI.
 - Brand knowledge dan approved facts menjadi konteks authoritative.
-- OpenAI menghasilkan caption dan gambar dengan structured, versioned, dan auditable output.
+- KelontongAI menghasilkan copy yang structured, versioned, dan auditable; gambar tetap diunggah manual.
 - Research memiliki sumber yang dapat ditelusuri serta perlindungan prompt injection dan SSRF.
 - Hermes dapat menyusun weekly plan dalam budget dan tool boundary yang ditentukan.
 - Tidak ada jalur AI untuk approve, publish, delete, atau mengubah fakta bisnis.
@@ -658,9 +657,9 @@ Dicatat di [ADR-0011](decisions/0011-content-studio-authority-boundary.md).
 | 3. Siapa yang boleh approve | Bukan pengaju revisi tersebut (four-eyes); semua user aktif lain boleh |
 | 5. Ukuran gambar | 4:5, 1080×1350 |
 | 9. URL Instagram saat published | Opsional; waktu posting aktual wajib |
-| Provider AI | Konfigurasi per kemampuan (copy, gambar, riset, agent); OpenAI sebagai provider pertama; penggantian provider melalui evaluasi |
+| Provider AI | KelontongAI untuk copy; gambar manual; riset dan agent dikonfigurasi terpisah; penggantian provider melalui evaluasi |
 
-Masih terbuka sampai fase yang membutuhkannya: 2 (jumlah dan hari konten; kalender tidak memaksa jumlah), 4 (gambar generatif atau asset brand), 6 (retensi), 7 (budget), 8 (search provider), 10 (insight manual), serta lokasi Hermes dan queue worker di staging/production karena hosting cPanel saat ini tidak menyediakan Docker maupun queue worker.
+Masih terbuka sampai fase yang membutuhkannya: 2 (jumlah dan hari konten; kalender tidak memaksa jumlah), 6 (retensi), 7 (budget), 8 (search provider), 10 (insight manual), serta lokasi Hermes dan queue worker di staging/production karena hosting cPanel saat ini tidak menyediakan Docker maupun queue worker.
 
 ## Pertanyaan yang harus diputuskan sebelum Fase 1
 

@@ -7,13 +7,12 @@ namespace App\Domain\Content\Ai;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentGenerationRun;
-use App\Domain\Content\Models\ContentResearchRun;
-use App\Support\BusinessTime;
 use Carbon\CarbonImmutable;
 
 /**
- * Whether AI copy may run now, and what it costs. Cost is estimated from configured per-million-token prices, so the
- * weekly and per-run limits hold for any provider. Nothing here calls the provider.
+ * Whether AI copy may run now, and an optional cost estimate. There is no spending limit in the application (owner
+ * decision, 2026-11-08): set a spending limit at the provider instead. Prices are optional; without them cost is 0.
+ * Nothing here calls the provider.
  */
 final class CopyBudget
 {
@@ -32,9 +31,6 @@ final class CopyBudget
         if ($this->generator->provider() === 'fake' && app()->isProduction()) {
             return 'Provider contoh (fake) tidak boleh dipakai di production.';
         }
-        if ($this->generator->provider() !== 'fake' && ($this->priceIn() <= 0.0 || $this->priceOut() <= 0.0)) {
-            return 'Harga per token provider AI belum diisi, jadi budget tidak dapat dijaga.';
-        }
 
         return null;
     }
@@ -42,32 +38,6 @@ final class CopyBudget
     public function cost(int $inputTokens, int $outputTokens): float
     {
         return round(($inputTokens * $this->priceIn() + $outputTokens * $this->priceOut()) / 1_000_000, 6);
-    }
-
-    /** The most a prompt can cost: its estimated input plus the full output allowance. */
-    public function maxCost(CopyPrompt $prompt): float
-    {
-        return $this->cost($prompt->estimatedInputTokens(), $prompt->maxOutputTokens);
-    }
-
-    public function runLimit(): float
-    {
-        return (float) config('content.ai.budget.run_usd');
-    }
-
-    public function weekLimit(): float
-    {
-        return (float) config('content.ai.budget.week_usd');
-    }
-
-    /** Spent this business week (Monday 00:00 WIB onwards) by every copy and research run that reached a provider. */
-    public function spentThisWeek(): float
-    {
-        $start = CarbonImmutable::now(BusinessTime::zone())->startOfWeek(CarbonImmutable::MONDAY)->startOfDay()->utc();
-
-        // One weekly AI budget for copy and web research together.
-        return round((float) ContentGenerationRun::query()->where('started_at', '>=', $start)->sum('cost_usd')
-            + (float) ContentResearchRun::query()->where('started_at', '>=', $start)->sum('cost_usd'), 6);
     }
 
     /** When the provider failed repeatedly just now, the time new requests may resume; otherwise null. */

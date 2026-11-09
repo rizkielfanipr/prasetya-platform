@@ -122,7 +122,9 @@ function generate(): void {
                         · {{ run.requestedBy }} · {{ formatDateTime(run.createdAt)
                         }}<template v-if="run.resultRevisionNumber"> · revisi {{ run.resultRevisionNumber }}</template
                         ><template v-if="run.inputTokens + run.outputTokens > 0">
-                            · {{ run.inputTokens + run.outputTokens }} token · {{ formatUsd(run.costUsd) }}</template
+                            · {{ run.inputTokens + run.outputTokens }} token<template v-if="run.costUsd > 0">
+                                · {{ formatUsd(run.costUsd) }}</template
+                            ></template
                         >
                     </span>
                     <span v-if="run.usedReviewNote || run.instruction" class="block text-xs text-muted-foreground"

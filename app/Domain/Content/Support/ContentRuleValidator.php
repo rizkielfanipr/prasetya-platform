@@ -108,8 +108,9 @@ final class ContentRuleValidator
     public function usableFacts(ContentItem $item): array
     {
         $day = $item->planned_at->setTimezone(BusinessTime::zone())->toDateString();
+        $item->loadMissing('brand.currentKnowledge.chunks');
 
-        return ContentFact::query()
+        $facts = ContentFact::query()
             ->where('content_brand_id', $item->content_brand_id)
             ->where(fn ($q) => $q->whereNull('content_campaign_id')->orWhere('content_campaign_id', $item->content_campaign_id))
             ->usableOn($day)
@@ -117,6 +118,8 @@ final class ContentRuleValidator
             ->pluck('statement')
             ->values()
             ->all();
+
+        return [...$facts, ...($item->brand->currentKnowledge?->chunks->pluck('content')->all() ?? [])];
     }
 
     /**

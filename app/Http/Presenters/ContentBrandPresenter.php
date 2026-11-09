@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Presenters;
 
 use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentBrandKnowledgeVersion;
 use App\Domain\Content\Models\ContentBrandProfile;
 use App\Domain\Content\Models\ContentCampaign;
 use App\Domain\Content\Models\ContentFact;
@@ -14,6 +15,18 @@ use App\Domain\Content\Support\RuleFinding;
 /** Brand knowledge for the screen; resources/js/types/content.ts mirrors it. */
 final class ContentBrandPresenter
 {
+    /** @return array<string, mixed> */
+    public static function knowledge(ContentBrandKnowledgeVersion $version): array
+    {
+        return [
+            'version' => $version->version,
+            'sourceText' => $version->source_text,
+            'chunks' => $version->chunks->count(),
+            'createdBy' => $version->creator->name,
+            'createdAt' => $version->created_at->toIso8601ZuluString(),
+        ];
+    }
+
     /** @return array<string, mixed> */
     public static function rules(ContentBrandProfile $profile): array
     {
@@ -77,6 +90,7 @@ final class ContentBrandPresenter
     {
         return [
             'id' => $fact->public_id,
+            'category' => $fact->category->value,
             'statement' => $fact->statement,
             'source' => $fact->source,
             'campaign' => $fact->campaign?->name,

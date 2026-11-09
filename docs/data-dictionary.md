@@ -2,6 +2,8 @@
 
 MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a ULID; numeric ids never leave the server.
 
+> Content Studio tables below describe the current schema. [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) proposes `DRAFT`, `READY`, `PUBLISHED`, and `ARCHIVED` plus retention of historical approval evidence. The exact schema becomes authoritative only when the compatibility migration in the [simplification plan](content-studio-simplification-plan.md) ships.
+
 ## Tables
 
 | Table | Purpose | Key rules |
@@ -28,10 +30,13 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `content_assets` | The image of a revision | One per revision. Private disk, path by SHA-256 checksum (deduplicated), MIME type from the bytes, size, width, height, original name, uploader |
 | `content_approvals` | Append-only review decisions | Revision, decision (`APPROVED`, `REVISION_REQUESTED`, `REJECTED`), `areas` (phase 6: parts a revision request names), note, actor, time. An approval names exactly one revision |
 | `content_publications` | The human statement that an item was posted | One per item. Revision posted, actual `published_at` (required), Instagram URL (optional), note, `checklist` (phase 7: the posting steps confirmed, all required), actor. Immutable |
-| `content_brand_profiles` | Versioned brand rules (phase 2) | Append-only; unique (`content_brand_id`, `version`). Audience, voice, visual guidance; bounded JSON lists of short phrases (preferred and forbidden terms, forbidden claims, approved CTAs, required and forbidden hashtags, approved and rejected examples); caption length and hashtag limits; topic repeat days; change note, author. `content_brands.current_profile_id` points at the version in force |
+| `content_brand_profiles` | Legacy structured brand rules (phase 2 compatibility) | Append-only; unique (`content_brand_id`, `version`). Audience, voice, visual guidance, bounded lists, caption/hashtag limits, topic repeat days, change note, and author. Existing revisions continue to reference the version they met. It is no longer the primary user-facing Brand editor |
+| `content_brand_knowledge_versions` | One free-text Brand Knowledge document per saved version | Append-only; unique (`content_brand_id`, `version`). `source_text`, author, and creation time. `content_brands.current_knowledge_version_id` points at the active version. Saving identical text is refused |
+| `content_brand_knowledge_chunks` | Retrieval units derived from one knowledge version | Ordered by `position`, maximum 100 per version and approximately 1,200 characters per chunk. The final Markdown section `Informasi yang Perlu Dikonfirmasi` remains in `source_text` but is deliberately omitted here. The first implementation performs deterministic keyword ranking; this row is the future attachment point for an embedding without changing the source document |
+| `content_brand_knowledge_assists` | Operational records for the Brand Knowledge AI interview | Brand, requester, provider/model, status, prompt version, token usage, estimated cost, latency, safe error, and timestamps. Questionnaire answers and raw provider output are not stored |
 | `content_pillars` | Recurring themes of a brand | Unique (`content_brand_id`, `name`). Description, `target_share` (percent of a week's posts; active pillars total at most 100), `is_active` |
 | `content_campaigns` | Time-boxed pushes | Name, objective, `starts_on`/`ends_on` (business-time days, inclusive), priority (`HIGH`, `NORMAL`, `LOW`), `is_active` |
-| `content_facts` | Approved business facts content may state | Statement, source, optional campaign, optional `valid_until`. The statement never changes; correction retires it (`retired_at`, by, reason) and adds a new fact |
+| `content_facts` | Approved Knowledge Base entries content may state | Controlled `category` (`GENERAL`, `SERVICE`, `PRICE`, `PROCESS`, `ADVANTAGE`, `FAQ`, `PROMO`, `POLICY`, `EVIDENCE`), statement, source, optional campaign, optional `valid_until`. Existing rows migrate as `GENERAL`. The statement and category never change; correction retires it (`retired_at`, by, reason) and adds a new entry |
 | `content_research_runs` | One web search (phase 4) | Brand, item, query, status, provider, kept and dropped counts, the sources it returned, search calls, estimated `cost_usd`, latency, safe error |
 | `content_research_sources` | Research material per brand | Unique per brand by URL identity (canonical, no tracking parameters, `www.` ignored). Origin (`SEARCH`, `MANUAL`), URL, domain, title, summary (at most 600 characters, never the article), trust (`OFFICIAL`, `GENERAL`, `USER_GENERATED`), relevance, published date, access time, who added it |
 | `content_item_sources` | Citations | Item, source, team note, who linked it, when. At most 8 per item |
@@ -42,6 +47,8 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 Phase 2 also adds `content_items.content_pillar_id`, `content_campaign_id`, and `topic` (nullable plan details), and `content_revisions.brand_profile_id`: the rules version a revision met when it was submitted. Phase 3 adds `content_revisions.generation_run_id` on revisions AI drafted.
 
 ### Brand rule check
+
+The user-facing Brand screen stores one free-text document. It is not model training. On save, Laravel versions and chunks it deterministically. Copy generation ranks chunks against the content title, topic, objective, audience, and brief; at most six relevant chunks enter prompt `brand_knowledge`. For short documents all chunks are included. Existing structured brand profiles and facts remain active for deterministic rules and compatibility during the transition.
 
 `App\Domain\Content\Support\ContentRuleValidator` checks a revision against stored data only; the same input gives the same findings. Public text is the caption, hashtags, and alt text.
 

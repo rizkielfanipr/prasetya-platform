@@ -6,7 +6,7 @@ test('research a post on the web, cite a result, and add a manual source', async
     await page.goto('/content/items?search=Domain');
     await page.getByRole('link', { name: 'Domain, hosting, dan SSL dalam satu menit' }).click();
     const panel = page.getByTestId('research-panel');
-    await expect(panel).toContainText('fakta disetujui');
+    await expect(panel).toContainText('knowledge berlaku');
 
     await panel.getByLabel('Kata kunci riset').fill('domain hosting umkm');
     await panel.getByRole('button', { name: 'Cari di web' }).click();

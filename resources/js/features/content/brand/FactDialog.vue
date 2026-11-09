@@ -3,14 +3,15 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog.vue';
 import FormField from '@/components/shared/FormField.vue';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { contentFactCategories } from '@/lib/content';
 import { routes } from '@/lib/routes';
-import type { ContentCampaign } from '@/types/content';
+import type { ContentCampaign, ContentFactCategory } from '@/types/content';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
 const props = defineProps<{ brandId: string; campaigns: ContentCampaign[] }>();
 const open = defineModel<boolean>('open', { default: false });
-const form = useForm({ statement: '', source: '', campaign: '', valid_until: '' });
+const form = useForm({ category: 'GENERAL' as ContentFactCategory, statement: '', source: '', campaign: '', valid_until: '' });
 
 watch(open, (value) => {
     if (value) {
@@ -30,17 +31,28 @@ function submit(): void {
 <template>
     <ConfirmDialog
         v-model:open="open"
-        title="Tambah fakta disetujui"
-        description="Harga, nama produk, promo, dan klaim angka di konten harus tertulis di sini. Fakta tidak bisa diubah; ganti dengan fakta baru bila berubah."
-        confirm-label="Tambah fakta"
+        title="Tambah knowledge"
+        description="Masukkan hanya informasi yang telah disetujui dan punya sumber. Knowledge tidak bisa diubah; nonaktifkan lalu buat entri baru bila berubah."
+        confirm-label="Tambah knowledge"
         :submitting="form.processing"
         @confirm="submit"
     >
         <div class="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+            <FormField id="fact-category" v-slot="{ describedBy, invalid }" label="Kategori *" :error="form.errors.category">
+                <select
+                    id="fact-category"
+                    v-model="form.category"
+                    class="h-11 w-full rounded-md border border-input bg-card px-3 text-sm"
+                    :aria-describedby="describedBy"
+                    :aria-invalid="invalid"
+                >
+                    <option v-for="(label, value) in contentFactCategories" :key="value" :value="value">{{ label }}</option>
+                </select>
+            </FormField>
             <FormField
                 id="fact-statement"
                 v-slot="{ describedBy, invalid }"
-                label="Fakta *"
+                label="Pernyataan *"
                 :error="form.errors.statement"
                 hint="Tulis persis, termasuk angka. Contoh: Paket Landing Page Rp 1.500.000."
             >

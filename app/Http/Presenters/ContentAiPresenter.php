@@ -80,7 +80,6 @@ final class ContentAiPresenter
     public static function status(CopyGenerator $generator, CopyBudget $budget, CopyModels $models): array
     {
         $until = $budget->circuitOpenUntil();
-        $selected = $models->selected();
         $real = $generator->provider() === 'openai_compatible';
 
         return [
@@ -88,29 +87,17 @@ final class ContentAiPresenter
             'model' => $generator->model(),
             'unavailableReason' => $budget->unavailableReason(),
             'queue' => (string) config('content.ai.queue'),
-            'priceInputPerMillion' => $real ? ($selected->priceInputPerMillion ?? 0.0) : 0.0,
-            'priceOutputPerMillion' => $real ? ($selected->priceOutputPerMillion ?? 0.0) : 0.0,
             // Only a real provider has a choice; the list comes from the server's configuration.
             'models' => $real ? array_map(static fn (CopyModel $m): array => [
                 'name' => $m->name,
-                'priceInputPerMillion' => $m->priceInputPerMillion,
-                'priceOutputPerMillion' => $m->priceOutputPerMillion,
             ], $models->available()) : [],
             'maxOutputTokens' => (int) config('content.ai.copy.max_output_tokens'),
             'maxAttempts' => (int) config('content.ai.copy.max_attempts'),
             'timeoutSeconds' => (int) config('content.ai.copy.timeout_seconds'),
-            'budget' => [
-                'spentThisWeek' => $budget->spentThisWeek(),
-                'weekLimit' => $budget->weekLimit(),
-                'runLimit' => $budget->runLimit(),
-                'runsPerRevision' => (int) config('content.ai.budget.runs_per_revision'),
-            ],
             'search' => [
                 'provider' => (string) config('content.ai.search.provider'),
                 'unavailableReason' => app(RequestResearch::class)->unavailableReason(),
-                'pricePerCall' => (float) config('content.ai.search.price_per_call'),
                 'maxResults' => (int) config('content.ai.search.max_results'),
-                'perItemPerDay' => (int) config('content.ai.search.searches_per_item_per_day'),
                 'callsThisWeek' => (int) ContentResearchRun::query()->where('started_at', '>=', now(BusinessTime::zone())->startOfWeek(Carbon::MONDAY)->startOfDay()->utc())->sum('search_calls'),
             ],
             'circuitOpenUntil' => $until !== null && $until->isFuture() ? $until->toIso8601ZuluString() : null,

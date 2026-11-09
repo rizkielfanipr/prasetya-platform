@@ -25,15 +25,10 @@ watch(
         modelForm.defaults();
     },
 );
-const chosen = computed(() => props.status.models.find((m) => m.name === modelForm.model));
-
 function saveModel(): void {
     modelForm.put(routes.contentSettingsModel, { preserveScroll: true });
 }
 
-const used = computed(() =>
-    props.status.budget.weekLimit > 0 ? Math.min(100, Math.round((props.status.budget.spentThisWeek / props.status.budget.weekLimit) * 100)) : 0,
-);
 const providerName = computed(
     () =>
         ({ none: 'Belum dipilih', fake: 'Contoh (fake, tanpa biaya)', openai_compatible: 'OpenAI-compatible' })[props.status.provider] ?? props.status.provider,
@@ -43,13 +38,12 @@ const columns: DataTableColumn[] = [
     { key: 'status', label: 'Status' },
     { key: 'model', label: 'Model' },
     { key: 'usage', label: 'Token', align: 'right' },
-    { key: 'cost', label: 'Biaya', align: 'right' },
     { key: 'time', label: 'Waktu' },
 ];
 </script>
 
 <template>
-    <AppLayout title="Content Studio" description="Status AI, budget, dan riwayat draft AI. Konten tetap dapat ditulis manual kapan pun.">
+    <AppLayout title="Content Studio" description="Status AI dan riwayat draft AI. Konten tetap dapat ditulis manual kapan pun.">
         <ContentNav current="settings" />
 
         <PanelCard title="Penulis AI (teks)">
@@ -73,10 +67,6 @@ const columns: DataTableColumn[] = [
                     <dd class="mt-1 font-mono text-sm break-all">{{ status.model ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Harga per 1 juta token</dt>
-                    <dd class="mt-1">masuk {{ formatUsd(status.priceInputPerMillion) }} · keluar {{ formatUsd(status.priceOutputPerMillion) }}</dd>
-                </div>
-                <div>
                     <dt class="text-xs font-semibold text-muted-foreground">Batas per run</dt>
                     <dd class="mt-1">{{ status.maxOutputTokens }} token keluar · {{ status.maxAttempts }} percobaan · {{ status.timeoutSeconds }} detik</dd>
                 </div>
@@ -98,9 +88,7 @@ const columns: DataTableColumn[] = [
                         <option v-for="option in status.models" :key="option.name" :value="option.name">{{ option.name }}</option>
                     </select>
                     <p id="ai-model-hint" class="text-xs text-muted-foreground">
-                        <template v-if="chosen"
-                            >Harga: masuk {{ formatUsd(chosen.priceInputPerMillion) }} · keluar {{ formatUsd(chosen.priceOutputPerMillion) }} per 1 juta token. </template
-                        >Daftar model diatur di server (<code>CONTENT_TEXT_MODELS</code>). Jalankan <code>content:eval-copy --model=…</code> sebelum mengganti.
+                        Daftar model diatur di server (<code>CONTENT_TEXT_MODELS</code>). Jalankan <code>content:eval-copy --model=…</code> sebelum mengganti.
                     </p>
                 </div>
                 <Button type="submit" :disabled="!modelForm.isDirty || modelForm.processing" :aria-busy="modelForm.processing">Simpan model</Button>
@@ -113,8 +101,7 @@ const columns: DataTableColumn[] = [
                 <summary class="cursor-pointer font-semibold">Cara mengaktifkan</summary>
                 <p class="mt-2 text-muted-foreground">
                     Isi di file <code>.env</code> server (bukan di sini): <code>CONTENT_TEXT_PROVIDER=openai_compatible</code>,
-                    <code>CONTENT_TEXT_BASE_URL</code>, <code>CONTENT_TEXT_MODEL</code>, <code>CONTENT_TEXT_API_KEY</code>, serta
-                    <code>CONTENT_TEXT_PRICE_INPUT</code> dan <code>CONTENT_TEXT_PRICE_OUTPUT</code> (USD per 1 juta token). Jalankan worker:
+                    <code>CONTENT_TEXT_BASE_URL</code>, <code>CONTENT_TEXT_MODEL</code>, dan <code>CONTENT_TEXT_API_KEY</code>. Jalankan worker:
                     <code>php artisan queue:work --queue={{ status.queue }}</code
                     >. Sebelum dipakai, jalankan <code>php artisan content:eval-copy</code>.
                 </p>
@@ -124,27 +111,12 @@ const columns: DataTableColumn[] = [
         <PanelCard title="Pencarian web (riset)">
             <p class="text-sm" data-testid="search-status">
                 <template v-if="status.search.unavailableReason">{{ status.search.unavailableReason }}</template>
-                <template v-else>Siap. Provider {{ status.search.provider }}, {{ formatUsd(status.search.pricePerCall) }} per pencarian.</template>
+                <template v-else>Siap. Provider {{ status.search.provider }}.</template>
             </p>
             <p class="mt-1 text-xs text-muted-foreground">
-                {{ status.search.callsThisWeek }} pencarian minggu ini · maksimal {{ status.search.maxResults }} hasil per pencarian ·
-                {{ status.search.perItemPerDay }} kali per konten per hari. Biaya masuk budget mingguan yang sama. Key tidak pernah ditampilkan; agen memakai
-                tool riset, bukan key.
+                {{ status.search.callsThisWeek }} pencarian minggu ini · maksimal {{ status.search.maxResults }} hasil per pencarian. Key tidak pernah
+                ditampilkan; agen memakai tool riset, bukan key.
             </p>
-        </PanelCard>
-
-        <PanelCard
-            title="Budget minggu ini"
-            :description="`Senin–Minggu WIB. Batas per run ${formatUsd(status.budget.runLimit)}, maksimal ${status.budget.runsPerRevision} kali AI per revisi.`"
-        >
-            <p class="text-sm" data-testid="ai-budget">
-                Terpakai <span class="font-semibold">{{ formatUsd(status.budget.spentThisWeek) }}</span> dari {{ formatUsd(status.budget.weekLimit) }} ({{
-                    used
-                }}%)
-            </p>
-            <div class="mt-2 h-2 rounded-full bg-muted" aria-hidden="true">
-                <div class="h-full rounded-full bg-primary-strong" :style="{ width: `${used}%` }" />
-            </div>
         </PanelCard>
 
         <PanelCard
@@ -162,8 +134,11 @@ const columns: DataTableColumn[] = [
                         ><span class="font-mono">{{ row.model ?? '—' }}</span> · prompt {{ row.promptVersion }}</span
                     >
                     <span class="tabular"
-                        >{{ row.drafts }} draft · {{ row.useful }} berguna · {{ row.notUseful }} kurang berguna · {{ row.approved }} disetujui ·
-                        {{ formatUsd(row.costUsd) }}</span
+                        >{{ row.drafts }} draft · {{ row.useful }} berguna · {{ row.notUseful }} kurang berguna · {{ row.approved }} disetujui<template
+                            v-if="row.costUsd > 0"
+                        >
+                            · {{ formatUsd(row.costUsd) }}</template
+                        ></span
                     >
                 </li>
             </ul>
@@ -180,7 +155,6 @@ const columns: DataTableColumn[] = [
                     ><span class="font-mono text-xs">{{ row.model ?? row.provider }}</span></template
                 >
                 <template #cell-usage="{ row }">{{ row.inputTokens + row.outputTokens }}</template>
-                <template #cell-cost="{ row }">{{ formatUsd(row.costUsd) }}</template>
                 <template #cell-time="{ row }"
                     ><span class="whitespace-nowrap">{{ formatDateTime(row.createdAt) }}</span></template
                 >

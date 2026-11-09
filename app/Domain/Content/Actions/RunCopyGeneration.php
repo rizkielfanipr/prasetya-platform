@@ -61,18 +61,6 @@ final class RunCopyGeneration
             'instruction' => $run->instruction,
         ]);
 
-        $maxCost = $this->budget->maxCost($prompt);
-        if ($maxCost > $this->budget->runLimit()) {
-            $this->fail($run, 'run_budget', sprintf('Perkiraan biaya maksimal $%.4f melebihi batas per run $%.2f.', $maxCost, $this->budget->runLimit()));
-
-            return;
-        }
-        if ($this->budget->spentThisWeek() + $maxCost > $this->budget->weekLimit()) {
-            $this->fail($run, 'week_budget', sprintf('Sisa budget AI minggu ini tidak cukup (batas $%.2f).', $this->budget->weekLimit()));
-
-            return;
-        }
-
         $attempts = max(1, (int) config('content.ai.copy.max_attempts'));
         $input = 0;
         $output = 0;

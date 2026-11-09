@@ -25,7 +25,7 @@ test('Pengaturan AI shows status, budget, and runs without any key', async ({ pa
     await page.getByRole('navigation', { name: 'Bagian Content Studio' }).getByRole('link', { name: 'Pengaturan AI' }).click();
 
     await expect(page.getByTestId('ai-status')).toContainText('AI siap membuat draft.');
-    await expect(page.getByTestId('ai-budget')).toContainText('dari $5.00');
+    await expect(page.getByRole('main')).not.toContainText('Budget minggu ini');
     await expect(page.getByRole('main')).not.toContainText(/sk-[a-z0-9]/i); // A key value, never its variable name.
     await expectNoAxeViolations(page);
 });

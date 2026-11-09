@@ -1,21 +1,26 @@
 <script setup lang="ts">
 import AppLayout from '@/components/layout/AppLayout.vue';
+import PanelCard from '@/components/layout/PanelCard.vue';
+import EmptyState from '@/components/shared/EmptyState.vue';
 import ErrorState from '@/components/shared/ErrorState.vue';
 import FilterBar, { type ActiveFilter } from '@/components/shared/FilterBar.vue';
-import { buttonVariants } from '@/components/ui/button';
+import StatusBadge from '@/components/shared/StatusBadge.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useUrlFilters } from '@/composables/useUrlFilters';
+import CampaignDialog from '@/features/content/brand/CampaignDialog.vue';
 import ContentComposition from '@/features/content/ContentComposition.vue';
 import ContentCreateDialog from '@/features/content/ContentCreateDialog.vue';
 import ContentFilterFields from '@/features/content/ContentFilterFields.vue';
 import ContentNav from '@/features/content/ContentNav.vue';
 import ContentWeekView from '@/features/content/ContentWeekView.vue';
-import { contentStatuses } from '@/lib/content';
+import { campaignPriorities, contentStatuses } from '@/lib/content';
 import { formatDate } from '@/lib/format';
 import { routes } from '@/lib/routes';
-import type { CompositionEntry, ContentBrandOption, ContentFilters, ContentRow, ContentWeek } from '@/types/content';
+import { userStatuses } from '@/lib/status';
+import type { CampaignPriority, CompositionEntry, ContentBrandOption, ContentCampaign, ContentFilters, ContentRow, ContentWeek } from '@/types/content';
 import { Link } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight } from '@lucide/vue';
-import { computed } from 'vue';
+import { ChevronLeft, ChevronRight, Pencil, Plus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 
 /** Kalender (ADR-0011): one week of planned posts. A planned time passing changes nothing. */
 const props = defineProps<{
@@ -23,8 +28,14 @@ const props = defineProps<{
     week: ContentWeek;
     items: ContentRow[];
     composition: CompositionEntry[];
-    brands: ContentBrandOption[];
+    brands: (ContentBrandOption & { id: string })[];
+    manageCampaigns: boolean;
+    priorities: CampaignPriority[];
 }>();
+
+const campaignOpen = ref(false);
+const campaignBrand = ref<string | null>(null);
+const editingCampaign = ref<ContentCampaign | null>(null);
 
 const { apply, loading, failed } = useUrlFilters(
     () => routes.contentCalendar,
@@ -47,11 +58,70 @@ const active = computed<ActiveFilter[]>(() =>
 const isCurrentWeek = computed(() => props.week.days.includes(props.week.today));
 const range = computed(() => `${formatDate(`${props.week.start}T00:00:00+07:00`)} – ${formatDate(`${props.week.end}T00:00:00+07:00`)}`);
 const navClass = buttonVariants({ variant: 'outline', size: 'sm' });
+const day = (date: string) => formatDate(`${date}T00:00:00+07:00`);
+
+function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
+    campaignBrand.value = brandId;
+    editingCampaign.value = campaign;
+    campaignOpen.value = true;
+}
 </script>
 
 <template>
     <AppLayout title="Content Studio" description="Rencanakan, tinjau, dan catat posting Instagram. Posting tetap dilakukan manual.">
         <ContentNav current="calendar" />
+
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+            <div>
+                <p class="font-semibold">Perencanaan Konten</p>
+                <p class="text-sm text-muted-foreground">Kelola campaign berbatas waktu bersama kalender dan jadwal konten.</p>
+            </div>
+            <Link
+                :href="routes.contentCalendar"
+                :data="{ ...query(week.start), manage_campaigns: manageCampaigns ? null : 1 }"
+                :class="buttonVariants({ variant: manageCampaigns ? 'outline' : 'default' })"
+                preserve-scroll
+            >
+                {{ manageCampaigns ? 'Tutup campaign' : 'Kelola campaign' }}
+            </Link>
+        </div>
+
+        <PanelCard v-if="manageCampaigns" title="Campaign" description="Program sementara dengan tujuan dan periode yang menjadi konteks jadwal konten.">
+            <div class="space-y-5">
+                <section v-for="brand in brands" :key="brand.id" class="space-y-3" :aria-labelledby="`campaign-brand-${brand.id}`">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h3 :id="`campaign-brand-${brand.id}`" class="font-semibold">{{ brand.name }}</h3>
+                        <Button size="sm" class="gap-1.5" @click="openCampaign(brand.id, null)">
+                            <Plus class="size-3.5" aria-hidden="true" />Tambah campaign
+                        </Button>
+                    </div>
+                    <EmptyState v-if="brand.campaigns.length === 0" title="Belum ada campaign" />
+                    <ul v-else class="divide-y rounded-lg border">
+                        <li v-for="campaign in brand.campaigns" :key="campaign.id" class="flex flex-wrap items-center justify-between gap-3 p-4">
+                            <div class="min-w-0 flex-1">
+                                <p class="font-semibold">{{ campaign.name }}</p>
+                                <p class="text-sm text-muted-foreground">
+                                    {{ day(campaign.startsOn) }} – {{ day(campaign.endsOn) }} · prioritas
+                                    {{ campaignPriorities[campaign.priority].toLowerCase() }}
+                                </p>
+                                <p v-if="campaign.objective" class="text-sm break-words">{{ campaign.objective }}</p>
+                            </div>
+                            <StatusBadge :status="campaign.isActive ? userStatuses.active : userStatuses.inactive" />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                class="gap-1.5"
+                                :aria-label="`Ubah campaign ${campaign.name}`"
+                                @click="openCampaign(brand.id, campaign)"
+                            >
+                                <Pencil class="size-3.5" aria-hidden="true" />Ubah
+                            </Button>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+            <CampaignDialog v-if="campaignBrand" v-model:open="campaignOpen" :brand-id="campaignBrand" :campaign="editingCampaign" :priorities="priorities" />
+        </PanelCard>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2">

@@ -6,7 +6,10 @@ defineProps<{ id: string; label: string; error?: string; hint?: string }>();
 
 <template>
     <div class="space-y-2">
-        <Label :for="id" class="text-sm font-semibold">{{ label }}</Label>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <Label :for="id" class="text-sm font-semibold">{{ label }}</Label>
+            <slot name="actions" />
+        </div>
         <!-- aria-describedby ties the message to the input; role=alert announces it when it appears. -->
         <slot :described-by="error ? `${id}-error` : hint ? `${id}-hint` : undefined" :invalid="error ? true : undefined" />
         <p v-if="hint && !error" :id="`${id}-hint`" class="text-xs text-muted-foreground">{{ hint }}</p>

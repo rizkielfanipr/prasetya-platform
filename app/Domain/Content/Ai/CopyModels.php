@@ -20,9 +20,12 @@ final class CopyModels
         $models = [];
         foreach (array_filter(array_map('trim', explode(',', (string) config('content.ai.copy.models')))) as $entry) {
             $parts = array_map('trim', explode(':', $entry));
-            if (count($parts) === 3 && $parts[0] !== '' && is_numeric($parts[1]) && is_numeric($parts[2])) {
-                $models[$parts[0]] = new CopyModel($parts[0], (float) $parts[1], (float) $parts[2]);
+            if ($parts[0] === '') {
+                continue;
             }
+            // Prices are optional: "model" or "model:input:output".
+            $priced = count($parts) === 3 && is_numeric($parts[1]) && is_numeric($parts[2]);
+            $models[$parts[0]] = new CopyModel($parts[0], $priced ? (float) $parts[1] : 0.0, $priced ? (float) $parts[2] : 0.0);
         }
         $default = config('content.ai.copy.model');
         if (is_string($default) && $default !== '' && ! isset($models[$default])) {

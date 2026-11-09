@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\CreateContentItem;
+use App\Domain\Content\Actions\MarkContentPublished;
 use App\Domain\Content\Actions\ReviewContent;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\SubmitContentForReview;

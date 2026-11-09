@@ -60,7 +60,7 @@ function uncite(sourceId: string): void {
             <h3 id="internal-heading" class="text-sm font-semibold">Dari data internal</h3>
             <ul class="space-y-1 text-sm">
                 <li>
-                    {{ internal.facts }} fakta disetujui berlaku untuk tanggal ini<template v-if="internal.campaigns.length">
+                    {{ internal.facts }} knowledge berlaku untuk tanggal ini<template v-if="internal.campaigns.length">
                         · kampanye berjalan: {{ internal.campaigns.map((c) => c.name).join(', ') }}</template
                     >.
                 </li>
@@ -124,7 +124,8 @@ function uncite(sourceId: string): void {
                     <StatusBadge :status="researchStatuses[run.status]" />
                     <span class="font-medium break-words">“{{ run.query }}”</span>
                     <span class="text-xs text-muted-foreground"
-                        >{{ run.requestedBy }} · {{ formatDateTime(run.createdAt) }} · {{ formatUsd(run.costUsd) }}</span
+                        >{{ run.requestedBy }} · {{ formatDateTime(run.createdAt)
+                        }}<template v-if="run.costUsd > 0"> · {{ formatUsd(run.costUsd) }}</template></span
                     >
                 </p>
                 <p v-if="run.errorMessage" class="text-sm text-danger">{{ run.errorMessage }}</p>

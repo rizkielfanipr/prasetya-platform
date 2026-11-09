@@ -18,7 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property bool $is_active
  * @property int|null $current_profile_id
+ * @property int|null $current_knowledge_version_id
  * @property-read ContentBrandProfile|null $currentProfile
+ * @property-read ContentBrandKnowledgeVersion|null $currentKnowledge
  */
 class ContentBrand extends Model
 {
@@ -48,6 +50,18 @@ class ContentBrand extends Model
     public function profiles(): HasMany
     {
         return $this->hasMany(ContentBrandProfile::class)->orderByDesc('version');
+    }
+
+    /** @return BelongsTo<ContentBrandKnowledgeVersion, $this> */
+    public function currentKnowledge(): BelongsTo
+    {
+        return $this->belongsTo(ContentBrandKnowledgeVersion::class, 'current_knowledge_version_id');
+    }
+
+    /** @return HasMany<ContentBrandKnowledgeVersion, $this> */
+    public function knowledgeVersions(): HasMany
+    {
+        return $this->hasMany(ContentBrandKnowledgeVersion::class)->orderByDesc('version');
     }
 
     /** @return HasMany<ContentPillar, $this> */

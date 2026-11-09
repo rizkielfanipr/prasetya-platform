@@ -6,6 +6,7 @@ namespace App\Domain\Content\Actions;
 
 use App\Domain\Audit\Actions\RecordAudit;
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Enums\ContentFactCategory;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentCampaign;
@@ -21,16 +22,17 @@ final class AddContentFact
 {
     public function __construct(private readonly RecordAudit $audit) {}
 
-    public function __invoke(ContentBrand $brand, ?ContentCampaign $campaign, string $statement, string $source, ?CarbonInterface $validUntil, User $actor): ContentFact
+    public function __invoke(ContentBrand $brand, ?ContentCampaign $campaign, string $statement, string $source, ?CarbonInterface $validUntil, User $actor, ContentFactCategory $category = ContentFactCategory::General): ContentFact
     {
         if ($campaign !== null && $campaign->content_brand_id !== $brand->id) {
             throw ContentActionRefused::because('Kampanye ini milik brand lain.');
         }
 
-        return DB::transaction(function () use ($brand, $campaign, $statement, $source, $validUntil, $actor): ContentFact {
+        return DB::transaction(function () use ($brand, $campaign, $statement, $source, $validUntil, $actor, $category): ContentFact {
             $fact = ContentFact::query()->create([
                 'content_brand_id' => $brand->id,
                 'content_campaign_id' => $campaign?->id,
+                'category' => $category,
                 'statement' => trim($statement),
                 'source' => trim($source),
                 'valid_until' => $validUntil?->toDateString(),
@@ -39,6 +41,7 @@ final class AddContentFact
 
             ($this->audit)('content.fact_added', 'content_brand', $brand->public_id, $actor, null, [
                 'fact' => $fact->public_id,
+                'category' => $fact->category->value,
                 'statement' => $fact->statement,
                 'source' => $fact->source,
                 'campaign' => $campaign?->name,

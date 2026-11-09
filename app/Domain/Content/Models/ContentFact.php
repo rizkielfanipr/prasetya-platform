@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Content\Models;
 
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Enums\ContentFactCategory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ use LogicException;
  * @property string $public_id
  * @property int $content_brand_id
  * @property int|null $content_campaign_id
+ * @property ContentFactCategory $category
  * @property string $statement
  * @property string $source
  * @property Carbon|null $valid_until
@@ -89,6 +91,6 @@ class ContentFact extends Model
 
     protected function casts(): array
     {
-        return ['valid_until' => 'date', 'retired_at' => 'datetime'];
+        return ['category' => ContentFactCategory::class, 'valid_until' => 'date', 'retired_at' => 'datetime'];
     }
 }

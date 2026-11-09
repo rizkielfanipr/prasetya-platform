@@ -6,7 +6,6 @@ namespace App\Domain\Content\Actions;
 
 use App\Domain\Audit\Actions\RecordAudit;
 use App\Domain\Auth\Models\User;
-use App\Domain\Content\Ai\CopyBudget;
 use App\Domain\Content\Contracts\WebSearch;
 use App\Domain\Content\Enums\ResearchStatus;
 use App\Domain\Content\Exceptions\ContentActionRefused;
@@ -16,15 +15,14 @@ use App\Domain\Content\Models\ContentResearchRun;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Queues a web search for an item's research (ADR-0011, phase 4). Runs on the AI queue, counts toward the weekly AI
- * budget, and is limited per item per day. Works without Hermes.
+ * Queues a web search for an item's research (ADR-0011, phase 4). Runs on the AI queue, one at a time per item.
+ * Works without Hermes.
  */
 final class RequestResearch
 {
     public function __construct(
         private readonly RecordAudit $audit,
         private readonly WebSearch $search,
-        private readonly CopyBudget $budget,
     ) {}
 
     public function __invoke(ContentItem $item, string $query, User $actor): ContentResearchRun
@@ -73,13 +71,6 @@ final class RequestResearch
         if ($active) {
             return 'Riset web sedang berjalan untuk konten ini.';
         }
-        $limit = (int) config('content.ai.search.searches_per_item_per_day');
-        if (ContentResearchRun::query()->where('content_item_id', $item->id)->where('created_at', '>=', now()->subDay())->count() >= $limit) {
-            return "Batas {$limit} kali riset web per konten per hari tercapai.";
-        }
-        if ($this->budget->spentThisWeek() + $this->price() > $this->budget->weekLimit()) {
-            return sprintf('Budget AI minggu ini sudah habis ($%.2f dari $%.2f).', $this->budget->spentThisWeek(), $this->budget->weekLimit());
-        }
 
         return null;
     }
@@ -93,13 +84,11 @@ final class RequestResearch
         if ($this->search->provider() === 'fake' && app()->isProduction()) {
             return 'Pencarian contoh (fake) tidak boleh dipakai di production.';
         }
-        if ($this->search->provider() !== 'fake' && $this->price() <= 0.0) {
-            return 'Harga per pencarian belum diisi (CONTENT_SEARCH_PRICE_PER_CALL), jadi budget tidak dapat dijaga.';
-        }
 
         return null;
     }
 
+    /** Optional price per search for the cost record; 0 when not configured. */
     public function price(): float
     {
         return $this->search->provider() === 'fake' ? 0.0 : (float) config('content.ai.search.price_per_call');

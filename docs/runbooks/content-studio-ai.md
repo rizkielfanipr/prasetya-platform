@@ -19,7 +19,7 @@ Personal subscriptions (Claude Pro, ChatGPT Plus, Command Code Go) do not includ
 | Provider | Base URL | Notes (checked 2026-11-08) |
 |---|---|---|
 | DeepSeek | `https://api.deepseek.com` | Official API, pay as you go. Planned first choice |
-| KelontongAI | `https://api.kelontongai.my.id/v1` | Indonesian gateway, OpenAI-compatible, prepaid Coin via QRIS. Prices are far below the model makers' list prices and the terms do not say how models are sourced; no SLA; models may be withdrawn on provider policy changes; Coin expires after 14–60 days; privacy policy not reviewed. Acceptable for local evaluation with a small top-up; do not rely on it for production without confirming sourcing and data handling. Its prices are in Rupiah: convert to USD for `CONTENT_TEXT_PRICE_*` |
+| KelontongAI | `https://api.kelontongai.id/v1` | Selected copy provider; OpenAI-compatible and prepaid Coin via QRIS. No usable Image API alias is active, so images remain manual. Confirm model sourcing, retention, and SLA before sensitive production use. Convert Rupiah token prices to USD for `CONTENT_TEXT_PRICE_*` |
 | Vengetic (AI API Proxy Indonesia) | `https://api.vengetic.biz.id/v1` | OpenAI-compatible; free plan of 100 requests a day (gemini-flash, deepseek-chat). No terms, privacy policy, or legal entity published; model sourcing not stated, so upstream free tiers may keep or train on prompts. Local trials only. A free plan still needs a small nominal `CONTENT_TEXT_PRICE_*` (e.g. 0.01), because a real provider with zero prices stays off |
 
 ## Enable on a machine
@@ -32,15 +32,11 @@ Personal subscriptions (Claude Pro, ChatGPT Plus, Command Code Go) do not includ
    CONTENT_TEXT_BASE_URL=https://api.deepseek.com   # example; must be https
    CONTENT_TEXT_MODEL=...                           # from the provider's model list
    CONTENT_TEXT_API_KEY=...
-   CONTENT_TEXT_PRICE_INPUT=...                     # USD per 1M input tokens, from the price page
-   CONTENT_TEXT_PRICE_OUTPUT=...                    # USD per 1M output tokens
-   CONTENT_AI_BUDGET_RUN_USD=0.50
-   CONTENT_AI_BUDGET_WEEK_USD=5.00
    ```
 
-   Without both prices a real provider stays off, because the budget is enforced on estimated cost.
+   There is no spending limit in the application (owner decision, 2026-11-08). **Set a monthly spending limit at the provider.** Prices are optional: `CONTENT_TEXT_PRICE_INPUT` and `CONTENT_TEXT_PRICE_OUTPUT` (USD per 1M tokens) only estimate cost in the run records; without them cost is recorded as 0.
 
-   To let people choose the model in **Pengaturan AI**, list the allowed models with their prices; the screen can only pick from this list:
+   To let people choose the model in **Pengaturan AI**, list the allowed models (prices optional, as `model:input:output`); the screen can only pick from this list:
 
    ```dotenv
    CONTENT_TEXT_MODELS=deepseek-v4-flash:0.02:0.02,claude-haiku-5.5:0.04:0.04,claude-sonnet-5.5:0.06:0.06
@@ -66,11 +62,11 @@ Production (cPanel) has no queue worker today, so keep `CONTENT_TEXT_PROVIDER=no
 
 ## Limits and what happens
 
+There is no cost, weekly, per-revision, or per-day limit in the application (owner decision, 2026-11-08); control spending with the provider's own limits. These technical safeguards remain:
+
 | Limit | Config | When reached |
 |---|---|---|
-| Cost per run | `CONTENT_AI_BUDGET_RUN_USD` | Checked before the call from the prompt size and output allowance; the run fails as `run_budget` without calling |
-| Cost per week (Monday–Sunday WIB) | `CONTENT_AI_BUDGET_WEEK_USD` | New requests are refused; a run that could pass it fails as `week_budget` |
-| Runs per revision | `CONTENT_AI_RUNS_PER_REVISION` (5) | New requests are refused until the content is edited or submitted |
+| One run at a time | Per item | A second request waits until the first finishes (or is closed as stalled after 15 minutes) |
 | Output tokens, timeout, attempts | `CONTENT_TEXT_MAX_OUTPUT_TOKENS` (1500), `CONTENT_TEXT_TIMEOUT` (60 s), `CONTENT_TEXT_MAX_ATTEMPTS` (2) | Retries only after a timeout, rate limit, server error, or invalid output, with backoff |
 | Provider failing | 3 failures in a row within 10 minutes | New requests wait 10 minutes |
 
@@ -92,19 +88,30 @@ Re-running skips unchanged rules, existing pillars, and facts already in force.
 
 ## Web research
 
-Research runs on the same `content-ai` queue and weekly budget. Internal context (facts in force, running campaigns, similar posts within 90 days) shows first; web results are untrusted material, never business facts.
+Research runs on the same `content-ai` queue, one search at a time per item, with no daily or cost limit. Internal context (facts in force, running campaigns, similar posts within 90 days) shows first; web results are untrusted material, never business facts.
 
 ```dotenv
 CONTENT_SEARCH_PROVIDER=tavily          # none (default) | fake | tavily
 CONTENT_SEARCH_API_KEY=...              # from tavily.com; stays in .env, agents never see it
-CONTENT_SEARCH_PRICE_PER_CALL=0.008     # USD per search from the price page; a small nominal value on a free plan
+CONTENT_SEARCH_PRICE_PER_CALL=         # optional USD per search, only for the cost record
 CONTENT_SEARCH_MAX_RESULTS=5            # per search, at most 10
-CONTENT_SEARCH_PER_ITEM_PER_DAY=5
 CONTENT_RESEARCH_BLOCKED_DOMAINS=       # comma-separated, dropped from results and refused as manual sources
 CONTENT_RESEARCH_ALLOWED_DOMAINS=       # when set, the only domains research may use
 ```
 
-Results are filtered by `UrlPolicy` (http/https on standard ports, no credentials, no private, loopback, link-local, metadata, or internal hosts), canonicalised without tracking parameters, deduplicated per brand, and stored with title, domain, a summary of at most 600 characters, trust (official, general, user-generated), relevance, and access time. Manual sources are always available; with no title the server reads it through `SafePageReader` (resolved addresses must be public, the connection is pinned to them, each redirect is re-checked, HTML only, 8 s and 512 KB). Cited sources go to AI copy as untrusted background (`copy-v3`).
+Results are filtered by `UrlPolicy` (http/https on standard ports, no credentials, no private, loopback, link-local, metadata, or internal hosts), canonicalised without tracking parameters, deduplicated per brand, and stored with title, domain, a summary of at most 600 characters, trust (official, general, user-generated), relevance, and access time. Manual sources are always available; with no title the server reads it through `SafePageReader` (resolved addresses must be public, the connection is pinned to them, each redirect is re-checked, HTML only, 8 s and 512 KB). Cited sources go to AI copy as untrusted background (`copy-v4`).
+
+## Brand Knowledge retrieval
+
+The Brand Knowledge screen stores one free-text document as an immutable version. Saving calls no model: Laravel splits paragraphs into ordered chunks of about 1,200 characters (maximum 100). Copy generation ranks the active chunks against the item's title, topic, objective, audience, and brief; short documents send every chunk, while longer documents send at most six. These chunks enter the untrusted DATA section as `brand_knowledge`.
+
+**Bantuan AI** uses the same configured text provider and price list. It asks a fixed brand interview and `brand-knowledge-v2` turns the answers into an operational guide, including concrete editorial do/don't guidance without inventing business facts. Ambiguous numbers are omitted rather than guessed. Missing details are listed in a final **Informasi yang Perlu Dikonfirmasi** section: people can see it in the editor, but the chunker excludes it from AI retrieval. The operator must review and save the proposal separately. One synchronous provider call is made per request; its status, token counts, latency, estimated cost, provider, model, and prompt version are recorded in `content_brand_knowledge_assists`. Answers and raw responses are deliberately not stored. A failed or unavailable provider leaves the editor and the manual save flow untouched.
+
+The provider returns one JSON response rather than streaming tokens. During that request the interview dialog stays open, reports the live elapsed time and request state, and disables cancellation. A valid result is handed directly to the textarea before the dialog closes. Provider, budget, or validation errors remain in the dialog and preserve every answer for correction or retry.
+
+Some compatible models ignore JSON mode even when the gateway accepts `response_format`. The result parser accepts a strict `source_text` object, a fenced or prose-wrapped JSON object, or a direct Markdown document with at least two headings. Arbitrary prose, empty output, and documents over 50,000 characters remain invalid. Token usage from an invalid provider answer is still recorded for budget accuracy.
+
+This is retrieval/RAG, not model training. To update knowledge, edit the one source document and save a new version. Never paste customer data, credentials, API keys, SSH keys, or other secrets. If embeddings are introduced later, backfill them onto the chunk index and keep `source_text` as the authority.
 
 ## Revision requests and evaluation
 

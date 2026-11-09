@@ -4,14 +4,15 @@ import FormField from '@/components/shared/FormField.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { brandListRules, linesToList } from '@/lib/content';
+import { formatBrandGuide, previewBrandGuide } from '@/lib/brand-guide';
+import { brandListRules } from '@/lib/content';
 import { copy } from '@/lib/copy';
 import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { BrandRules, BrandRulesVersion } from '@/types/content';
 import { useForm } from '@inertiajs/vue3';
 import { Pencil } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 /**
  * A brand's rules: read-only by default, editable as a whole, saved as a new version with a change note. Earlier
@@ -25,35 +26,12 @@ const texts = [
     { key: 'voice', name: 'voice', label: 'Gaya bahasa', hint: 'Nada dan cara menyapa.' },
     { key: 'visualGuidance', name: 'visual_guidance', label: 'Arahan visual', hint: 'Warna, tipografi, logo, dan gaya gambar.' },
 ] as const;
-const numbers = [
-    { key: 'captionMinLength', name: 'caption_min_length', label: 'Caption minimal (karakter)', hint: 'Kurang dari ini: peringatan.', max: 2200 },
-    { key: 'captionMaxLength', name: 'caption_max_length', label: 'Caption maksimal (karakter)', hint: 'Lebih dari ini: pelanggaran.', max: 2200 },
-    { key: 'hashtagMin', name: 'hashtag_min', label: 'Hashtag minimal', hint: 'Caption dan kolom hashtag dihitung bersama.', max: 30 },
-    { key: 'hashtagMax', name: 'hashtag_max', label: 'Hashtag maksimal', hint: 'Lebih dari ini: pelanggaran.', max: 30 },
-    {
-        key: 'topicRepeatDays',
-        name: 'topic_repeat_days',
-        label: 'Jarak topik yang sama (hari)',
-        hint: 'Topik sama lebih dekat dari ini: peringatan.',
-        max: 365,
-    },
-] as const;
-
-type TextName = (typeof texts)[number]['name'];
-type NumberName = (typeof numbers)[number]['name'];
-type ListName = (typeof brandListRules)[number]['name'];
-
-function initial(): Record<TextName | NumberName | ListName | 'change_note', string> {
-    const r = props.rules;
-    const values = { change_note: '' } as Record<TextName | NumberName | ListName | 'change_note', string>;
-    for (const field of texts) values[field.name] = r?.[field.key] ?? '';
-    for (const field of numbers) values[field.name] = r?.[field.key] === null || r?.[field.key] === undefined ? '' : String(r[field.key]);
-    for (const field of brandListRules) values[field.name] = (r?.[field.key] ?? []).join('\n');
-
-    return values;
+function initial(): { guide: string; change_note: string } {
+    return { guide: formatBrandGuide(props.rules), change_note: '' };
 }
 
 const form = useForm(initial());
+const preview = computed(() => previewBrandGuide(form.guide));
 
 /** "maks. 600 karakter", "10–30 hashtag", or "—" when the brand sets no limit. */
 function limit(min: number | null, max: number | null, unit: string): string {
@@ -72,20 +50,7 @@ function start(): void {
 }
 
 function save(): void {
-    form.transform((data) => {
-        const payload: Record<string, unknown> = { ...data };
-        for (const field of brandListRules) payload[field.name] = linesToList(data[field.name]);
-        for (const field of numbers) payload[field.name] = data[field.name] === '' ? null : Number(data[field.name]);
-
-        return payload;
-    }).put(routes.contentBrandRules(props.brandId), { preserveScroll: true, onSuccess: () => (editing.value = false) });
-}
-
-/** Errors for list fields may come back per entry (forbidden_terms.3); show them on the field. */
-function listError(name: string): string | undefined {
-    const errors = form.errors as Record<string, string | undefined>;
-
-    return errors[name] ?? Object.entries(errors).find(([key]) => key.startsWith(`${name}.`))?.[1];
+    form.put(routes.contentBrandRules(props.brandId), { preserveScroll: true, onSuccess: () => (editing.value = false) });
 }
 </script>
 
@@ -132,62 +97,69 @@ function listError(name: string): string | undefined {
         </template>
 
         <form v-else class="space-y-5" novalidate aria-label="Ubah aturan brand" @submit.prevent="save">
-            <div class="grid gap-4 md:grid-cols-3">
-                <FormField
-                    v-for="field in texts"
-                    :id="`rules-${field.name}`"
-                    :key="field.name"
-                    v-slot="{ describedBy, invalid }"
-                    :label="field.label"
-                    :error="form.errors[field.name]"
-                    :hint="field.hint"
-                >
-                    <Textarea
-                        :id="`rules-${field.name}`"
-                        v-model="form[field.name]"
-                        :rows="3"
-                        :maxlength="2000"
-                        :aria-describedby="describedBy"
-                        :aria-invalid="invalid"
-                    />
-                </FormField>
+            <div class="rounded-lg border bg-muted/30 p-4 text-sm">
+                <p class="font-semibold">Satu panduan, tetap dapat divalidasi</p>
+                <p class="mt-1 text-muted-foreground">
+                    Isi di bawah heading yang tersedia. Satu baris menjadi satu aturan untuk daftar kata, klaim, CTA, hashtag, dan contoh. Biarkan nilai setelah
+                    titik dua kosong jika batas tidak digunakan.
+                </p>
             </div>
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                <FormField
-                    v-for="field in numbers"
-                    :id="`rules-${field.name}`"
-                    :key="field.name"
-                    v-slot="{ describedBy, invalid }"
-                    :label="field.label"
-                    :error="form.errors[field.name]"
-                    :hint="field.hint"
-                >
-                    <Input
-                        :id="`rules-${field.name}`"
-                        v-model="form[field.name]"
-                        type="number"
-                        min="0"
-                        :max="field.max"
-                        inputmode="numeric"
-                        class="h-11"
-                        :aria-describedby="describedBy"
-                        :aria-invalid="invalid"
-                    />
-                </FormField>
-            </div>
-            <div class="grid gap-4 md:grid-cols-2">
-                <FormField
-                    v-for="field in brandListRules"
-                    :id="`rules-${field.name}`"
-                    :key="field.name"
-                    v-slot="{ describedBy, invalid }"
-                    :label="field.label"
-                    :error="listError(field.name)"
-                    :hint="field.hint"
-                >
-                    <Textarea :id="`rules-${field.name}`" v-model="form[field.name]" :rows="4" :aria-describedby="describedBy" :aria-invalid="invalid" />
-                </FormField>
-            </div>
+            <FormField
+                id="rules-guide"
+                v-slot="{ describedBy, invalid }"
+                label="Panduan brand *"
+                :error="form.errors.guide"
+                hint="Heading dalam kurung siku tidak boleh dihapus atau diganti. Maksimal 30.000 karakter."
+            >
+                <Textarea
+                    id="rules-guide"
+                    v-model="form.guide"
+                    :rows="30"
+                    maxlength="30000"
+                    class="font-mono text-sm leading-6"
+                    :aria-describedby="describedBy"
+                    :aria-invalid="invalid"
+                    data-testid="brand-guide-editor"
+                />
+            </FormField>
+
+            <section class="rounded-lg border p-4" aria-labelledby="guide-preview-title" aria-live="polite">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 id="guide-preview-title" class="text-sm font-semibold">Ringkasan yang terbaca</h3>
+                    <span :class="preview.valid ? 'text-success' : 'text-danger'" class="text-xs font-semibold">
+                        {{ preview.valid ? 'Format siap disimpan' : `${preview.errors.length} masalah format` }}
+                    </span>
+                </div>
+                <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3" data-testid="brand-guide-summary">
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Bagian dasar terisi</dt>
+                        <dd class="font-semibold">{{ preview.filledBasics }}/3</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Kata terlarang</dt>
+                        <dd class="font-semibold">{{ preview.forbiddenTerms }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Klaim terlarang</dt>
+                        <dd class="font-semibold">{{ preview.forbiddenClaims }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">CTA disetujui</dt>
+                        <dd class="font-semibold">{{ preview.allowedCtas }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Hashtag wajib</dt>
+                        <dd class="font-semibold">{{ preview.requiredHashtags }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Hashtag terlarang</dt>
+                        <dd class="font-semibold">{{ preview.forbiddenHashtags }}</dd>
+                    </div>
+                </dl>
+                <ul v-if="preview.errors.length" class="mt-3 list-inside list-disc space-y-1 text-sm text-danger">
+                    <li v-for="error in preview.errors.slice(0, 5)" :key="error">{{ error }}</li>
+                </ul>
+            </section>
             <FormField
                 id="rules-change_note"
                 v-slot="{ describedBy, invalid }"
@@ -199,7 +171,7 @@ function listError(name: string): string | undefined {
             </FormField>
             <div class="flex flex-wrap justify-end gap-3 border-t pt-4">
                 <Button type="button" variant="outline" :disabled="form.processing" @click="editing = false">{{ copy.cancel }}</Button>
-                <Button type="submit" :disabled="form.processing" :aria-busy="form.processing">{{
+                <Button type="submit" :disabled="form.processing || !preview.valid" :aria-busy="form.processing">{{
                     form.processing ? copy.saving : 'Simpan sebagai versi baru'
                 }}</Button>
             </div>

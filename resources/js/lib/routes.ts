@@ -39,6 +39,8 @@ export const routes = {
     contentSettingsModel: '/content/settings/model',
     contentBrands: '/content/brands',
     contentBrand: (id: string) => `/content/brands/${id}`,
+    contentBrandKnowledge: (id: string) => `/content/brands/${id}/knowledge`,
+    contentBrandKnowledgeAssist: (id: string) => `/content/brands/${id}/knowledge/assist`,
     contentBrandRules: (id: string) => `/content/brands/${id}/rules`,
     contentPillars: (brand: string) => `/content/brands/${brand}/pillars`,
     contentPillar: (brand: string, id: string) => `/content/brands/${brand}/pillars/${id}`,

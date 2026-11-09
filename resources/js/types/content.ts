@@ -129,6 +129,7 @@ export interface ContentLimits {
 }
 
 export type CampaignPriority = 'HIGH' | 'NORMAL' | 'LOW';
+export type ContentFactCategory = 'GENERAL' | 'SERVICE' | 'PRICE' | 'PROCESS' | 'ADVANTAGE' | 'FAQ' | 'PROMO' | 'POLICY' | 'EVIDENCE';
 export type RuleSeverity = 'ERROR' | 'WARNING';
 
 export interface ContentPillar {
@@ -201,8 +202,17 @@ export interface BrandRulesVersion {
     createdAt: string;
 }
 
+export interface BrandKnowledgeVersion {
+    version: number;
+    sourceText: string;
+    chunks: number;
+    createdBy: string;
+    createdAt: string;
+}
+
 export interface ContentFact {
     id: string;
+    category: ContentFactCategory;
     statement: string;
     source: string;
     campaign: string | null;
@@ -214,7 +224,7 @@ export interface ContentFact {
     retiredReason: string | null;
 }
 
-export type BrandTab = 'rules' | 'pillars' | 'campaigns' | 'facts' | 'activity';
+export type BrandTab = 'rules' | 'pillars' | 'facts' | 'activity';
 
 export type CopyField = 'caption' | 'hashtags' | 'alt_text' | 'visual_direction';
 export type GenerationStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'DISCARDED';
@@ -264,15 +274,12 @@ export interface AiStatus {
     model: string | null;
     unavailableReason: string | null;
     queue: string;
-    priceInputPerMillion: number;
-    priceOutputPerMillion: number;
     /** Models the server allows; empty unless a real provider is configured. */
-    models: { name: string; priceInputPerMillion: number; priceOutputPerMillion: number }[];
+    models: { name: string }[];
     maxOutputTokens: number;
     maxAttempts: number;
     timeoutSeconds: number;
-    budget: { spentThisWeek: number; weekLimit: number; runLimit: number; runsPerRevision: number };
-    search: { provider: string; unavailableReason: string | null; pricePerCall: number; maxResults: number; perItemPerDay: number; callsThisWeek: number };
+    search: { provider: string; unavailableReason: string | null; maxResults: number; callsThisWeek: number };
     circuitOpenUntil: string | null;
 }
 

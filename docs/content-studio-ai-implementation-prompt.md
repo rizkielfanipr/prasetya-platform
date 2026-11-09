@@ -1,6 +1,6 @@
 # Prompt Implementasi Content Studio dan AI Content Strategist
 
-Salin prompt berikut ke coding agent dari repository `/Users/air/Projects/prasetya-group/prasetya-platform`. Prompt ini mengharuskan delivery bertahap: Content Studio manual harus stabil sebelum OpenAI, research tools, dan Hermes diaktifkan. Posting Instagram tetap manual dan tidak ada AI yang boleh menyetujui atau memublikasikan konten.
+Salin prompt berikut ke coding agent dari repository `/Users/air/Projects/prasetya-group/prasetya-platform`. Prompt ini mengharuskan delivery bertahap: Content Studio manual harus stabil sebelum KelontongAI, research tools, dan Hermes diaktifkan. Posting Instagram tetap manual dan tidak ada AI yang boleh menyetujui atau memublikasikan konten.
 
 ---
 
@@ -19,7 +19,7 @@ Target akhir:
 ```text
 Laravel Content Studio
   -> menyimpan brand knowledge, campaign, kalender, revision, approval, dan audit
-  -> memanggil OpenAI untuk structured copy dan image generation
+  -> memanggil KelontongAI untuk structured copy; gambar tetap diunggah manual
   -> menyediakan research tools yang aman
   -> memulai Hermes sebagai AI Content Strategist
   -> menerima weekly plan dan content draft dari Hermes
@@ -69,8 +69,8 @@ Tidak ada Instagram API dan tidak ada n8n dalam scope ini. Hermes berjalan lokal
 | Modul | Content Studio berada di Prasetya Platform |
 | Kanal awal | Instagram feed, gambar tunggal |
 | Perencanaan | Mingguan dengan content item per hari |
-| Caption | OpenAI API dengan structured output |
-| Gambar | OpenAI Image API |
+| Caption | KelontongAI API dengan structured output |
+| Gambar | Upload manual; tidak ada image generator dalam scope aktif |
 | Research dan strategy | Hermes setelah manual workflow dan research tools stabil |
 | Approval | Wajib manusia |
 | Posting | Manual: download gambar dan salin caption |
@@ -179,7 +179,7 @@ Tambahkan satu menu utama **Content Studio**. Di dalamnya gunakan secondary navi
 
 - Kalender;
 - Konten;
-- Brand & Template;
+- Brand Knowledge;
 - Pengaturan AI.
 
 Route final boleh disesuaikan dengan audit, tetapi target awal:
@@ -280,11 +280,16 @@ Hindari generic `setStatus(string)` action. Buat intention-revealing actions sep
 - approval/publication/audit timeline;
 - aksi edit, generate, regenerate, request revision, approve, reject, download, copy, dan mark published sesuai status.
 
-#### Brand & Template
+#### Brand Knowledge
 
-- audience, tone, wording, CTA, visual guidance;
-- examples approved/rejected;
-- forbidden claims dan approved facts;
+- tampilkan satu textarea besar tempat pemilik menulis bebas tentang brand, audience, tone, visual, layanan, harga, proses, kebijakan, FAQ, larangan, dan informasi lain yang disetujui;
+- simpan source text sebagai versi immutable; menekan simpan pada teks identik harus ditolak;
+- chunk secara deterministik (paragraf/sekitar 1.200 karakter, maksimum 100) dan simpan urutannya;
+- retrieval tahap awal menggunakan keyword ranking dan mengirim maksimum enam chunk relevan ke `brand_knowledge` pada prompt;
+- ini RAG, bukan training; jangan memanggil model saat menyimpan atau memecah dokumen;
+- tampilkan versi aktif, jumlah chunk, riwayat versi, dan audit di disclosure; jangan tampilkan tabs rules/pillars/facts;
+- pindahkan pengelolaan campaign ke Kalender/Perencanaan dan pertahankan redirect URL lama;
+- jangan pernah memasukkan customer, order, payment, secret, API key, atau credential ke dokumen atau prompt;
 - content pillar dan target composition;
 - semua perubahan versioned/audited bila digunakan oleh AI.
 
@@ -305,11 +310,11 @@ Hindari generic `setStatus(string)` action. Buat intention-revealing actions sep
 - actual publish time dan URL Instagram opsional/wajib sesuai keputusan pemilik;
 - `Tandai sudah diposting` memakai confirmation yang jelas.
 
-### 10. OpenAI provider design
+### 10. KelontongAI copy provider design
 
-1. Buat interface/contract provider untuk copy dan image agar domain tidak tergantung SDK tertentu.
-2. Implementasi OpenAI berada di adapter/integration layer, bukan domain model/controller.
-3. Model name, timeout, retry, image parameters, dan budget berasal dari config.
+1. Buat interface/contract provider untuk copy agar domain tidak tergantung SDK tertentu.
+2. Implementasi KelontongAI berada di adapter/integration layer, bukan domain model/controller.
+3. Model name, timeout, retry, dan budget berasal dari config.
 4. Gunakan structured output/schema untuk:
    - caption;
    - hashtags;
@@ -321,8 +326,6 @@ Hindari generic `setStatus(string)` action. Buat intention-revealing actions sep
 6. Retry hanya untuk kegagalan transient atau bounded repair; jangan infinite self-correction.
 7. Catat token, cost estimate, latency, provider request id yang aman, prompt version, dan outcome.
 8. Jangan log Authorization header atau raw secret.
-9. Image output disalin ke storage platform; jangan bergantung pada temporary provider URL.
-10. Validate MIME dari byte content, file size, dimensions, checksum, dan safe decode sebelum asset aktif.
 
 ### 11. Research design
 
@@ -376,7 +379,6 @@ submit_research_summary
 submit_weekly_plan_draft
 submit_content_brief_draft
 request_copy_generation
-request_image_generation
 submit_revision_draft
 complete_agent_run
 ```
@@ -491,10 +493,10 @@ Jika budget habis:
 
 **Gate:** content revision dapat divalidasi terhadap aturan brand tanpa AI. Berhenti untuk review data brand.
 
-#### Fase 3 — OpenAI generation
+#### Fase 3 — KelontongAI copy generation
 
 - Provider contracts dan adapter.
-- Structured copy generation dan image generation/editing.
+- Structured copy generation; gambar tetap melalui upload manual.
 - Queue, prompt version, usage/cost, retry, timeout, idempotency.
 - Regenerate caption/gambar secara terpisah.
 - Provider health/status tanpa secret.
@@ -572,16 +574,16 @@ Jangan menggabungkan semua fase dalam satu PR. Fase 0–2, OpenAI, research, Her
 5. Unauthorized download ditolak.
 6. Asset revision ownership tidak bocor.
 
-#### OpenAI
+#### KelontongAI copy
 
 1. HTTP seluruhnya difake; test tidak memanggil jaringan nyata.
 2. Valid structured output.
-3. Invalid JSON/schema, refusal, timeout, 429, 5xx, dan malformed image.
+3. Invalid JSON/schema, refusal, timeout, 429, dan 5xx.
 4. Retry bounded dan idempotent.
 5. Token/cost/latency/prompt version tercatat.
 6. Secret/raw Authorization tidak tampil.
 7. Budget menghentikan call baru.
-8. Caption/image partial generation tidak merusak revision.
+8. Partial copy generation tidak merusak revision.
 
 #### Research/security
 
@@ -758,7 +760,7 @@ Jangan deploy production, membuat provider key, atau mengaktifkan scheduler tanp
 - Nonaktifkan OpenAI/research provider dan kembali ke manual workflow.
 - Jangan menghapus content, revision, research, generation, approval, publication, atau audit history.
 - Approved/published asset tetap tersedia.
-- Content Studio manual harus tetap berfungsi ketika Hermes/OpenAI/search provider mati.
+- Content Studio manual harus tetap berfungsi ketika Hermes/KelontongAI/search provider mati.
 
 ### 24. Definition of done
 
@@ -766,7 +768,7 @@ Implementasi keseluruhan selesai hanya jika:
 
 - manual Content Studio bekerja tanpa AI;
 - brand knowledge dan approved facts authoritative;
-- OpenAI output structured, validated, versioned, auditable, dan budgeted;
+- KelontongAI copy output structured, validated, versioned, auditable, dan budgeted;
 - research traceable dan terlindungi dari SSRF/prompt injection;
 - Hermes menyusun weekly draft dalam tool/budget boundary;
 - tidak ada AI route/tool untuk approval, publication, delete, credential, atau business-fact mutation;

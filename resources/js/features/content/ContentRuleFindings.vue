@@ -22,7 +22,7 @@ const ordered = computed(() => [...props.findings].sort((a, b) => (a.severity ==
             <template v-if="submittedVersion && submittedVersion !== version">
                 Saat diajukan, revisi ini memenuhi aturan versi {{ submittedVersion }}.</template
             >
-            <Link :href="routes.contentBrands" class="ml-1 font-medium text-primary-text hover:underline">Lihat aturan</Link>
+            <Link :href="routes.contentBrands" class="ml-1 font-medium text-primary-text hover:underline">Lihat Brand Knowledge</Link>
         </p>
         <p v-if="findings.length === 0" class="flex items-center gap-2 text-sm font-medium text-success">
             <CheckCircle2 class="size-4" aria-hidden="true" />Tidak ada pelanggaran atau peringatan.

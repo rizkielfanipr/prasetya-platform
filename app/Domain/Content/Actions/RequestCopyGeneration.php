@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Queues an AI draft of some copy fields for an item (ADR-0011, phase 3). The result is always a new draft revision;
- * AI never submits, approves, or publishes. One run at a time per item, within the per-revision and weekly limits.
+ * AI never submits, approves, or publishes. One run at a time per item.
  */
 final class RequestCopyGeneration
 {
@@ -99,14 +99,6 @@ final class RequestCopyGeneration
         }
         if ($this->activeRun($item)) {
             return 'AI sedang membuat draft untuk konten ini.';
-        }
-        $limit = (int) config('content.ai.budget.runs_per_revision');
-        if (ContentGenerationRun::query()->where('base_revision_id', $item->active_revision_id)->count() >= $limit) {
-            return "Batas {$limit} kali AI untuk revisi ini tercapai. Ubah konten sendiri atau ajukan untuk ditinjau.";
-        }
-        $spent = $this->budget->spentThisWeek();
-        if ($spent >= $this->budget->weekLimit()) {
-            return sprintf('Budget AI minggu ini sudah habis ($%.2f dari $%.2f).', $spent, $this->budget->weekLimit());
         }
         $until = $this->budget->circuitOpenUntil();
         if ($until !== null && $until->isFuture()) {

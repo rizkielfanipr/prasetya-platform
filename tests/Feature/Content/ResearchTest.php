@@ -119,27 +119,24 @@ it('fails safely on search errors without leaking the key', function (int $statu
         ->and(json_encode(AuditLog::query()->get()->toArray()))->not->toContain(SEARCH_KEY);
 })->with([[401, 'auth'], [429, 'rate_limited'], [432, 'rate_limited'], [500, 'server_error']]);
 
-it('limits searches per item per day, one at a time, and within the weekly budget', function (): void {
-    useSearch(overrides: ['searches_per_item_per_day' => 2]);
+it('has no daily or budget limit, but runs one search at a time per item', function (): void {
+    useSearch();
     Http::fake(['*' => Http::response(tavilyResults([]))]);
     $item = draftItem();
 
-    research($item)->assertSessionHas('success');
-    research($item)->assertSessionHas('success');
-    research($item)->assertSessionHas('error', 'Batas 2 kali riset web per konten per hari tercapai.');
+    foreach (range(1, 7) as $ignored) {
+        research($item)->assertSessionHas('success');
+    }
 
     $other = draftItem();
     Queue::fake();
     research($other)->assertSessionHas('success');
     research($other)->assertSessionHas('error', 'Riset web sedang berjalan untuk konten ini.');
-
-    config()->set('content.ai.budget.week_usd', 0.01);
-    research(draftItem())->assertSessionHas('error', fn (string $m) => str_starts_with($m, 'Budget AI minggu ini sudah habis'));
 });
 
-it('requires a price for a real search provider and refuses the fake one in production', function (): void {
+it('works without a price for a real search provider and refuses the fake one in production', function (): void {
     useSearch(overrides: ['price_per_call' => 0]);
-    expect(contentPage('/content/settings')['status']['search']['unavailableReason'])->toContain('CONTENT_SEARCH_PRICE_PER_CALL');
+    expect(contentPage('/content/settings')['status']['search']['unavailableReason'])->toBeNull();
 
     useSearch('fake');
     app()->detectEnvironment(fn () => 'production');

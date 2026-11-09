@@ -7,20 +7,27 @@ namespace App\Http\Controllers\BackOffice\Content;
 use App\Domain\Audit\Queries\AuditTrail;
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\AddContentFact;
+use App\Domain\Content\Actions\AssistBrandKnowledge;
 use App\Domain\Content\Actions\RetireContentFact;
+use App\Domain\Content\Actions\SaveBrandKnowledge;
 use App\Domain\Content\Actions\SaveCampaign;
 use App\Domain\Content\Actions\SavePillar;
 use App\Domain\Content\Actions\UpdateBrandProfile;
 use App\Domain\Content\Enums\CampaignPriority;
+use App\Domain\Content\Enums\ContentFactCategory;
 use App\Domain\Content\Exceptions\ContentActionRefused;
+use App\Domain\Content\Exceptions\InvalidBrandGuide;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentCampaign;
 use App\Domain\Content\Models\ContentFact;
 use App\Domain\Content\Models\ContentPillar;
+use App\Domain\Content\Support\BrandGuideParser;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
 use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\Content\AddContentFactRequest;
+use App\Http\Requests\BackOffice\Content\AssistBrandKnowledgeRequest;
+use App\Http\Requests\BackOffice\Content\SaveBrandKnowledgeRequest;
 use App\Http\Requests\BackOffice\Content\SaveCampaignRequest;
 use App\Http\Requests\BackOffice\Content\SavePillarRequest;
 use App\Http\Requests\BackOffice\Content\UpdateBrandRulesRequest;
@@ -28,48 +35,73 @@ use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Brand & Template: a brand's versioned rules, pillars, campaigns, and approved facts (ADR-0011, phase 2). */
+/** One free-text Brand Knowledge document, plus compatibility writes for the earlier structured model (ADR-0011). */
 final class ContentBrandController
 {
-    public const array TABS = ['rules', 'pillars', 'campaigns', 'facts', 'activity'];
-
     public function index(Request $request): RedirectResponse
     {
         $brand = ContentBrand::query()->orderByDesc('is_active')->orderBy('name')->firstOrFail();
         $tab = $request->query('tab');
+        if ($tab === 'campaigns') {
+            return redirect()->route('content.calendar', ['manage_campaigns' => 1, 'brand' => $brand->code]);
+        }
 
-        return redirect()->route('content.brands.show', ['brand' => $brand, ...(is_string($tab) && in_array($tab, self::TABS, true) ? ['tab' => $tab] : [])]);
+        return redirect()->route('content.brands.show', ['brand' => $brand]);
     }
 
-    public function show(Request $request, ContentBrand $brand, AuditTrail $trail): Response
+    public function show(Request $request, ContentBrand $brand, AuditTrail $trail): Response|RedirectResponse
     {
-        $tab = $request->validate(['tab' => ['nullable', Rule::in(self::TABS)]])['tab'] ?? 'rules';
-        $brand->load(['currentProfile.creator', 'pillars', 'campaigns']);
+        if ($request->query('tab') === 'campaigns') {
+            return redirect()->route('content.calendar', ['manage_campaigns' => 1, 'brand' => $brand->code]);
+        }
+        $brand->load(['currentKnowledge.creator', 'currentKnowledge.chunks']);
 
-        return Inertia::render('content/ContentBrandPage', [
+        return Inertia::render('content/BrandKnowledgePage', [
             'brand' => ContentPresenter::brand($brand) + ['id' => $brand->public_id],
             'brands' => ContentBrand::query()->orderBy('name')->get()->map(static fn (ContentBrand $b): array => ContentPresenter::brand($b) + ['id' => $b->public_id])->all(),
-            'tab' => $tab,
-            'rules' => $brand->currentProfile === null ? null : ContentBrandPresenter::rules($brand->currentProfile),
-            'versions' => $brand->profiles()->with('creator')->limit(20)->get()->map(ContentBrandPresenter::version(...))->all(),
-            'pillars' => $brand->pillars->map(ContentBrandPresenter::pillar(...))->all(),
-            'campaigns' => $brand->campaigns->map(ContentBrandPresenter::campaign(...))->all(),
-            'facts' => $brand->facts()->with(['campaign', 'creator', 'retiredBy'])->limit(200)->get()->map(ContentBrandPresenter::fact(...))->all(),
-            'activity' => $tab === 'activity'
-                ? $trail->forContentBrand($brand->public_id)->latest('id')->limit(100)->get()->map(TransactionPresenter::audit(...))->all()
-                : [],
-            'priorities' => array_map(static fn (CampaignPriority $p): string => $p->value, CampaignPriority::cases()),
+            'knowledge' => $brand->currentKnowledge === null ? null : ContentBrandPresenter::knowledge($brand->currentKnowledge),
+            'versions' => $brand->knowledgeVersions()->with(['creator', 'chunks'])->limit(20)->get()->map(ContentBrandPresenter::knowledge(...))->all(),
+            'activity' => $trail->forContentBrand($brand->public_id)->latest('id')->limit(100)->get()->map(TransactionPresenter::audit(...))->all(),
+            'assistantDraft' => $request->session()->get('brand_knowledge_assistant_draft'),
         ]);
     }
 
-    public function updateRules(UpdateBrandRulesRequest $request, ContentBrand $brand, UpdateBrandProfile $update): RedirectResponse
+    public function assistKnowledge(AssistBrandKnowledgeRequest $request, ContentBrand $brand, AssistBrandKnowledge $assist): RedirectResponse
     {
-        return $this->attempt(function () use ($request, $brand, $update): RedirectResponse {
-            $profile = $update($brand, $request->safe()->except('change_note'), (string) $request->validated('change_note'), $this->actor($request));
+        return $this->attempt(function () use ($request, $brand, $assist): RedirectResponse {
+            /** @var array<string, string|null> $answers */
+            $answers = $request->validated('answers');
+            $current = $request->validated('current_source_text');
+            $draft = $assist($brand, $answers, is_string($current) ? $current : null, $this->actor($request));
+
+            return back()
+                ->with('success', 'Usulan AI sudah masuk ke editor. Periksa dan simpan jika sudah sesuai.')
+                ->with('brand_knowledge_assistant_draft', ['text' => $draft, 'nonce' => (string) str()->ulid()]);
+        });
+    }
+
+    public function updateKnowledge(SaveBrandKnowledgeRequest $request, ContentBrand $brand, SaveBrandKnowledge $save): RedirectResponse
+    {
+        return $this->attempt(function () use ($request, $brand, $save): RedirectResponse {
+            $version = $save($brand, (string) $request->validated('source_text'), $this->actor($request));
+
+            return back()->with('success', "Brand Knowledge disimpan sebagai versi {$version->version}.");
+        });
+    }
+
+    public function updateRules(UpdateBrandRulesRequest $request, ContentBrand $brand, UpdateBrandProfile $update, BrandGuideParser $parser): RedirectResponse
+    {
+        try {
+            $rules = $parser->parse((string) $request->validated('guide'));
+        } catch (InvalidBrandGuide $invalid) {
+            return back()->withErrors(['guide' => $invalid->getMessage()])->withInput();
+        }
+
+        return $this->attempt(function () use ($request, $brand, $update, $rules): RedirectResponse {
+            $profile = $update($brand, $rules, (string) $request->validated('change_note'), $this->actor($request));
 
             return back()->with('success', "Aturan brand disimpan sebagai versi {$profile->version}.");
         });
@@ -108,9 +140,10 @@ final class ContentBrandController
                 (string) $request->validated('source'),
                 is_string($validUntil) ? CarbonImmutable::parse($validUntil) : null,
                 $this->actor($request),
+                ContentFactCategory::from((string) $request->validated('category')),
             );
 
-            return back()->with('success', 'Fakta ditambahkan.');
+            return back()->with('success', 'Knowledge ditambahkan.');
         });
     }
 
@@ -121,7 +154,7 @@ final class ContentBrandController
         return $this->attempt(function () use ($request, $brand, $fact, $retire, $reason): RedirectResponse {
             $retire($brand, $fact, $reason, $this->actor($request));
 
-            return back()->with('success', 'Fakta tidak berlaku lagi.');
+            return back()->with('success', 'Knowledge dinonaktifkan.');
         });
     }
 

@@ -93,7 +93,7 @@ export const contentSections = [
     { value: 'to-post', label: 'Siap posting' },
     { value: 'items', label: 'Konten' },
     { value: 'insights', label: 'Insight' },
-    { value: 'brands', label: 'Brand & Template' },
+    { value: 'brands', label: 'Brand Knowledge' },
     { value: 'settings', label: 'Pengaturan AI' },
 ] as const;
 
@@ -143,12 +143,23 @@ export function formatUsd(amount: number): string {
 }
 
 export const brandTabs: readonly { value: BrandTab; label: string }[] = [
-    { value: 'rules', label: 'Aturan' },
-    { value: 'pillars', label: 'Pilar' },
-    { value: 'campaigns', label: 'Kampanye' },
-    { value: 'facts', label: 'Fakta disetujui' },
+    { value: 'rules', label: 'Panduan Brand' },
+    { value: 'pillars', label: 'Strategi Konten' },
+    { value: 'facts', label: 'Knowledge Base' },
     { value: 'activity', label: 'Aktivitas' },
 ];
+
+export const contentFactCategories = {
+    GENERAL: 'Umum',
+    SERVICE: 'Layanan',
+    PRICE: 'Harga',
+    PROCESS: 'Proses kerja',
+    ADVANTAGE: 'Keunggulan',
+    FAQ: 'FAQ',
+    PROMO: 'Promo',
+    POLICY: 'Kebijakan',
+    EVIDENCE: 'Bukti atau pencapaian',
+} as const;
 
 export const campaignPriorities: Record<CampaignPriority, string> = { HIGH: 'Tinggi', NORMAL: 'Normal', LOW: 'Rendah' };
 

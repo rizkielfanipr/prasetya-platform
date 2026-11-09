@@ -133,7 +133,7 @@ it('changes no rule, pillar, or prompt when insight is recorded', function (): v
 
     expect(webworks()->refresh()->current_profile_id)->toBe($rules->id)
         ->and($pillar->refresh()->target_share)->toBe(50)
-        ->and(CopyPromptBuilder::VERSION)->toBe('copy-v3');
+        ->and(CopyPromptBuilder::VERSION)->toBe('copy-v4');
 });
 
 it('loads the insight page with a fixed number of queries', function (): void {

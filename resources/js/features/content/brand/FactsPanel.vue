@@ -2,6 +2,7 @@
 import EmptyState from '@/components/shared/EmptyState.vue';
 import { Button } from '@/components/ui/button';
 import ContentDecisionDialog from '@/features/content/ContentDecisionDialog.vue';
+import { contentFactCategories } from '@/lib/content';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { ContentCampaign, ContentFact } from '@/types/content';
@@ -22,16 +23,17 @@ const retired = computed(() => props.facts.filter((fact) => fact.retiredAt !== n
             <p class="max-w-2xl text-sm text-muted-foreground">
                 Harga (Rp) di konten yang tidak tertulis di fakta yang berlaku adalah pelanggaran; persentase tanpa fakta mendapat peringatan.
             </p>
-            <Button class="gap-2" @click="adding = true"><Plus class="size-4" aria-hidden="true" />Tambah fakta</Button>
+            <Button class="gap-2" @click="adding = true"><Plus class="size-4" aria-hidden="true" />Tambah knowledge</Button>
         </div>
         <EmptyState
             v-if="facts.length === 0"
-            title="Belum ada fakta disetujui"
-            description="Tambahkan hanya fakta yang sudah disetujui pemilik, beserta sumbernya."
+            title="Knowledge Base masih kosong"
+            description="Tambahkan informasi yang sudah disetujui pemilik beserta sumbernya."
         />
-        <ul v-else class="divide-y rounded-lg border" aria-label="Fakta berlaku">
+        <ul v-else class="divide-y rounded-lg border" aria-label="Knowledge aktif">
             <li v-for="fact in active" :key="fact.id" class="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div class="min-w-0 flex-1 space-y-1">
+                    <p class="text-xs font-semibold text-muted-foreground">{{ contentFactCategories[fact.category] }}</p>
                     <p class="font-medium break-words">{{ fact.statement }}</p>
                     <p class="text-xs text-muted-foreground">
                         Sumber: {{ fact.source }}<template v-if="fact.campaign"> · Kampanye {{ fact.campaign }}</template
@@ -40,11 +42,11 @@ const retired = computed(() => props.facts.filter((fact) => fact.retiredAt !== n
                         {{ formatDateTime(fact.createdAt) }}
                     </p>
                 </div>
-                <Button variant="outline" size="sm" @click="retiring = fact">Tidak berlaku</Button>
+                <Button variant="outline" size="sm" @click="retiring = fact">Nonaktifkan</Button>
             </li>
         </ul>
         <details v-if="retired.length" class="rounded-lg border p-4">
-            <summary class="cursor-pointer text-sm font-semibold">Fakta tidak berlaku ({{ retired.length }})</summary>
+            <summary class="cursor-pointer text-sm font-semibold">Knowledge nonaktif ({{ retired.length }})</summary>
             <ul class="mt-3 space-y-3">
                 <li v-for="fact in retired" :key="fact.id" class="text-sm">
                     <p class="break-words text-muted-foreground line-through">{{ fact.statement }}</p>
@@ -60,7 +62,7 @@ const retired = computed(() => props.facts.filter((fact) => fact.retiredAt !== n
             :open="true"
             :url="routes.contentFactRetire(brandId, retiring.id)"
             revision-id=""
-            title="Fakta ini tidak berlaku lagi?"
+            title="Nonaktifkan knowledge ini?"
             :description="`“${retiring.statement}” tetap tercatat, tetapi konten tidak bisa lagi memakainya.`"
             confirm-label="Tidak berlaku"
             note-label="Alasan"

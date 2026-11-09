@@ -46,7 +46,7 @@ describe('ContentResearchPanel', () => {
             }),
         );
 
-        expect(wrapper.text()).toContain('4 fakta disetujui');
+        expect(wrapper.text()).toContain('4 knowledge berlaku');
         expect(wrapper.text()).toContain('kampanye berjalan: November');
         expect(wrapper.get('[data-testid="similar-content"]').text()).toContain('Tips SEO UMKM');
         expect(wrapper.get('[data-testid="similar-content"]').text()).toContain('Dipublikasikan');

@@ -5,7 +5,14 @@ declare(strict_types=1);
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\SaveContentRevision;
+use App\Domain\Content\Ai\CopyBudget;
+use App\Domain\Content\Ai\CopyModels;
+use App\Domain\Content\Contracts\CopyGenerator;
+use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentBrandKnowledgeAssist;
+use App\Domain\Content\Models\ContentBrandKnowledgeChunk;
+use App\Domain\Content\Models\ContentBrandKnowledgeVersion;
 use App\Domain\Content\Models\ContentBrandProfile;
 use App\Domain\Content\Models\ContentCampaign;
 use App\Domain\Content\Models\ContentFact;
@@ -16,18 +23,82 @@ use Inertia\Testing\AssertableInertia;
 
 beforeEach(fn () => contentSetUp());
 
-/** @return array<string, mixed> */
-function rulesPayload(array $overrides = []): array
+/** @param array<string, mixed> $overrides */
+function brandGuide(array $overrides = []): string
 {
-    return [
-        ...array_fill_keys(ContentBrandProfile::LISTS, []),
+    $rules = [
         'audience' => 'Pemilik UMKM',
         'voice' => 'Ramah dan jelas',
+        'visual_guidance' => '',
         'forbidden_terms' => ['termurah', ' ', 'termurah'],
+        'forbidden_claims' => [],
+        'allowed_ctas' => [],
+        'required_hashtags' => [],
+        'forbidden_hashtags' => [],
+        'preferred_terms' => [],
+        'approved_examples' => [],
+        'rejected_examples' => [],
+        'caption_min_length' => null,
         'caption_max_length' => 300,
-        'change_note' => 'Aturan awal dari pemilik',
+        'hashtag_min' => null,
+        'hashtag_max' => null,
+        'topic_repeat_days' => null,
         ...$overrides,
     ];
+
+    $list = static fn (string $key): string => implode("\n", $rules[$key]);
+    $number = static fn (string $key): string => $rules[$key] === null ? '' : (string) $rules[$key];
+
+    return <<<GUIDE
+[AUDIENS]
+{$rules['audience']}
+
+[GAYA BAHASA]
+{$rules['voice']}
+
+[ARAHAN VISUAL]
+{$rules['visual_guidance']}
+
+[BATAS]
+Caption minimal: {$number('caption_min_length')}
+Caption maksimal: {$number('caption_max_length')}
+Hashtag minimal: {$number('hashtag_min')}
+Hashtag maksimal: {$number('hashtag_max')}
+Jarak topik (hari): {$number('topic_repeat_days')}
+
+[KATA TERLARANG]
+{$list('forbidden_terms')}
+
+[KLAIM TERLARANG]
+{$list('forbidden_claims')}
+
+[CTA DISETUJUI]
+{$list('allowed_ctas')}
+
+[HASHTAG WAJIB]
+{$list('required_hashtags')}
+
+[HASHTAG TERLARANG]
+{$list('forbidden_hashtags')}
+
+[KATA DIANJURKAN]
+{$list('preferred_terms')}
+
+[CONTOH DISETUJUI]
+{$list('approved_examples')}
+
+[CONTOH DITOLAK]
+{$list('rejected_examples')}
+GUIDE;
+}
+
+/** @return array{guide: string, change_note: string} */
+function rulesPayload(array $overrides = []): array
+{
+    $changeNote = (string) ($overrides['change_note'] ?? 'Aturan awal dari pemilik');
+    unset($overrides['change_note']);
+
+    return ['guide' => brandGuide($overrides), 'change_note' => $changeNote];
 }
 
 function brandUri(string $suffix = ''): string
@@ -35,12 +106,78 @@ function brandUri(string $suffix = ''): string
     return '/content/brands/'.webworks()->public_id.$suffix;
 }
 
-it('opens Brand & Template on the first brand', function (): void {
+it('opens one Brand Knowledge editor and redirects the legacy campaign tab to planning', function (): void {
     $this->actingAs(admin())->get('/content/brands')->assertRedirect(brandUri());
-    $this->get('/content/brands?tab=facts')->assertRedirect(brandUri('?tab=facts'));
+    $this->get('/content/brands?tab=facts')->assertRedirect(brandUri());
     $this->get('/content/brands?tab=../x')->assertRedirect(brandUri());
-    $this->get(brandUri())->assertInertia(fn (AssertableInertia $page) => $page->component('content/ContentBrandPage')->where('rules', null)->where('tab', 'rules'));
-    $this->get(brandUri('?tab=nope'))->assertSessionHasErrors('tab');
+    $this->get(brandUri())->assertInertia(fn (AssertableInertia $page) => $page->component('content/BrandKnowledgePage')->where('knowledge', null));
+    $this->get(brandUri('?tab=nope'))->assertOk();
+    $this->get(brandUri('?tab=campaigns'))->assertRedirect('/content/calendar?manage_campaigns=1&brand=WEBWORKS');
+});
+
+it('versions and chunks the single free-text Brand Knowledge document', function (): void {
+    $uri = brandUri('/knowledge');
+    $first = "Tentang brand\nKami membantu pemilik UMKM membuat website.\n\nHarga\nPaket website mulai Rp3.500.000.";
+    $second = $first."\n\nFAQ\nPengerjaan dimulai setelah data lengkap diterima.";
+
+    $this->actingAs(admin())->put($uri, ['source_text' => $first])->assertSessionHas('success', 'Brand Knowledge disimpan sebagai versi 1.');
+    $this->put($uri, ['source_text' => $first])->assertSessionHas('error', 'Tidak ada Brand Knowledge yang berubah.');
+    $this->put($uri, ['source_text' => $second])->assertSessionHas('success', 'Brand Knowledge disimpan sebagai versi 2.');
+
+    $brand = webworks()->refresh();
+    expect(ContentBrandKnowledgeVersion::query()->count())->toBe(2)
+        ->and(ContentBrandKnowledgeChunk::query()->count())->toBe(5)
+        ->and($brand->currentKnowledge?->version)->toBe(2)
+        ->and($brand->currentKnowledge?->chunks)->toHaveCount(3)
+        ->and(ContentBrandKnowledgeVersion::query()->where('version', 1)->value('source_text'))->toBe($first)
+        ->and(AuditLog::query()->where('action', 'content.brand_knowledge_updated')->count())->toBe(2);
+
+    expect(fn () => ContentBrandKnowledgeVersion::query()->where('version', 1)->sole()->update(['source_text' => 'ubah']))->toThrow(LogicException::class);
+});
+
+it('uses the AI interview only as an editable proposal and records the run without storing answers', function (): void {
+    config()->set('content.ai.copy.provider', 'fake');
+    app()->forgetInstance(CopyGenerator::class);
+    app()->forgetInstance(CopyModels::class);
+    app()->forgetInstance(CopyBudget::class);
+
+    $this->actingAs(admin())->post(brandUri('/knowledge/assist'), [
+        'answers' => [
+            'overview' => 'Kami membantu UMKM membangun website.',
+            'audience' => 'Pemilik usaha tanpa tim teknologi.',
+            'offers' => '',
+            'differentiators' => '',
+            'voice' => 'Ramah dan mudah dipahami.',
+            'visual' => '',
+            'rules' => 'Jangan menjanjikan ranking pertama.',
+            'operations' => '',
+        ],
+        'current_source_text' => 'Dokumen lama yang tetap berlaku.',
+    ])->assertSessionHas('success')->assertSessionHas('brand_knowledge_assistant_draft', function (array $draft): bool {
+        return str_contains($draft['text'], 'Dokumen lama yang tetap berlaku.')
+            && str_contains($draft['text'], 'Kami membantu UMKM membangun website.');
+    });
+
+    $run = ContentBrandKnowledgeAssist::query()->sole();
+    expect($run->status)->toBe(GenerationStatus::Succeeded)
+        ->and($run->prompt_version)->toBe('brand-knowledge-v2')
+        ->and(ContentBrandKnowledgeVersion::query()->count())->toBe(0)
+        ->and(AuditLog::query()->where('action', 'content.brand_knowledge_assist_requested')->count())->toBe(1)
+        ->and(AuditLog::query()->where('action', 'content.brand_knowledge_assist_succeeded')->count())->toBe(1)
+        ->and(json_encode($run->toArray()))->not->toContain('Kami membantu UMKM');
+});
+
+it('keeps manual Brand Knowledge available when AI assistance is unavailable or unanswered', function (): void {
+    $this->actingAs(admin())->post(brandUri('/knowledge/assist'), [
+        'answers' => ['overview' => '', 'audience' => '', 'offers' => '', 'differentiators' => '', 'voice' => '', 'visual' => '', 'rules' => '', 'operations' => ''],
+    ])->assertSessionHas('error', 'Jawab minimal satu pertanyaan sebelum meminta bantuan AI.');
+
+    $this->post(brandUri('/knowledge/assist'), [
+        'answers' => ['overview' => 'Brand kami membantu UMKM.', 'audience' => '', 'offers' => '', 'differentiators' => '', 'voice' => '', 'visual' => '', 'rules' => '', 'operations' => ''],
+    ])->assertSessionHas('error', 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.');
+
+    expect(ContentBrandKnowledgeAssist::query()->count())->toBe(0)
+        ->and(ContentBrandKnowledgeVersion::query()->count())->toBe(0);
 });
 
 it('saves rules as a new version each time and keeps the old ones', function (): void {
@@ -65,9 +202,24 @@ it('refuses a save that changes nothing, missing notes, and contradictory limits
     $this->put(brandUri('/rules'), rulesPayload(['change_note' => 'Lagi']))->assertSessionHas('error', 'Tidak ada aturan yang berubah.');
     $this->put(brandUri('/rules'), rulesPayload(['change_note' => '']))->assertSessionHasErrors('change_note');
     $this->put(brandUri('/rules'), rulesPayload(['hashtag_min' => 10, 'hashtag_max' => 5, 'change_note' => 'x']))->assertSessionHas('error', 'Jumlah hashtag: batas minimal lebih besar dari batas maksimal.');
-    $this->put(brandUri('/rules'), rulesPayload(['forbidden_terms' => array_fill(0, 51, 'x')]))->assertSessionHasErrors('forbidden_terms');
+    $this->put(brandUri('/rules'), rulesPayload(['forbidden_terms' => array_map(static fn (int $index): string => "kata-{$index}", range(1, 51))]))->assertSessionHasErrors('guide');
 
     expect(ContentBrandProfile::query()->count())->toBe(1);
+});
+
+it('rejects a malformed guide without creating a rules version', function (): void {
+    $this->actingAs(admin());
+
+    $this->put(brandUri('/rules'), [
+        'guide' => str_replace("[CONTOH DITOLAK]\n", '', brandGuide()),
+        'change_note' => 'Heading terhapus',
+    ])->assertSessionHasErrors('guide');
+    $this->put(brandUri('/rules'), [
+        'guide' => str_replace('Caption maksimal: 300', 'Caption maksimal: banyak', brandGuide()),
+        'change_note' => 'Batas salah',
+    ])->assertSessionHasErrors('guide');
+
+    expect(ContentBrandProfile::query()->count())->toBe(0);
 });
 
 it('never edits or deletes a rules version', function (): void {
@@ -103,11 +255,12 @@ it('validates campaign periods and priorities', function (): void {
 });
 
 it('adds facts with their source and only ever retires them', function (): void {
-    $this->actingAs(admin())->post(brandUri('/facts'), ['statement' => 'Paket Landing Page Rp 1.500.000', 'source' => ''])->assertSessionHasErrors('source');
-    $this->post(brandUri('/facts'), ['statement' => 'Paket Landing Page Rp 1.500.000', 'source' => 'Daftar harga November 2026'])->assertSessionHas('success');
+    $this->actingAs(admin())->post(brandUri('/facts'), ['category' => 'PRICE', 'statement' => 'Paket Landing Page Rp 1.500.000', 'source' => ''])->assertSessionHasErrors('source');
+    $this->post(brandUri('/facts'), ['category' => 'PRICE', 'statement' => 'Paket Landing Page Rp 1.500.000', 'source' => 'Daftar harga November 2026'])->assertSessionHas('success');
     $fact = ContentFact::query()->sole();
 
-    expect(fn () => $fact->update(['statement' => 'Rp 1']))->toThrow(LogicException::class)
+    expect($fact->category->value)->toBe('PRICE')
+        ->and(fn () => $fact->update(['statement' => 'Rp 1']))->toThrow(LogicException::class)
         ->and(fn () => $fact->delete())->toThrow(LogicException::class);
 
     $this->post(brandUri("/facts/{$fact->public_id}/retire"), [])->assertSessionHasErrors('reason');
