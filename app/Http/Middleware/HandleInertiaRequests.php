@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Support\PostingQueue;
 use App\Domain\Payments\Queries\ReconciliationReport;
 use App\Support\RequestContext;
 use Illuminate\Http\Request;
@@ -36,6 +37,8 @@ final class HandleInertiaRequests extends Middleware
             'openIssueCount' => fn () => $user instanceof User
                 ? Cache::remember('reconciliation.open-issues', 60, static fn (): int => app(ReconciliationReport::class)->openIssueCount())
                 : null,
+            // Approved posts due today or earlier and not yet marked posted (Content Studio reminder).
+            'contentDueCount' => fn () => $user instanceof User ? app(PostingQueue::class)->dueCount() : null,
             'requestId' => fn () => app(RequestContext::class)->requestId(),
         ];
     }

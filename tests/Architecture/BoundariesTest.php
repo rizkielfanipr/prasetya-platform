@@ -7,13 +7,21 @@ arch('the domain does not depend on the Duitku adapter or HTTP')
     ->expect('App\Domain')
     ->not->toUse(['App\Integrations', 'App\Http']);
 
-arch('only the Duitku adapter makes outbound HTTP calls')
+arch('only the Duitku, content AI, and content research adapters make outbound HTTP calls')
     ->expect('Illuminate\Support\Facades\Http')
-    ->toOnlyBeUsedIn('App\Integrations\Duitku');
+    ->toOnlyBeUsedIn(['App\Integrations\Duitku', 'App\Integrations\ContentAi', 'App\Integrations\ContentResearch']);
+
+arch('content AI and research adapters stay away from payments and orders')
+    ->expect(['App\Integrations\ContentAi', 'App\Integrations\ContentResearch'])
+    ->not->toUse(['App\Domain\Payments', 'App\Domain\Orders', 'App\Domain\Customers', 'App\Integrations\Duitku']);
 
 arch('models do not call gateways')
     ->expect('App\Domain\Payments\Contracts\PaymentGateway')
     ->not->toBeUsedIn(['App\Domain\Payments\Models', 'App\Domain\Orders\Models']);
+
+arch('content studio never touches orders, payments, packages, or gateways (ADR-0011)')
+    ->expect('App\Domain\Content')
+    ->not->toUse(['App\Domain\Orders', 'App\Domain\Payments', 'App\Domain\Packages', 'App\Domain\Customers', 'Illuminate\Support\Facades\Http']);
 
 arch('controllers do not open transactions')
     ->expect('App\Http\Controllers')

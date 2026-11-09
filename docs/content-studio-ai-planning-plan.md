@@ -1,0 +1,676 @@
+# Rencana Content Studio dan AI Content Strategist
+
+| Field | Value |
+|---|---|
+| Status | Draft untuk persetujuan |
+| Owner | Prasetya Group |
+| Last updated | 2026-11-08 |
+| Decision | ADR-0011; target penyederhanaan di ADR-0012; KelontongAI dipilih untuk copy, gambar tetap manual |
+| Related | [`content-studio-simplification-plan.md`](content-studio-simplification-plan.md), [`architecture.md`](architecture.md), [`design.md`](design.md), [`data-dictionary.md`](data-dictionary.md), [`security/threat-model.md`](security/threat-model.md), [`testing/strategy.md`](testing/strategy.md) |
+
+> **Arah produk 2026-11-08:** [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) dan [rencana penyederhanaan](content-studio-simplification-plan.md) mengusulkan workflow creator-owned tanpa approval formal. Bagian approval di dokumen ini tetap menjelaskan implementasi dan riwayat fase yang sudah ada sampai migrasi status dilaksanakan; bagian tersebut bukan target UX berikutnya.
+
+## Tujuan
+
+Membangun modul **Content Studio** untuk merencanakan konten Instagram mingguan, melakukan riset tren, menyusun strategi dan brief, menghasilkan caption serta gambar, menjalankan approval manusia, dan menyiapkan paket posting manual.
+
+Sistem harus mengurangi pekerjaan operasional tanpa menyerahkan keputusan publikasi kepada AI. Laravel tetap menjadi sumber data, pemilik workflow, dan audit trail. Hermes digunakan sebagai **AI Content Strategist** untuk riset dan perencanaan setelah fondasi manual serta AI copy KelontongAI stabil.
+
+## Keputusan produk saat ini
+
+| Area | Keputusan |
+|---|---|
+| Kanal awal | Instagram feed, gambar tunggal |
+| Perencanaan | Mingguan, dengan item konten per hari |
+| Strategi dan riset | Hermes Agent setelah research tools tersedia |
+| Caption dan structured output | KelontongAI Chat Completions API |
+| Gambar | Upload manual; image generator tidak digunakan |
+| Approval | Wajib dilakukan pengguna Content Studio |
+| Publikasi | Manual: download gambar, salin caption, lalu tandai sudah diposting |
+| Instagram API | Tidak digunakan pada scope awal |
+| n8n | Tidak digunakan pada scope awal |
+| Sumber data utama | Prasetya Platform / MySQL |
+| Scheduler dan pekerjaan latar | Laravel Scheduler dan Queue |
+| Agent runtime | Hermes self-hosted pada service terpisah |
+| Runtime lokal Hermes | Docker Desktop sebagai engine; dijalankan melalui Docker CLI dan Compose |
+| Runtime VPS Hermes | Docker Engine, Docker CLI, dan Compose plugin; tanpa Docker Desktop |
+
+## Prinsip utama
+
+1. **Human approval wajib.** Output AI selalu menjadi draft dan tidak dapat memublikasikan konten.
+2. **Laravel authoritative.** Status, brand guideline, campaign, approval, versi, dan audit hanya sah jika tersimpan melalui domain action Laravel.
+3. **AI tidak menjadi sumber fakta produk.** Harga, nama produk, promo, periode, dan klaim bisnis selalu berasal dari data yang disetujui.
+4. **Research dapat ditelusuri.** Setiap tren menyimpan sumber, URL, waktu akses, ringkasan, relevansi, dan content item yang menggunakannya.
+5. **Agent memiliki least privilege.** Hermes hanya mendapat tool baca dan pengiriman draft; tidak mendapat tool approval, publish, delete, atau credential management.
+6. **Setiap generation dapat diulang dengan aman.** Queue retry dan idempotency mencegah duplikasi draft dan asset.
+7. **Biaya dibatasi.** Setiap run mempunyai batas token, tool call, pencarian, gambar, durasi, dan estimasi biaya.
+8. **Hasil lama tidak ditimpa.** Caption, gambar, research snapshot, dan brief yang direvisi disimpan sebagai versi.
+
+## Scope
+
+### Content Studio manual
+
+- Kalender mingguan dan daftar konten.
+- Content item dengan brand, tanggal rencana, content pillar, objective, target audience, brief, caption, hashtag, visual direction, alt text, dan catatan.
+- Upload gambar manual.
+- Approval, rejection, dan revision request.
+- Riwayat versi dan audit.
+- Download gambar dan salin caption, hashtag, serta alt text.
+- Tandai konten sebagai sudah diposting.
+- Simpan waktu publikasi aktual dan URL Instagram secara opsional.
+
+### Brand knowledge
+
+- Profil brand dan target audience.
+- Tone of voice.
+- Kata yang dianjurkan dan dilarang.
+- CTA yang diizinkan.
+- Aturan caption dan hashtag.
+- Identitas serta arahan visual.
+- Contoh konten yang disetujui dan ditolak.
+- Klaim produk yang diperbolehkan.
+- Content pillar dan komposisi mingguan.
+- Jarak minimum pengulangan topik.
+
+### AI production
+
+- Generate caption, hashtag, CTA, alt text, dan visual direction dari brief.
+- Generate gambar dari visual prompt.
+- Regenerate caption atau gambar secara terpisah.
+- Revisi berdasarkan feedback pengguna.
+- Structured output tervalidasi sebelum disimpan.
+- Catat provider, model, prompt version, token, biaya, durasi, dan error.
+
+### Trend research
+
+- Data internal: campaign, produk, histori konten, topik terdahulu, dan performa manual.
+- Data eksternal: web search dan extraction melalui provider yang disetujui.
+- Domain allowlist/blocklist.
+- Snapshot sumber agar hasil perencanaan dapat direproduksi dan diaudit.
+- Deduplication dan pemeriksaan kemiripan topik.
+
+### Hermes strategist
+
+- Menentukan query riset dalam batas yang diberikan.
+- Memilih research tool yang diizinkan.
+- Menilai kecukupan sumber.
+- Membandingkan tren, campaign, histori, dan performa.
+- Menyusun weekly objective dan komposisi content pillar.
+- Membuat ide harian dan brief terstruktur.
+- Meminta generator caption dan gambar.
+- Mengirim weekly plan dan draft ke Content Studio.
+- Merevisi draft berdasarkan feedback terstruktur.
+
+### Manual publishing
+
+- Checklist sebelum posting.
+- Preview gambar final.
+- Download asset.
+- Salin caption, hashtag, dan alt text.
+- Aksi eksplisit **Tandai sudah diposting**.
+- Tanggal/jam aktual dan URL posting opsional.
+- Sistem tidak mengubah status menjadi published hanya karena tanggal rencana telah lewat.
+
+## Di luar scope awal
+
+- Publikasi otomatis dengan Instagram API.
+- Instagram direct message, comment moderation, atau social listening.
+- Carousel, Reel, Story, dan video generation.
+- Iklan berbayar dan pengaturan budget iklan.
+- n8n dan approval melalui WhatsApp, Slack, email, atau Notion.
+- Agent mengubah brand guideline secara otomatis.
+- Agent mengaktifkan campaign atau mengubah data produk.
+- Agent menghapus draft atau asset.
+- Agent menggunakan browser profile pribadi.
+- Automatic learning yang langsung mengubah prompt produksi tanpa review.
+
+## Arsitektur target
+
+```text
+Pengguna back office
+        |
+        v
+Prasetya Platform / Content Studio
+  - kalender, draft, versi, approval
+  - brand knowledge dan campaign
+  - audit, budget, scheduler, queue
+        |
+        +------------------------------+
+        |                              |
+        v                              v
+KelontongAI Copy API            Hermes Agent
+  - structured copy              - research
+                                 - weekly strategy
+                                 - content briefs
+        |                              |
+        +--------------+---------------+
+                       |
+                       v
+               Draft Content Studio
+                       |
+                       v
+             Approval dan posting manual
+```
+
+### Batas service
+
+| Service | Tanggung jawab |
+|---|---|
+| Laravel web | Interface, validasi transport, dan presentasi |
+| Domain Content | State transition, approval, versioning, dan business rules |
+| Laravel Queue | Generation, agent run, asset processing, retry, dan timeout |
+| Laravel Scheduler | Memulai weekly planning run dan reminder |
+| Hermes | Riset, analisis, strategi, brief, dan koordinasi generation |
+| KelontongAI | Model teks untuk structured copy |
+| MySQL | Source of truth untuk data Content Studio |
+| Redis | Queue, lock, rate limit, dan cache non-authoritative |
+| Storage | Asset gambar original dan final |
+
+Hermes harus berjalan sebagai service terpisah dari proses PHP web. Kegagalan Hermes tidak boleh mengganggu halaman Content Studio atau pekerjaan manual.
+
+## Standar runtime Hermes
+
+### Development lokal macOS
+
+Hermes dijalankan dalam container. Mac menggunakan **Docker Desktop** karena Docker CLI saja tidak menyediakan Linux VM/daemon yang diperlukan untuk menjalankan container pada macOS. Operasional sehari-hari tetap melalui terminal, bukan bergantung pada GUI Docker Desktop.
+
+Komponen lokal:
+
+```text
+Docker Desktop
+  - Docker Engine / Linux VM
+  - Docker CLI
+  - Docker Compose
+        |
+        v
+Hermes container
+  - model provider
+  - web research
+  - Content Studio tools (setelah tersedia)
+```
+
+Command operasional yang diharapkan:
+
+```sh
+docker --version
+docker compose version
+docker compose up -d
+docker compose ps
+docker compose logs -f hermes
+docker compose restart hermes
+docker compose down
+```
+
+Data Hermes disimpan pada bind mount/volume khusus di luar repository, misalnya `~/.hermes`, dan tidak ikut di-commit. API key dimasukkan melalui setup interaktif atau secret file dengan permission minimum; jangan menaruh key pada command, `compose.yaml`, dokumentasi, atau `.env` Laravel.
+
+Untuk tahap belajar, Hermes dijalankan interaktif terlebih dahulu. Scheduler dan gateway permanen belum diaktifkan sampai tool boundary, biaya, dan output research tervalidasi.
+
+### Staging dan production VPS
+
+VPS Linux tidak menggunakan Docker Desktop. Instal hanya:
+
+- Docker Engine;
+- Docker CLI;
+- Docker Compose plugin.
+
+Hermes dijalankan dengan image versi yang dipin atau digest yang telah diuji, bukan mengikuti `latest` tanpa review. Konfigurasi dan memory persisten disimpan pada volume khusus, sedangkan secret berada pada secret file/secret manager terpisah dari Laravel.
+
+Container Hermes:
+
+- tidak mendapat Docker socket;
+- tidak mendapat SSH key;
+- tidak mendapat database credential;
+- tidak me-mount source, `.env`, log, release, atau backup Laravel;
+- hanya me-mount direktori data Hermes yang diperlukan;
+- berjalan sebagai user non-root dan memakai `no-new-privileges` bila image mendukung;
+- memiliki limit CPU, memory, restart policy, health check, dan log rotation;
+- tidak membuka dashboard/gateway ke internet publik;
+- hanya dapat mengakses internal Content Studio API dan provider eksternal yang disetujui.
+
+Laravel yang sudah berjalan melalui Nginx/systemd tidak harus dipindahkan ke Docker. Docker digunakan khusus untuk mengisolasi Hermes dan membuat runtime lokal, staging, serta production lebih konsisten.
+
+### Alasan keputusan Docker
+
+| Alasan | Dampak |
+|---|---|
+| Isolasi | Mengurangi file dan service VPS yang dapat dijangkau agent |
+| Dependency | Python, browser, dan plugin Hermes tidak mencemari dependency host/Laravel |
+| Reproduksi | Versi runtime lokal, staging, dan production dapat disamakan |
+| Upgrade | Image baru dapat diuji sebelum menggantikan container lama |
+| Rollback | Kembali ke tag/digest sebelumnya tanpa membongkar dependency host |
+| Resource control | CPU dan memory Hermes dapat dibatasi agar tidak mengganggu aplikasi lain |
+| Secret separation | Credential Hermes tidak bercampur dengan `.env` Laravel |
+| Cleanup | Container dapat diganti tanpa menghapus volume data yang persisten |
+
+Docker mengurangi area dampak, tetapi bukan pengganti least privilege, tool allowlist, network policy, authentication, audit, dan approval manusia.
+
+## Model data awal
+
+Nama tabel final ditetapkan saat design review, tetapi capability berikut harus memiliki penyimpanan eksplisit.
+
+| Entitas | Tujuan dan field utama |
+|---|---|
+| `content_brands` | Identitas brand, audience, voice, visual direction, status |
+| `content_pillars` | Pilar per brand, description, target share, status |
+| `content_campaigns` | Nama, objective, periode, priority, approved facts |
+| `content_items` | Brand, planned date, pillar, objective, brief, status, active revision |
+| `content_revisions` | Versi brief, caption, hashtags, visual prompt, alt text, feedback |
+| `content_assets` | File, mime type, dimensions, checksum, generation source, revision |
+| `content_approvals` | Decision, actor, timestamp, note, revision yang disetujui |
+| `content_publications` | Waktu aktual, URL opsional, actor, note |
+| `content_research_runs` | Scope, query, status, budget, start/end, error |
+| `content_research_sources` | URL, domain, title, fetched time, summary, relevance, trust status |
+| `content_weekly_plans` | Minggu, objective, strategy, status, agent run |
+| `ai_generation_runs` | Provider, model, prompt version, usage, cost, latency, status |
+| `agent_runs` | Hermes session/run id, tool trace summary, limits, outcome |
+
+### Status content item
+
+```text
+DRAFT
+  -> READY_FOR_REVIEW
+  -> REVISION_REQUESTED
+  -> READY_FOR_REVIEW
+  -> APPROVED
+  -> PUBLISHED
+
+DRAFT / READY_FOR_REVIEW -> REJECTED
+```
+
+Aturan:
+
+- Hanya revision aktif yang dapat diajukan untuk review.
+- Approval selalu menunjuk revision tertentu.
+- Perubahan pada content setelah approval membuat revision baru dan mengembalikan status ke `READY_FOR_REVIEW`.
+- `PUBLISHED` hanya berasal dari aksi manusia dengan revision yang masih approved.
+- Konten rejected tetap dipertahankan sebagai evidence dan sumber evaluasi.
+
+### Status pekerjaan AI
+
+```text
+QUEUED
+  -> RESEARCHING
+  -> PLANNING
+  -> GENERATING_COPY
+  -> GENERATING_ASSETS
+  -> READY_FOR_REVIEW
+  -> COMPLETED
+
+Any running state -> PARTIALLY_FAILED / FAILED / CANCELLED
+```
+
+## Kontrak tool Hermes
+
+Hermes tidak mengakses database secara langsung. Laravel menyediakan internal tool/API dengan input dan output terstruktur.
+
+### Tool baca yang diizinkan
+
+- `get_brand_profile`
+- `get_content_rules`
+- `get_active_campaigns`
+- `get_approved_product_facts`
+- `get_recent_content`
+- `get_content_performance`
+- `get_upcoming_business_events`
+- `find_similar_topics`
+- `get_weekly_planning_constraints`
+
+### Tool tulis terbatas
+
+- `submit_research_source`
+- `submit_research_summary`
+- `submit_weekly_plan_draft`
+- `submit_content_brief_draft`
+- `request_copy_generation`
+- `submit_revision_draft`
+- `complete_agent_run`
+
+### Tool yang dilarang
+
+- `approve_content`
+- `mark_published`
+- `delete_content`
+- `delete_asset`
+- `change_brand_guideline`
+- `change_campaign`
+- `change_product_fact`
+- `manage_credentials`
+- arbitrary SQL, shell, atau unrestricted HTTP terhadap jaringan internal
+
+Setiap tool tulis memerlukan idempotency key, agent run id, dan expected revision/version agar retry tidak menimpa perubahan pengguna.
+
+## Strategi model dan credential
+
+### Provider AI
+
+- Gunakan satu model teks/reasoning KelontongAI yang mendukung structured output.
+- Gambar dibuat di luar sistem dan diunggah manual sampai provider image yang valid diputuskan melalui ADR baru.
+- Model identifier harus berupa konfigurasi, bukan hard-coded di domain logic.
+- Prompt disimpan sebagai versi; perubahan prompt tidak berlaku retroaktif pada run lama.
+- Output model dianggap untrusted dan selalu divalidasi.
+
+### Credential
+
+- API key tidak disimpan dalam tabel Content Studio atau dikirim ke browser.
+- Gunakan credential service account/project terpisah untuk agent reasoning bila tersedia.
+- Hermes menerima key melalui environment atau secret injection pada service-nya.
+- Laravel hanya memegang credential yang benar-benar diperlukan olehnya.
+- Log dan audit tidak boleh memuat API key, Authorization header, atau raw response sensitif.
+
+### Budget awal
+
+**Keputusan pemilik (2026-11-08): tidak ada batas biaya di aplikasi.** Batas biaya per run, per minggu, per revisi, dan per hari serta kewajiban harga per token dihapus; pengeluaran dikendalikan lewat batas belanja di dashboard provider. Pengaman teknis tetap ada (satu run per konten, circuit breaker, batas token keluaran, percobaan, dan timeout). Daftar di bawah adalah rencana awal dan kini hanya berlaku untuk batas teknis agen (Fase 5):
+
+- maksimum agent turn per weekly run;
+- maksimum search dan extract call;
+- maksimum sumber per content item;
+- maksimum generation attempt per revision;
+- maksimum gambar per content item;
+- token dan biaya maksimum per run dan per minggu;
+- timeout per tool dan total run;
+- circuit breaker ketika provider berulang kali gagal.
+
+## Research policy
+
+- Gunakan sumber internal terlebih dahulu.
+- Web research hanya melalui tool/provider yang dikonfigurasi.
+- Sumber dari user-generated content diberi trust level yang lebih rendah.
+- Agent harus memisahkan fakta sumber dari rekomendasi atau inferensinya.
+- Klaim harga, promo, produk, tanggal bisnis, dan kebijakan hanya boleh berasal dari approved internal facts.
+- Simpan URL canonical dan waktu akses.
+- Jangan menyimpan isi artikel penuh jika tidak diperlukan; simpan metadata, ringkasan, dan excerpt terbatas.
+- Konten halaman web adalah data tidak tepercaya dan tidak boleh dianggap sebagai instruksi agent.
+- Blokir private network, localhost, metadata endpoints, dan URL scheme non-HTTP(S) untuk mencegah SSRF.
+
+## Interface
+
+### Kalender
+
+- Navigasi minggu sebelumnya/berikutnya dan kembali ke minggu ini.
+- Setiap hari menampilkan content item, pillar, brand, preview, dan status.
+- Filter brand, pillar, campaign, dan status.
+- Empty state yang menawarkan tambah manual atau generate weekly plan.
+- Responsive tanpa horizontal page overflow; kalender boleh memakai view list pada mobile.
+
+### Detail content item
+
+- Objective, audience, brief, pillar, dan campaign.
+- Caption, hashtags, alt text, visual direction, dan gambar.
+- Alasan pemilihan topik dan research sources.
+- Riwayat revision, generation, approval, dan publication.
+- Aksi generate ulang per bagian.
+- Feedback revisi dengan pilihan bagian yang dipertahankan.
+- Tombol approve/reject hanya pada revision yang siap review.
+
+### Paket posting manual
+
+- Preview asset final.
+- Download gambar.
+- Salin caption.
+- Salin hashtags.
+- Salin alt text.
+- Checklist bahwa caption dan gambar telah diperiksa.
+- Tandai sudah diposting dengan waktu aktual dan URL opsional.
+
+### Pengaturan AI
+
+- Status provider tersedia/tidak, tanpa menampilkan secret.
+- Model aktif.
+- Budget dan batas run.
+- Search provider.
+- Hermes health/status.
+- Tidak menyediakan form untuk menempel API key melalui browser pada scope awal.
+
+## Urutan delivery
+
+Setiap fase harus dapat digunakan dan lulus quality gate sebelum fase berikutnya dimulai.
+
+### Fase 0 — Decision dan kontrak
+
+- Setujui plan ini.
+- Buat ADR penggunaan Hermes dan pembagian kewenangan Laravel/Hermes.
+- Finalisasi brand awal, content pillar, jumlah konten mingguan, dan approval policy.
+- Finalisasi data dictionary dan threat model sebelum migration.
+- Definisikan evaluasi kualitas caption, gambar, dan weekly plan.
+- Pasang Docker Desktop pada macOS dan verifikasi Docker CLI/Compose sebelum spike Hermes; deployment VPS belum dilakukan pada fase ini.
+
+**Exit:** scope, authority boundary, data contract, biaya, dan risiko disetujui.
+
+### Fase 1 — Content Studio manual
+
+- Migration dan domain actions.
+- Kalender, daftar, create/edit, detail, upload asset, dan versioning.
+- Approval, rejection, revision request, publication manual, dan audit.
+- Download asset dan copy helpers.
+- Belum ada OpenAI atau Hermes.
+
+**Exit:** satu minggu konten dapat dikelola, disetujui, dan ditandai published sepenuhnya secara manual.
+
+**Status (2026-11-07):** selesai di branch `feat/content-studio`, menunggu UAT. Route: `/content` → `/content/calendar`, `/content/items`, `/content/items/{id}` (`PUT` konten, `PUT …/details`, `POST …/submit-review`, `…/request-revision`, `…/approve`, `…/reject`, `…/publication`), dan `/content/assets/{id}` (private, `?download=1`). Detail tampilan di [`design.md`](design.md#content-studio), aturan edit di [`data-dictionary.md`](data-dictionary.md#content-item-state-machine). Brand awal Prasetya Webworks lewat `ContentBrandSeeder` (ikut deploy). Belum ada OpenAI, Hermes, queue, atau scheduler.
+
+### Fase 2 — Brand knowledge dan content rules
+
+- Brand profile, tone, visual guidance, examples, dan forbidden claims.
+- Content pillar serta target composition.
+- Campaign dan approved product facts.
+- Validator aturan deterministik.
+- Seed/template awal untuk brand pertama.
+
+**Exit:** brief yang sama dapat dinilai terhadap aturan brand tanpa bergantung pada prompt tersembunyi.
+
+**Status (2026-11-08):** pengalaman utama telah disederhanakan menjadi satu halaman **Brand Knowledge** dengan satu textarea bebas. Setiap simpan membuat versi immutable dan maksimal 100 chunk deterministik; prompt copy `copy-v4` mengambil maksimal enam chunk relevan berdasarkan judul, topik, objective, audience, dan brief. Ini adalah RAG/retrieval, bukan training atau fine-tuning. Tahap awal memakai keyword ranking tanpa vector database; embedding dapat ditambahkan pada chunk nanti. Campaign tetap di Kalender/Perencanaan. Structured rules, pillar, dan facts fase sebelumnya dipertahankan untuk validator dan kompatibilitas record lama tetapi tidak lagi menjadi tab utama. Rincian di [`data-dictionary.md`](data-dictionary.md#brand-rule-check).
+
+### Fase 3 — KelontongAI copy production
+
+- Provider abstraction untuk copy.
+- Structured copy generation.
+- Queue, retry, timeout, idempotency, usage, cost, dan prompt versioning.
+- Partial regeneration dan revision history.
+
+**Exit:** pengguna dapat membuat serta merevisi caption dari brief, mengunggah gambar manual, lalu meng-approve hasilnya.
+
+**Status (2026-11-08):** selesai untuk **teks** di branch `feat/content-ai-copy` (di atas Fase 2), menunggu evaluasi kualitas dan biaya dengan key asli. Copy prompt `copy-v4` menerima Brand Knowledge hasil retrieval dan tetap memperlakukan seluruh DATA sebagai bahan, bukan instruksi. Keputusan pemilik: teks lewat adapter OpenAI-compatible, **gambar tetap unggah manual**; batas biaya di aplikasi kemudian dihapus atas keputusan pemilik (pengeluaran dibatasi di provider). Tanpa key, provider `fake` dipakai untuk demo dan test; production tetap `none` sampai ada host queue worker. Generasi dan penyuntingan gambar AI belum dibangun. Cara mengaktifkan di [`runbooks/content-studio-ai.md`](runbooks/content-studio-ai.md).
+
+### Fase 4 — Research tools
+
+- Internal research services.
+- Web search dan extraction provider.
+- Source snapshot, trust status, citation, domain policy, dan SSRF protection.
+- Similarity/deduplication terhadap histori content.
+- Research dapat dijalankan secara deterministik tanpa Hermes.
+
+**Exit:** research run menghasilkan kumpulan sumber yang dapat diaudit dan digunakan oleh planner.
+
+**Status (2026-11-08):** selesai di branch `feat/content-research` (di atas Fase 6), menunggu security review dan key Tavily. Sumber internal didahulukan (Brand Knowledge aktif, fakta legacy berlaku, kampanye berjalan, konten mirip dalam 90 hari). Pencarian web lewat kontrak `WebSearch` berjalan di queue tanpa Hermes; hasil disaring `UrlPolicy`, dikanonisasi, dideduplikasi, dan disimpan sebagai metadata plus ringkasan terbatas. Sumber yang dipakai ikut dibaca AI sebagai bahan latar tak tepercaya (prompt `copy-v4`). Hermes nanti memakai tool riset ini, bukan key atau skill search sendiri.
+
+### Fase 5 — Hermes Content Strategist
+
+- Jalankan spike lokal dalam container melalui Docker Desktop dan Docker CLI/Compose.
+- Deploy Hermes staging/production dengan Docker Engine dan Compose plugin sebagai service terpisah.
+- Pin image version/digest dan verifikasi upgrade serta rollback container.
+- Daftarkan tool contract terbatas.
+- Weekly agent run, budget, timeout, cancellation, dan trace summary.
+- Research, weekly strategy, content briefs, dan generation orchestration.
+- Semua output masuk sebagai draft.
+
+**Exit:** Hermes menghasilkan satu minggu draft lengkap dengan sumber dan alasan, tanpa akses approval atau publication.
+
+### Fase 6 — Revision loop
+
+- Feedback terstruktur dan partial revision.
+- Compare revision.
+- Pertahankan bagian caption/gambar tertentu saat regenerate.
+- Catat acceptance/rejection reason untuk evaluasi, bukan automatic prompt mutation.
+
+**Exit:** pengguna dapat meminta revisi granular tanpa kehilangan versi sebelumnya.
+
+**Status (2026-11-08):** selesai di branch `feat/content-revision-loop` (di atas Fase 3). Peninjau mencentang bagian yang perlu diubah (caption, hashtag, alt text, arahan visual, gambar, brief) saat meminta revisi; panel AI memilihkan bagian salinan yang diminta, mengirim catatan peninjau dan instruksi tambahan penulis (prompt `copy-v2`), dan hasilnya revisi baru sehingga versi, persetujuan, dan audit lama tetap ada. Draft AI dapat dinilai "Berguna" atau "Kurang berguna" (dengan alasan); Pengaturan AI menampilkan penilaian dan jumlah draft yang akhirnya disetujui per model dan versi prompt. Penilaian tidak pernah mengubah prompt secara otomatis.
+
+### Fase 7 — Manual posting workflow
+
+- Final posting package.
+- Checklist dan ergonomi copy/download.
+- Published action, actual timestamp, URL, dan note.
+- Reminder untuk approved content yang belum ditandai posted.
+
+**Exit:** pengguna dapat berpindah dari approved draft ke posting manual dengan langkah minimum dan evidence yang lengkap.
+
+**Status (2026-11-08):** selesai di branch `feat/content-posting-workflow` (di atas Fase 4). Tab **Siap posting** mengelompokkan konten yang disetujui menjadi Terlambat, Hari ini, dan 14 hari ke depan, dengan badge di tab dan sidebar; kalender menandai "Belum diposting". Paket posting menampilkan pengingat jadwal, tombol **Bagikan ke Instagram** (Web Share di HP, caption disalin dulu), nama file unduhan bertanggal, dan checklist empat langkah yang wajib dicentang, diingat selama sesi, dan disimpan di catatan publikasi sebagai bukti. Tetap tidak ada Instagram API, dan tanggal lewat tidak pernah mempublikasikan apa pun.
+
+### Fase 8 — Insight feedback
+
+- Input metrik Instagram secara manual.
+- Ringkasan performa per pillar, topic, campaign, dan visual direction.
+- Hermes menggunakan snapshot performa untuk rekomendasi minggu berikutnya.
+- Rekomendasi tetap memerlukan approval dan tidak mengubah brand rules otomatis.
+
+**Exit:** weekly strategy dapat menjelaskan bagaimana performa masa lalu memengaruhi rekomendasi baru.
+
+**Status (2026-11-08):** bagian manual selesai di branch `feat/content-insights` (di atas Fase 7); pemakaian oleh Hermes menyusul di Fase 5. Keputusan pemilik: insight manual masuk rilis awal. Konten yang dipublikasikan punya panel **Insight** untuk mencatat angka dari Instagram (jangkauan wajib; tayangan, suka, komentar, simpan, bagikan, kunjungan profil, pengikut baru opsional) sebagai snapshot append-only. Tab **Insight** meringkas 30/90/180 hari dari snapshot terbaru tiap posting: total, rata-rata jangkauan dan engagement ((suka + komentar + simpan + bagikan) ÷ jangkauan), per pilar, kampanye, dan topik, lima posting terbaik dengan arahan visualnya, serta pengingat posting tanpa insight setelah 2 hari. `PerformanceSummary` adalah snapshot terstruktur yang nanti dibaca Hermes; tidak ada aturan, pilar, atau prompt yang berubah otomatis.
+
+## Required tests
+
+### Domain dan feature
+
+- State transition content item hanya mengikuti diagram yang disetujui.
+- Approval menunjuk revision tertentu.
+- Perubahan setelah approval membatalkan approval revision lama.
+- Hanya pengguna yang melakukan aksi eksplisit dapat menandai published.
+- Publication manual menyimpan waktu, URL opsional, actor, dan audit.
+- Upload menolak format, ukuran, dan dimensi yang tidak diizinkan.
+- Checksum mencegah duplikasi asset yang tidak disengaja.
+- Semua route berada di belakang auth.
+
+### AI generation
+
+- Structured output yang invalid ditolak atau diperbaiki dengan retry terbatas.
+- Provider timeout tidak mengubah content item menjadi approved.
+- Retry dengan idempotency key tidak membuat revision atau asset ganda.
+- Prompt, credential, dan raw sensitive response tidak muncul di log atau UI.
+- Token dan biaya tercatat per run.
+- Budget menghentikan run sebelum call berikutnya.
+- Caption dan image dapat diregenerate secara independen.
+
+### Research
+
+- Domain blocklist dan private network tidak dapat diakses.
+- Research source menyimpan URL dan waktu akses.
+- Untrusted page content tidak dapat memanggil tool atau mengubah system instruction.
+- Approved product facts mengalahkan klaim eksternal yang bertentangan.
+- Topik mirip dalam lookback window ditandai.
+
+### Hermes
+
+- Hermes hanya melihat tool allowlist.
+- Tool approval, publication, delete, dan credential tidak tersedia.
+- Setiap write tool memerlukan agent run id dan idempotency key.
+- Agent run berhenti pada token, tool-call, cost, atau duration limit.
+- Cancellation mencegah write berikutnya.
+- Partial failure menyimpan output sukses dan menjelaskan bagian gagal.
+- Weekly plan selalu masuk sebagai draft.
+
+### Component dan browser
+
+- Kalender dan list dapat digunakan dengan keyboard.
+- Status tidak disampaikan hanya dengan warna.
+- Dialog approval/rejection memulihkan fokus.
+- Copy button memberi feedback yang dapat dibaca screen reader.
+- Detail, kalender, dan posting package lulus axe.
+- Tidak ada horizontal page overflow pada 360, 768, dan 1280 px.
+- Reduced motion dihormati.
+
+## Security dan privacy gates
+
+- Buat threat-model entry untuk prompt injection, SSRF, secret leakage, excessive agency, runaway cost, malicious file, dan supply-chain agent.
+- Hermes berjalan sebagai user/container non-root dengan filesystem dan network access minimum.
+- Jangan memberi Hermes SSH key, database credential, deployment credential, atau browser profile pengguna.
+- Internal tool endpoint memakai service authentication, short-lived credential bila tersedia, rate limit, dan audit.
+- Egress agent dibatasi ke provider yang diperlukan.
+- Asset diperiksa MIME, extension, size, dimensions, dan decompression risk.
+- Data pelanggan atau pembayaran tidak masuk ke prompt Content Studio.
+- Research dan generation log memiliki retention policy.
+- API key hanya berada di environment/secret store dan dapat dirotasi terpisah.
+- Dependency dan container Hermes dipin ke versi yang direview; update tidak otomatis masuk production.
+
+## Observability
+
+Pantau minimal:
+
+- jumlah weekly run dan success rate;
+- durasi per tahap;
+- token dan biaya per brand/minggu;
+- tool call dan retry count;
+- research provider failure;
+- generation failure;
+- approval, rejection, dan revision rate;
+- rasio draft yang akhirnya published;
+- reminder yang belum diselesaikan;
+- queue depth dan failed jobs;
+- Hermes health serta last successful run.
+
+Log menggunakan run id dan content public id, bukan caption penuh atau secret.
+
+## Rollout
+
+1. Instal Docker Desktop lokal dan pelajari operasional Hermes melalui Docker CLI/Compose.
+2. Jalankan setup Hermes interaktif dengan volume lokal dan credential development.
+3. Deploy Fase 1 tanpa credential AI.
+4. Uji workflow manual dengan satu brand dan satu minggu konten.
+5. Aktifkan OpenAI hanya untuk pengguna internal dan budget kecil.
+6. Jalankan generation secara manual sebelum scheduler digunakan.
+7. Aktifkan research tool satu provider pada staging.
+8. Jalankan Hermes lokal dalam shadow mode: hasil dibandingkan tetapi belum menjadi draft resmi.
+9. Siapkan container Hermes pada VPS dengan image pin, volume, secret, resource limit, dan private connectivity.
+10. Setelah evaluasi, izinkan Hermes mengirim draft untuk satu brand.
+11. Pertahankan approval manusia dan posting manual pada seluruh rollout.
+12. Tambahkan brand lain hanya setelah biaya dan kualitas stabil.
+
+## Rollback
+
+- Nonaktifkan scheduler weekly agent run.
+- Nonaktifkan tool credential Hermes dan KelontongAI tanpa menghapus data Content Studio.
+- Hentikan queue khusus generation/agent, bukan queue pembayaran platform.
+- Kembali ke pembuatan konten manual.
+- Pertahankan research, generation, revision, approval, dan audit history.
+- Jangan menghapus asset approved/published saat rollback.
+- Jika Hermes bermasalah, Content Studio manual dan KelontongAI copy generation harus tetap dapat digunakan secara independen.
+
+## Exit criteria keseluruhan
+
+- Content Studio manual dapat digunakan tanpa AI.
+- Brand knowledge dan approved facts menjadi konteks authoritative.
+- KelontongAI menghasilkan copy yang structured, versioned, dan auditable; gambar tetap diunggah manual.
+- Research memiliki sumber yang dapat ditelusuri serta perlindungan prompt injection dan SSRF.
+- Hermes dapat menyusun weekly plan dalam budget dan tool boundary yang ditentukan.
+- Tidak ada jalur AI untuk approve, publish, delete, atau mengubah fakta bisnis.
+- Pengguna dapat review, meminta revisi, approve, download, copy, dan menandai published.
+- Seluruh required tests dan quality gate proyek lulus.
+- Runbook deploy, incident, credential rotation, provider outage, dan cost runaway tersedia sebelum production.
+
+## Keputusan pemilik (2026-11-07)
+
+Dicatat di [ADR-0011](decisions/0011-content-studio-authority-boundary.md).
+
+| Pertanyaan | Jawaban |
+|---|---|
+| 1. Brand pertama | Prasetya Webworks |
+| 3. Siapa yang boleh approve | Bukan pengaju revisi tersebut (four-eyes); semua user aktif lain boleh |
+| 5. Ukuran gambar | 4:5, 1080×1350 |
+| 9. URL Instagram saat published | Opsional; waktu posting aktual wajib |
+| Provider AI | KelontongAI untuk copy; gambar manual; riset dan agent dikonfigurasi terpisah; penggantian provider melalui evaluasi |
+
+Masih terbuka sampai fase yang membutuhkannya: 2 (jumlah dan hari konten; kalender tidak memaksa jumlah), 6 (retensi), 7 (budget), 8 (search provider), 10 (insight manual), serta lokasi Hermes dan queue worker di staging/production karena hosting cPanel saat ini tidak menyediakan Docker maupun queue worker.
+
+## Pertanyaan yang harus diputuskan sebelum Fase 1
+
+1. Brand pertama: Satamu, Prasetya Webworks, atau brand lain?
+2. Berapa content item per minggu dan hari apa saja?
+3. Siapa yang boleh membuat, merevisi, dan approve konten jika saat ini semua user memiliki satu access level?
+4. Apakah gambar boleh sepenuhnya generatif, harus memakai asset brand, atau kombinasi keduanya?
+5. Ukuran/aspect ratio final untuk posting gambar tunggal?
+6. Berapa lama asset, research snapshot, dan agent trace disimpan?
+7. Batas biaya OpenAI per minggu dan per brand?
+8. Search provider production: SearXNG self-hosted, Firecrawl, Tavily, atau pilihan lain?
+9. Apakah URL Instagram wajib saat menandai published?
+10. Apakah input insight manual masuk scope release awal atau release optimasi?
+

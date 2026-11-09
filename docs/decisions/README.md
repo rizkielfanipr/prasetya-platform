@@ -59,3 +59,5 @@ How will the decision be verified in implementation and operation?
 | [0008](0008-satamu-payment-activation.md) | Activate Satamu on the shared order and payment core | Proposed |
 | [0009](0009-single-access-users-username-login.md) | One access level, back-office user management, and username login | Proposed |
 | [0010](0010-consolidated-transaction-workspace.md) | Consolidate operational payment screens into the transaction workspace | Proposed |
+| [0011](0011-content-studio-authority-boundary.md) | Content Studio, with AI providers and Hermes as untrusted draft producers | Proposed |
+| [0012](0012-simplified-content-studio-workflow.md) | Simplify Content Studio to a creator-owned workflow without formal approval | Accepted, implementation in progress |

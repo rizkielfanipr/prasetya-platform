@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 use App\Http\Controllers\BackOffice\AdminNoteController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
+use App\Http\Controllers\BackOffice\Content\ContentAiController;
+use App\Http\Controllers\BackOffice\Content\ContentAssetController;
+use App\Http\Controllers\BackOffice\Content\ContentBrandController;
+use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
+use App\Http\Controllers\BackOffice\Content\ContentInsightController;
+use App\Http\Controllers\BackOffice\Content\ContentItemController;
+use App\Http\Controllers\BackOffice\Content\ContentPostingController;
+use App\Http\Controllers\BackOffice\Content\ContentResearchController;
 use App\Http\Controllers\BackOffice\DashboardController;
 use App\Http\Controllers\BackOffice\LegacyWorkspaceRedirectController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
@@ -43,6 +51,54 @@ Route::middleware('auth')->group(function (): void {
     Route::post('users/{user:public_id}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
     Route::post('users/{user:public_id}/activate', [UserController::class, 'activate'])->name('users.activate');
     Route::put('users/{user:public_id}/password', [UserController::class, 'password'])->name('users.password');
+
+    // Content Studio (ADR-0011). Manual workflow; nothing here posts to Instagram.
+    Route::get('content', [ContentCalendarController::class, 'home'])->name('content.home');
+    Route::get('content/calendar', ContentCalendarController::class)->name('content.calendar');
+    Route::get('content/to-post', ContentPostingController::class)->name('content.to-post');
+    Route::get('content/insights', [ContentInsightController::class, 'index'])->name('content.insights');
+    Route::post('content/items/{item:public_id}/insights', [ContentInsightController::class, 'store'])->name('content.items.insights.store');
+    Route::get('content/items', [ContentItemController::class, 'index'])->name('content.items.index');
+    Route::post('content/items', [ContentItemController::class, 'store'])->name('content.items.store');
+    Route::get('content/items/{item:public_id}', [ContentItemController::class, 'show'])->name('content.items.show');
+    Route::put('content/items/{item:public_id}', [ContentItemController::class, 'update'])->name('content.items.update');
+    Route::put('content/items/{item:public_id}/details', [ContentItemController::class, 'details'])->name('content.items.details');
+    // Creator-owned lifecycle (ADR-0012): Draft <-> Ready -> Published, Draft|Ready -> Archived.
+    Route::post('content/items/{item:public_id}/ready', [ContentItemController::class, 'ready'])->name('content.items.ready');
+    Route::post('content/items/{item:public_id}/return-to-draft', [ContentItemController::class, 'returnToDraft'])->name('content.items.return-to-draft');
+    Route::post('content/items/{item:public_id}/archive', [ContentItemController::class, 'archive'])->name('content.items.archive');
+    // Retired editorial routes (ADR-0011) during the compatibility window: refuse safely, change nothing.
+    Route::post('content/items/{item:public_id}/{retired}', [ContentItemController::class, 'retiredReview'])
+        ->whereIn('retired', ['submit-review', 'request-revision', 'approve', 'reject'])->name('content.items.retired-review');
+    Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
+    Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
+
+    // AI copy drafts (ADR-0011, phase 3). Off unless configured; the result is always a draft revision.
+    Route::post('content/items/{item:public_id}/generate', [ContentAiController::class, 'generate'])->middleware('throttle:20,1')->name('content.items.generate');
+    Route::get('content/settings', [ContentAiController::class, 'settings'])->name('content.settings');
+    // Research (ADR-0011, phase 4): web search, manual sources, citations. Sources are scoped to the item's brand.
+    Route::post('content/items/{item:public_id}/research', [ContentResearchController::class, 'search'])->middleware('throttle:20,1')->name('content.items.research');
+    Route::post('content/items/{item:public_id}/sources', [ContentResearchController::class, 'addSource'])->middleware('throttle:20,1')->name('content.items.sources.store');
+    // Any source of the item's brand may be cited; CiteSource checks the brand, so no implicit scoping to citations.
+    Route::post('content/items/{item:public_id}/sources/{source:public_id}', [ContentResearchController::class, 'cite'])->withoutScopedBindings()->name('content.items.sources.cite');
+    Route::delete('content/items/{item:public_id}/sources/{source:public_id}', [ContentResearchController::class, 'uncite'])->withoutScopedBindings()->name('content.items.sources.uncite');
+    Route::post('content/generation-runs/{run:public_id}/feedback', [ContentAiController::class, 'feedback'])->name('content.generation-runs.feedback');
+    Route::put('content/settings/model', [ContentAiController::class, 'selectModel'])->name('content.settings.model');
+
+    // Brand Knowledge (ADR-0011). Campaign writes remain brand-scoped although their UI lives in Calendar planning.
+    Route::get('content/brands', [ContentBrandController::class, 'index'])->name('content.brands.index');
+    Route::scopeBindings()->prefix('content/brands/{brand:public_id}')->name('content.brands.')->group(function (): void {
+        Route::get('/', [ContentBrandController::class, 'show'])->name('show');
+        Route::put('knowledge', [ContentBrandController::class, 'updateKnowledge'])->name('knowledge');
+        Route::post('knowledge/assist', [ContentBrandController::class, 'assistKnowledge'])->middleware('throttle:10,1')->name('knowledge.assist');
+        Route::put('rules', [ContentBrandController::class, 'updateRules'])->name('rules');
+        Route::post('pillars', [ContentBrandController::class, 'storePillar'])->name('pillars.store');
+        Route::put('pillars/{pillar:public_id}', [ContentBrandController::class, 'updatePillar'])->name('pillars.update');
+        Route::post('campaigns', [ContentBrandController::class, 'storeCampaign'])->name('campaigns.store');
+        Route::put('campaigns/{campaign:public_id}', [ContentBrandController::class, 'updateCampaign'])->name('campaigns.update');
+        Route::post('facts', [ContentBrandController::class, 'storeFact'])->name('facts.store');
+        Route::post('facts/{fact:public_id}/retire', [ContentBrandController::class, 'retireFact'])->name('facts.retire');
+    });
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/activity', SystemActivityController::class)->name('settings.activity');

@@ -40,6 +40,8 @@ export interface SharedProps {
     auth: { user: AuthUser | null };
     flash: { success: string | null; error: string | null };
     openIssueCount: number | null;
+    /** Approved Content Studio posts due today or earlier, not yet marked posted. */
+    contentDueCount: number | null;
     requestId: string;
     [key: string]: unknown;
 }

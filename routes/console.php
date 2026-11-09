@@ -6,6 +6,20 @@ use App\Domain\Auth\Actions\CreateUser;
 use App\Domain\Auth\Actions\ResetUserPassword;
 use App\Domain\Auth\Models\User;
 use App\Domain\Auth\Username;
+use App\Domain\Content\Actions\AddContentFact;
+use App\Domain\Content\Actions\SavePillar;
+use App\Domain\Content\Actions\UpdateBrandProfile;
+use App\Domain\Content\Ai\CopyBudget;
+use App\Domain\Content\Ai\CopyEvaluation;
+use App\Domain\Content\Ai\CopyModels;
+use App\Domain\Content\Ai\CopyPromptBuilder;
+use App\Domain\Content\Contracts\CopyGenerator;
+use App\Domain\Content\Exceptions\ContentActionRefused;
+use App\Domain\Content\Migration\ContentStatusAudit;
+use App\Domain\Content\Migration\LegacyStatusMap;
+use App\Domain\Content\Models\ContentBrand;
+use App\Domain\Content\Models\ContentFact;
+use App\Domain\Content\Models\ContentPillar;
 use App\Domain\Packages\Actions\SetPackageAvailability;
 use App\Domain\Packages\Models\Package;
 use App\Domain\Payments\Actions\ExpireStaleRecords;
@@ -15,6 +29,7 @@ use App\Support\Logging\OperationLog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -150,6 +165,118 @@ Artisan::command('platform:simulate-notification {invoice} {amount} {--result=00
 
     return 0;
 })->purpose('Send a correctly signed local callback through the real verification path');
+
+// Content Studio (ADR-0011, phase 2): apply a reviewed brand file (rules, pillars, facts) through the audited actions.
+// Re-running is safe: unchanged rules, existing pillars, and facts already in force are skipped.
+Artisan::command('content:import-brand {code} {file} {--actor= : Username recorded in the audit}', function (UpdateBrandProfile $rules, SavePillar $pillars, AddContentFact $facts): int {
+    $brand = ContentBrand::query()->where('code', (string) $this->argument('code'))->first();
+    $actor = User::query()->where('username', Username::normalize((string) $this->option('actor')))->where('is_active', true)->first();
+    $data = json_decode((string) @file_get_contents(base_path((string) $this->argument('file'))), true);
+    if ($brand === null || $actor === null || ! is_array($data)) {
+        $this->error('Brand, file, atau --actor (username aktif) tidak ditemukan.');
+
+        return Command::FAILURE;
+    }
+
+    try {
+        $profile = $rules($brand, (array) ($data['rules'] ?? []), (string) ($data['change_note'] ?? 'Impor aturan brand'), $actor);
+        $this->info("Aturan brand disimpan sebagai versi {$profile->version}.");
+    } catch (ContentActionRefused $refused) {
+        $this->line($refused->getMessage());
+    }
+    foreach ((array) ($data['pillars'] ?? []) as $pillar) {
+        if (ContentPillar::query()->where('content_brand_id', $brand->id)->where('name', $pillar['name'])->exists()) {
+            $this->line("Pilar {$pillar['name']} sudah ada, dilewati.");
+
+            continue;
+        }
+        try {
+            $pillars($brand, null, (string) $pillar['name'], $pillar['description'] ?? null, (int) $pillar['target_share'], true, $actor);
+            $this->info("Pilar {$pillar['name']} ditambahkan.");
+        } catch (ContentActionRefused $refused) {
+            $this->warn("Pilar {$pillar['name']}: {$refused->getMessage()}");
+        }
+    }
+    foreach ((array) ($data['facts'] ?? []) as $fact) {
+        if (ContentFact::query()->where('content_brand_id', $brand->id)->whereNull('retired_at')->where('statement', $fact['statement'])->exists()) {
+            continue;
+        }
+        $facts($brand, null, (string) $fact['statement'], (string) $fact['source'], null, $actor);
+        $this->info('Fakta ditambahkan: '.Str::limit((string) $fact['statement'], 70));
+    }
+
+    return Command::SUCCESS;
+})->purpose('Apply a reviewed Content Studio brand file through the audited actions');
+
+// Content Studio (ADR-0012, phase 0): read-only rehearsal of the status migration. Prints counts, the planned
+// mapping, and invariant breaches; changes nothing. Run it on a production copy before migrating.
+Artisan::command('content:status-audit {--json : Machine-readable output}', function (ContentStatusAudit $audit): int {
+    $report = $audit->run();
+    if ($this->option('json')) {
+        $this->line((string) json_encode($report, JSON_PRETTY_PRINT));
+
+        return Command::SUCCESS;
+    }
+    $this->table(['Status lama', 'Jumlah', 'Status target'], array_map(
+        static fn (string $status, int $count): array => [$status, $count, LegacyStatusMap::FORWARD[$status] ?? 'TIDAK DIKENAL'],
+        array_keys($report['statuses']),
+        $report['statuses'],
+    ));
+    $this->table(['Status target', 'Jumlah'], array_map(null, array_keys($report['target']), $report['target']));
+    $this->line(sprintf('Item %d · tanpa revisi aktif %d · approved_revision_id terisi %d · approval %d · publikasi %d',
+        $report['items']['total'], $report['items']['without_active_revision'], $report['items']['approved_revision_set'],
+        $report['approvals']['total'], $report['publications']['total']));
+    $breaches = array_filter($report['issues']);
+    $this->table(['Pemeriksaan', 'Jumlah'], array_map(null, array_keys($report['issues']), $report['issues']));
+    if ($breaches !== [] || $report['unknown'] !== []) {
+        $this->warn('Ada data yang tidak sesuai invariant atau status tak dikenal. Jangan migrasi sebelum diputuskan.');
+
+        return Command::FAILURE;
+    }
+    $this->info('Siap dimigrasi: semua status dikenal dan tidak ada pelanggaran invariant.');
+
+    return Command::SUCCESS;
+})->purpose('Read-only audit of Content Studio statuses before the ADR-0012 migration');
+
+// Content Studio (ADR-0011, phase 3): check the configured AI provider against the evaluation scenarios before
+// enabling or switching it. Calls the provider for real when one is configured; writes nothing to the database.
+Artisan::command('content:eval-copy {--file=resources/content-eval/copy-v1.json} {--max-cost=0.50 : Stop when the estimated total passes this (USD)} {--model= : Evaluate another allowed model without changing the chosen one}', function (CopyEvaluation $evaluation, CopyBudget $budget, CopyGenerator $generator, CopyModels $models): int {
+    $model = $this->option('model');
+    if (is_string($model) && $model !== '' && ! $models->useForThisProcess($model)) {
+        $this->error("Model {$model} tidak ada di CONTENT_TEXT_MODELS.");
+
+        return Command::FAILURE;
+    }
+    $this->line('Provider '.$generator->provider().', model '.($generator->model() ?? '-').'.');
+    $reason = $budget->unavailableReason();
+    if ($reason !== null) {
+        $this->error($reason);
+
+        return Command::FAILURE;
+    }
+    $scenarios = json_decode((string) file_get_contents(base_path((string) $this->option('file'))), true)['scenarios'] ?? [];
+    $rows = [];
+    $results = [];
+    $spent = 0.0;
+    foreach ($scenarios as $scenario) {
+        if ($spent >= (float) $this->option('max-cost')) {
+            $this->warn('Batas biaya evaluasi tercapai; skenario sisanya dilewati.');
+            break;
+        }
+        $result = $evaluation->run($scenario);
+        $spent += $result['cost'];
+        $results[] = $result;
+        $rows[] = [$result['name'], $result['ok'] ? 'lulus' : 'GAGAL', count($result['errors']), count($result['warnings']), $result['tokens'], sprintf('$%.5f', $result['cost']), $result['latency_ms'].' ms'];
+    }
+    $this->table(['Skenario', 'Aturan keras', 'Pelanggaran', 'Peringatan', 'Token', 'Biaya', 'Durasi'], $rows);
+    $path = 'content-eval/'.now()->format('Ymd-His').'.json';
+    Storage::disk((string) config('content.disk'))->put($path, (string) json_encode(['provider' => $generator->provider(), 'model' => $generator->model(), 'prompt_version' => CopyPromptBuilder::VERSION, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    $this->line("Hasil lengkap untuk dinilai manusia (suara brand, relevansi): storage/app/private/{$path}");
+    $failed = count(array_filter($results, static fn (array $r): bool => ! $r['ok']));
+    $this->line(sprintf('%d dari %d skenario lulus aturan keras; total biaya perkiraan $%.5f.', count($results) - $failed, count($results), $spent));
+
+    return $failed === 0 ? Command::SUCCESS : Command::FAILURE;
+})->purpose('Evaluate the configured content AI provider against the copy scenarios');
 
 Schedule::command('platform:expire-stale')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('platform:prune-idempotency')->daily();

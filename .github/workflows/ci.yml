@@ -64,6 +64,9 @@ jobs:
       - name: Install browser
         run: npx playwright install --with-deps chromium
       - name: Browser tests
+        env:
+          CONTENT_TEXT_PROVIDER: fake # Deterministic AI drafts; never a real provider in CI.
+          CONTENT_SEARCH_PROVIDER: fake # Deterministic research results; never a real search in CI.
         run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -160,6 +163,7 @@ jobs:
           # Catalogue from code: names and prices. Availability is never changed by a seed.
           "$SERVER_PHP" artisan db:seed --class=ApplicationSeeder --force --no-interaction
           "$SERVER_PHP" artisan db:seed --class=PackageSeeder --force --no-interaction
+          "$SERVER_PHP" artisan db:seed --class=ContentBrandSeeder --force --no-interaction
           "$SERVER_PHP" artisan optimize
           "$SERVER_PHP" artisan up
           REMOTE

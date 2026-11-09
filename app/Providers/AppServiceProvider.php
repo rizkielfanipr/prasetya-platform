@@ -4,8 +4,19 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Content\Ai\CopyModels;
+use App\Domain\Content\Contracts\CopyGenerator;
+use App\Domain\Content\Contracts\PageReader;
+use App\Domain\Content\Contracts\WebSearch;
 use App\Domain\Payments\Contracts\NotificationVerifier;
 use App\Domain\Payments\Contracts\PaymentGateway;
+use App\Integrations\ContentAi\FakeCopyGenerator;
+use App\Integrations\ContentAi\OpenAiCompatibleCopyGenerator;
+use App\Integrations\ContentAi\UnconfiguredCopyGenerator;
+use App\Integrations\ContentResearch\FakeSearch;
+use App\Integrations\ContentResearch\SafePageReader;
+use App\Integrations\ContentResearch\TavilySearch;
+use App\Integrations\ContentResearch\UnconfiguredSearch;
 use App\Integrations\Duitku\DuitkuClient;
 use App\Integrations\Duitku\DuitkuConfig;
 use App\Integrations\Duitku\DuitkuWebhookVerifier;
@@ -39,6 +50,18 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new FakeGateway;
+        });
+        $this->app->singleton(CopyModels::class);
+        $this->app->singleton(WebSearch::class, static fn (): WebSearch => match (config('content.ai.search.provider')) {
+            'tavily' => new TavilySearch,
+            'fake' => new FakeSearch,
+            default => new UnconfiguredSearch,
+        });
+        $this->app->bind(PageReader::class, SafePageReader::class);
+        $this->app->singleton(CopyGenerator::class, static fn ($app): CopyGenerator => match (config('content.ai.copy.provider')) {
+            'openai_compatible' => new OpenAiCompatibleCopyGenerator($app->make(CopyModels::class)),
+            'fake' => new FakeCopyGenerator,
+            default => new UnconfiguredCopyGenerator,
         });
     }
 

@@ -1,0 +1,134 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Content\Models;
+
+use App\Domain\Auth\Models\User;
+use App\Domain\Content\Enums\ContentStatus;
+use Database\Factories\ContentItemFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
+
+/**
+ * One planned single-image Instagram post. Status changes only through App\Domain\Content\Actions.
+ *
+ * @property int $id
+ * @property string $public_id
+ * @property int $content_brand_id
+ * @property int|null $content_pillar_id
+ * @property int|null $content_campaign_id
+ * @property string|null $topic
+ * @property string $title
+ * @property Carbon $planned_at
+ * @property ContentStatus $status
+ * @property int|null $active_revision_id
+ * @property int|null $approved_revision_id legacy evidence: the revision approved under ADR-0011
+ * @property int|null $ready_revision_id the revision a person marked Ready (ADR-0012)
+ * @property int $created_by_user_id
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property-read ContentBrand $brand
+ * @property-read ContentPillar|null $pillar
+ * @property-read ContentCampaign|null $campaign
+ * @property-read ContentRevision|null $activeRevision
+ * @property-read ContentPublication|null $publication
+ * @property-read User $creator
+ */
+class ContentItem extends Model
+{
+    /** @use HasFactory<ContentItemFactory> */
+    use HasFactory, HasUlids;
+
+    protected $guarded = [];
+
+    /** @return list<string> */
+    public function uniqueIds(): array
+    {
+        return ['public_id'];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
+
+    /** @return BelongsTo<ContentBrand, $this> */
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(ContentBrand::class, 'content_brand_id');
+    }
+
+    /**
+     * Research sources this item cites.
+     *
+     * @return BelongsToMany<ContentResearchSource, $this>
+     */
+    public function sources(): BelongsToMany
+    {
+        return $this->belongsToMany(ContentResearchSource::class, 'content_item_sources')
+            ->withPivot(['note', 'linked_by_user_id', 'created_at'])
+            ->orderByPivot('created_at');
+    }
+
+    /** @return HasMany<ContentInsightSnapshot, $this> */
+    public function insights(): HasMany
+    {
+        return $this->hasMany(ContentInsightSnapshot::class)->orderByDesc('measured_at')->orderByDesc('id');
+    }
+
+    /** @return BelongsTo<ContentPillar, $this> */
+    public function pillar(): BelongsTo
+    {
+        return $this->belongsTo(ContentPillar::class, 'content_pillar_id');
+    }
+
+    /** @return BelongsTo<ContentCampaign, $this> */
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(ContentCampaign::class, 'content_campaign_id');
+    }
+
+    /** @return BelongsTo<ContentRevision, $this> */
+    public function activeRevision(): BelongsTo
+    {
+        return $this->belongsTo(ContentRevision::class, 'active_revision_id');
+    }
+
+    /** @return HasMany<ContentRevision, $this> */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(ContentRevision::class)->orderByDesc('number');
+    }
+
+    /** @return HasOne<ContentPublication, $this> */
+    public function publication(): HasOne
+    {
+        return $this->hasOne(ContentPublication::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /** True only while the current revision is the one a person marked Ready. */
+    public function isReadyOnCurrentRevision(): bool
+    {
+        return $this->status === ContentStatus::Ready
+            && $this->ready_revision_id !== null
+            && $this->ready_revision_id === $this->active_revision_id;
+    }
+
+    protected function casts(): array
+    {
+        return ['planned_at' => 'datetime', 'status' => ContentStatus::class];
+    }
+}

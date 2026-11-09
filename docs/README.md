@@ -14,6 +14,10 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 | [`back-office-user-management-implementation-prompt.md`](back-office-user-management-implementation-prompt.md) | Coding-agent prompt for the user management plan (Indonesian) | Reference |
 | [`transaction-workspace-consolidation-plan.md`](transaction-workspace-consolidation-plan.md) | Konsolidasi Transaksi, Event Pembayaran, Rekonsiliasi, dan Audit tanpa kehilangan capability | Draft untuk persetujuan |
 | [`transaction-workspace-consolidation-implementation-prompt.md`](transaction-workspace-consolidation-implementation-prompt.md) | Prompt lengkap implementasi bertahap, test, rollout, dan rollback workspace Transaksi | Reference |
+| [`content-studio-ai-planning-plan.md`](content-studio-ai-planning-plan.md) | Content Studio, KelontongAI copy generation, Hermes trend research/weekly planning, dan posting Instagram manual | Draft untuk persetujuan |
+| [`content-studio-simplification-plan.md`](content-studio-simplification-plan.md) | Target penyederhanaan Kalender, form, status tanpa approval formal, campaign, migrasi, dan compatibility | Disetujui (ADR-0012), Fase 0–4 selesai |
+| [`content-studio-simplification-implementation-prompt.md`](content-studio-simplification-implementation-prompt.md) | Prompt coding-agent bertahap untuk lifecycle creator-owned, Calendar workspace, migrasi status, compatibility, dan weekly AI planning | Reference |
+| [`content-studio-ai-implementation-prompt.md`](content-studio-ai-implementation-prompt.md) | Prompt coding-agent bertahap untuk Content Studio manual, OpenAI, research tools, Hermes/Docker, approval, dan posting manual | Reference |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) for consequential technical choices | Active |
 | [`assets/`](assets/) | Approved visual references used by design documentation | Reference |
 | [`api/README.md`](api/README.md), [`api/openapi.yaml`](api/openapi.yaml) | Public REST API conventions and contract | Active |
@@ -24,6 +28,8 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 | [`runbooks/deployment.md`](runbooks/deployment.md) | Deploy, backup, and restore | Draft, not yet executed on target hosting |
 | [`runbooks/payment-reconciliation.md`](runbooks/payment-reconciliation.md) | Working each reconciliation group | Active |
 | [`runbooks/incident-response.md`](runbooks/incident-response.md) | What to do when payments misbehave | Active |
+| [`runbooks/content-studio-ai.md`](runbooks/content-studio-ai.md) | Enable, limit, evaluate, and switch the AI copy provider | Current |
+| [`runbooks/content-studio-hermes.md`](runbooks/content-studio-hermes.md) | Hermes runtime rules for Content Studio, local and VPS | Draft, nothing installed |
 
 ## Documentation standards
 
