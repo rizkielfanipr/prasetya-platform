@@ -162,28 +162,66 @@ describe('ContentStatusPanel', () => {
 });
 
 describe('ContentEditor', () => {
+    const editorProps = (status: ContentStatus, blockedReason: string | null, rev: ContentRevision = revision()) => ({
+        item: item(status),
+        revision: rev,
+        blockedReason,
+        limits: { maxHashtags: 30, captionMax: 2200 },
+        findings: [],
+        brandRulesVersion: 1,
+        ai: { unavailableReason: null, runs: [] },
+        actions: allowed,
+    });
+
     it('shows read-only content with the reason when editing is unavailable', () => {
         const reason = 'Konten sudah diposting dan tidak dapat diubah.';
-        const wrapper = mount(ContentEditor, {
-            props: { item: item('PUBLISHED'), revision: revision(), blockedReason: reason, limits: { maxHashtags: 30, captionMax: 2200 } },
-        });
+        const wrapper = mount(ContentEditor, { props: editorProps('PUBLISHED', reason) });
 
         expect(wrapper.get('[data-testid="edit-blocked"]').text()).toBe(reason);
         expect(wrapper.get('#content-caption').attributes('readonly')).toBeDefined();
         expect(wrapper.find('#content-image').exists()).toBe(false);
-        expect(wrapper.find('button[type="submit"]').exists()).toBe(false);
+        expect(wrapper.findAll('button').some((button) => button.text() === 'Simpan konten')).toBe(false);
     });
 
-    it('labels required fields, links counters, and warns that editing Ready content returns it to Draft', () => {
-        const wrapper = mount(ContentEditor, {
-            props: { item: item('READY'), revision: revision(), blockedReason: null, limits: { maxHashtags: 30, captionMax: 2200 } },
-        });
+    it('puts brief, AI, caption with hashtags, image, findings, and Siap posting first, and the rest behind Pengaturan tambahan', () => {
+        const wrapper = mount(ContentEditor, { props: editorProps('READY', null) });
+        const html = wrapper.html();
+        const at = (needle: string) => html.indexOf(needle);
 
-        expect(wrapper.text()).toContain('Caption *');
+        expect(at('id="content-brief"')).toBeLessThan(at('data-testid="ai-panel"'));
+        expect(at('data-testid="ai-panel"')).toBeLessThan(at('id="content-caption"'));
+        expect(at('id="content-caption"')).toBeLessThan(at('id="content-hashtags"'));
+        expect(at('id="content-hashtags"')).toBeLessThan(at('data-testid="rule-findings"'));
+        expect(at('data-testid="rule-findings"')).toBeLessThan(at('data-testid="status-summary"'));
+        expect(wrapper.get('[data-testid="caption-area"]').text()).toContain('Caption dan hashtag');
         expect(wrapper.text()).toContain('mengembalikannya ke Draft');
         expect(wrapper.get('#content-caption').attributes('aria-describedby')).toContain('content-caption-count');
         expect(wrapper.get('#content-hashtags-count').text()).toBe('2/30 hashtag');
-        expect(wrapper.get('#content-image').attributes('accept')).toBe('image/jpeg,image/png,image/webp');
+
+        const more = wrapper.get('[data-testid="more-settings"]');
+        expect(more.attributes('aria-expanded')).toBe('false');
+        expect(wrapper.get('#content-more').isVisible()).toBe(false);
+        expect(wrapper.get('#content-more').text()).toContain('Alt text *');
+    });
+
+    it('opens Pengaturan tambahan when alt text is all a complete draft lacks', () => {
+        const wrapper = mount(ContentEditor, { props: editorProps('DRAFT', null, revision({ altText: null, submittedAt: null })) });
+
+        expect(wrapper.get('[data-testid="more-settings"]').attributes('aria-expanded')).toBe('true');
+    });
+
+    it('holds Siap posting back while there are unsaved changes', async () => {
+        const wrapper = mount(ContentEditor, { props: editorProps('DRAFT', null, revision({ submittedAt: null })) });
+
+        await wrapper.get('#content-caption').setValue('Caption baru');
+
+        expect(wrapper.get('#reason-markReady').text()).toBe('Simpan perubahan dulu sebelum menandai siap posting.');
+        expect(
+            wrapper
+                .findAll('button')
+                .find((button) => button.text() === 'Tandai siap posting')
+                ?.attributes('disabled'),
+        ).toBeDefined();
     });
 });
 

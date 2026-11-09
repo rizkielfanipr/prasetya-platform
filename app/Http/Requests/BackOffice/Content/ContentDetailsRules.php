@@ -35,14 +35,14 @@ final class ContentDetailsRules
         ];
     }
 
-    public static function plan(FormRequest $request): ContentPlan
+    public static function plan(FormRequest $request, ?string $title = null): ContentPlan
     {
         $pillar = $request->validated('pillar');
         $campaign = $request->validated('campaign');
         $topic = $request->validated('topic');
 
         return new ContentPlan(
-            (string) $request->validated('title'),
+            $title ?? (string) $request->validated('title'),
             BusinessTime::parseLocal((string) $request->validated('planned_at')),
             is_string($pillar) ? ContentPillar::query()->where('public_id', $pillar)->firstOrFail() : null,
             is_string($campaign) ? ContentCampaign::query()->where('public_id', $campaign)->firstOrFail() : null,

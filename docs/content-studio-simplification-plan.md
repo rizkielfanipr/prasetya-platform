@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Disetujui; implementasi bertahap (Fase 0–2 selesai) |
+| Status | Disetujui; implementasi bertahap (Fase 0–3 selesai) |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-09 |
 | Decision | [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) |
@@ -301,6 +301,14 @@ Rollback mengembalikan status target ke status kompatibel (`READY -> APPROVED`, 
 - Pertahankan validasi, revision, dan AI provenance.
 
 **Exit:** pengguna dapat membuat Draft dalam satu dialog dan menyelesaikannya tanpa melihat field teknis.
+
+**Status (2026-11-09): selesai** di branch `feat/simplify-content-studio`.
+
+- **Tambah konten**: *Ide atau topik* (wajib), *Jadwal posting (WIB)* (default hari yang dipilih pukul 10.00), dan *Campaign* hanya bila ada campaign aktif brand itu yang berjalan pada tanggal tersebut. Brand otomatis bila hanya satu. `IdeaPlan` membuat judul kerja secara deterministik dari baris pertama ide (dipotong di batas kata sekitar 80 karakter) dan memilih pilar hanya bila tepat satu pilar aktif disebut dalam ide; selain itu null. Seluruh ide menjadi brief revisi 1. Tanpa AI, jadi create tidak pernah gagal karena provider. `title`, `pillar`, dan `topic` eksplisit tetap diterima.
+- **Editor** berurutan: Brief → Buat dengan AI / Buat ulang → Caption dan hashtag (satu area, tetap dua field) → gambar → Aturan brand → Simpan konten → Siap posting. Perubahan yang belum disimpan disimpan dulu sebelum AI menulis, dan menahan *Tandai siap posting*. Field read-only selama AI bekerja.
+- **Pengaturan tambahan** (tertutup): alt text, tujuan, audiens, arahan visual, rencana (judul, pilar, topik), riset & sumber, riwayat draft AI, riwayat revisi, aktivitas. Terbuka sendiri dan memindahkan fokus bila field di dalamnya error, serta pada Draft yang hanya kurang alt text. AI menulis alt text, sehingga alur normal tidak perlu membukanya.
+- Panel Tinjauan dan copy approval tidak ada lagi di UI. Data tetap di kolom relasional yang ada; tidak ada kolom atau JSON baru. Audit `content.created` mencatat `from_idea`.
+- Hasil: Pest 556, Vitest 102, e2e 70 hijau, termasuk alur ide → AI → gambar → Siap posting → diposting tanpa membuka Pengaturan tambahan, error yang membuka disclosure dan memindahkan fokus, serta axe pada dialog create dan editor dengan disclosure terbuka. Query (e2e, median): detail Ready 27 query 17,4 ms; detail Draft 28 query 15,9 ms (sama dengan sebelumnya). Screenshot 360×780, 768×1024, 1280×900 dengan reduced motion, tanpa overflow.
 
 ### Fase 4 — Posting dan campaign
 

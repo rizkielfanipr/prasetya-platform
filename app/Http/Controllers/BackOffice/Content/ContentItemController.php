@@ -65,9 +65,9 @@ final class ContentItemController
         $brand = ContentBrand::query()->where('code', (string) $request->validated('brand'))->firstOrFail();
 
         return $this->attempt(function () use ($create, $brand, $request): RedirectResponse {
-            $item = $create($brand, $request->plan(), $this->actor($request));
+            $item = $create($brand, $request->plan($brand), $this->actor($request), $request->idea());
 
-            return redirect()->route('content.items.show', $item)->with('success', 'Konten dibuat sebagai draft.');
+            return redirect()->route('content.items.show', $item)->with('success', 'Draft dibuat. Lanjutkan dengan Buat dengan AI atau tulis caption sendiri.');
         });
     }
 

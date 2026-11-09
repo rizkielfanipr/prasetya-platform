@@ -15,6 +15,7 @@ test('record Instagram insight for a published post and see it summarised', asyn
     await dialog.getByLabel('Simpan', { exact: true }).fill('20');
     await dialog.getByRole('button', { name: 'Simpan insight' }).click();
     await expect(panel).toContainText('8,3%');
+    await page.getByTestId('more-settings').click();
     await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Insight dicatat');
 
     await page.goto('/content/calendar');

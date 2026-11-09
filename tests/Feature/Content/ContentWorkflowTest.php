@@ -8,9 +8,12 @@ use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Models\ContentApproval;
+use App\Domain\Content\Models\ContentCampaign;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Models\ContentPillar;
 use App\Domain\Content\Models\ContentPublication;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\IdeaPlan;
 use App\Domain\Content\Support\PostingQueue;
 use App\Support\BusinessTime;
 use Carbon\CarbonInterface;
@@ -47,12 +50,57 @@ it('creates a draft with an empty first revision, in business time', function ()
         ->and(contentAudit($item))->toBe(['content.created']);
 });
 
+it('creates a draft from an idea: the first line becomes the title and the whole idea the brief', function (): void {
+    $idea = "3 tanda website Anda perlu diperbarui\nUntuk pemilik toko online yang websitenya lambat.";
+
+    $this->actingAs(admin())->post('/content/items', ['brand' => 'WEBWORKS', 'idea' => "  {$idea}  ", 'planned_at' => '2026-11-10T10:00'])
+        ->assertRedirect()->assertSessionHas('success');
+
+    $item = ContentItem::query()->sole();
+    expect($item->status)->toBe(ContentStatus::Draft)
+        ->and($item->title)->toBe('3 tanda website Anda perlu diperbarui')
+        ->and($item->activeRevision?->brief)->toBe($idea)
+        ->and($item->activeRevision?->caption)->toBeNull()
+        ->and($item->content_pillar_id)->toBeNull()
+        ->and(AuditLog::query()->where('action', 'content.created')->sole()->new_state)->toMatchArray(['from_idea' => true]);
+});
+
+it('shortens a long idea into a title at a word boundary', function (): void {
+    expect(IdeaPlan::title(str_repeat('website rapi ', 12)))->toBe('website rapi website rapi website rapi website rapi website rapi website rapi…')
+        ->and(mb_strlen(IdeaPlan::title(str_repeat('a', 200))))->toBe(IdeaPlan::TITLE_LENGTH)
+        ->and(IdeaPlan::title("  Satu\tbaris   saja \n kedua"))->toBe('Satu baris saja');
+});
+
+it('picks a pillar only when exactly one active pillar is named in the idea', function (): void {
+    $edukasi = ContentPillar::query()->create(['content_brand_id' => webworks()->id, 'name' => 'Edukasi', 'target_share' => 50]);
+    ContentPillar::query()->create(['content_brand_id' => webworks()->id, 'name' => 'Promo', 'target_share' => 30]);
+    ContentPillar::query()->create(['content_brand_id' => webworks()->id, 'name' => 'Portofolio', 'target_share' => 20, 'is_active' => false]);
+
+    expect(IdeaPlan::pillar(webworks(), 'Konten edukasi tentang SSL')?->id)->toBe($edukasi->id)
+        ->and(IdeaPlan::pillar(webworks(), 'Edukasi dan promo akhir tahun'))->toBeNull()
+        ->and(IdeaPlan::pillar(webworks(), 'Portofolio toko roti'))->toBeNull()
+        ->and(IdeaPlan::pillar(webworks(), 'Promosi website'))->toBeNull();
+
+    $this->actingAs(admin())->post('/content/items', ['brand' => 'WEBWORKS', 'idea' => 'Edukasi: apa itu SSL', 'planned_at' => '2026-11-10T10:00']);
+    expect(ContentItem::query()->sole()->content_pillar_id)->toBe($edukasi->id);
+});
+
+it('takes an optional campaign of the brand when creating from an idea', function (): void {
+    $campaign = ContentCampaign::query()->create(['content_brand_id' => webworks()->id, 'name' => 'Akhir tahun', 'starts_on' => '2026-11-01', 'ends_on' => '2026-12-31', 'priority' => 'NORMAL']);
+
+    $this->actingAs(admin())->post('/content/items', ['brand' => 'WEBWORKS', 'idea' => 'Promo akhir tahun', 'planned_at' => '2026-11-10T10:00', 'campaign' => $campaign->public_id])
+        ->assertSessionHas('success');
+
+    expect(ContentItem::query()->sole()->content_campaign_id)->toBe($campaign->id);
+});
+
 it('validates a new item', function (array $payload, string $field): void {
     $this->actingAs(admin())->post('/content/items', [...['brand' => 'WEBWORKS', 'title' => 'Judul', 'planned_at' => '2026-11-10T10:00'], ...$payload])
         ->assertSessionHasErrors($field);
 })->with([
     'unknown brand' => [['brand' => 'NOPE'], 'brand'],
-    'missing title' => [['title' => ''], 'title'],
+    'neither idea nor title' => [['title' => ''], 'idea'],
+    'long idea' => [['title' => '', 'idea' => str_repeat('a', 1001)], 'idea'],
     'long title' => [['title' => str_repeat('a', 161)], 'title'],
     'bad time' => [['planned_at' => '10/11/2026'], 'planned_at'],
 ]);

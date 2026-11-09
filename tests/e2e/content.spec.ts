@@ -32,34 +32,44 @@ async function settled(page: Page): Promise<void> {
     await page.evaluate(() => Promise.allSettled(document.getAnimations().map((animation) => animation.finished)));
 }
 
-test('one person takes a post from draft to Ready to published, with no approval step', async ({ page }) => {
-    const title = `Posting uji ${Date.now().toString(36)}`;
+test('one person takes an idea to a posted post, with AI and without opening Pengaturan tambahan', async ({ page }) => {
+    const idea = `Posting uji ${Date.now().toString(36)}`;
     await login(page, USERS.admin);
 
     await page.getByRole('navigation', { name: 'Navigasi utama' }).getByRole('link', { name: 'Content Studio' }).click();
     await expect(page).toHaveURL(/\/content\/calendar/);
     await page.getByRole('button', { name: 'Tambah konten' }).click();
     const create = page.getByRole('alertdialog', { name: 'Tambah konten' });
-    await create.getByLabel('Judul kerja').fill(title);
+    await expect(create.getByLabel('Jadwal posting (WIB) *')).toHaveValue(/T10:00$/);
+    await expect(create.getByLabel('Judul kerja')).toHaveCount(0);
     await create.getByRole('button', { name: 'Buat draft' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await expect(create.getByText('Tulis ide atau topik konten.')).toBeVisible();
+    await expectNoAxeViolations(page);
+    await create.getByLabel('Ide atau topik *').fill(`${idea}\nUntuk pemilik UMKM yang baru online.`);
+    await create.getByRole('button', { name: 'Buat draft' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: idea })).toBeVisible();
+    await expect(page.getByLabel('Brief')).toHaveValue(`${idea}\nUntuk pemilik UMKM yang baru online.`);
 
     // Ready needs the required content first; the reason is shown beside the disabled button.
     await expect(page.getByRole('button', { name: 'Tandai siap posting' })).toBeDisabled();
     await expect(page.locator('#reason-markReady')).toHaveText('Lengkapi caption, alt text dan gambar sebelum menandai siap posting.');
     await expect(page.getByRole('button', { name: /Setujui|Ajukan|Minta revisi|Tolak/ })).toHaveCount(0);
+    await expect(page.getByTestId('more-settings')).toHaveAttribute('aria-expanded', 'false');
 
-    await page.getByLabel('Caption *').fill('Website yang rapi membantu pelanggan percaya.');
-    await page.getByRole('textbox', { name: 'Hashtag', exact: true }).fill('#websiteumkm #bisnisonline');
-    await page.getByLabel('Alt text *').fill('Kartu abu-abu bertuliskan judul posting.');
+    await page.getByTestId('ai-panel').getByRole('button', { name: 'Buat dengan AI' }).click();
+    await expect(page.getByLabel('Caption *')).toHaveValue(/\[Draft AI contoh\]/);
+    await expect(page.getByRole('textbox', { name: 'Hashtag', exact: true })).toHaveValue(/#websiteumkm/);
+
     await page.getByLabel('Unggah gambar').setInputFiles({ name: 'post.png', mimeType: 'image/png', buffer: png(1080, 1350) });
+    await expect(page.getByRole('button', { name: 'Tandai siap posting' })).toBeDisabled();
+    await expect(page.locator('#reason-markReady')).toHaveText('Simpan perubahan dulu sebelum menandai siap posting.');
     await page.getByRole('button', { name: 'Simpan konten' }).click();
-    await expect(page.getByText('Revisi 1 disimpan.')).toBeVisible();
-    await expect(page.getByRole('img', { name: 'Kartu abu-abu bertuliskan judul posting.' })).toBeVisible();
+    await expect(page.getByText('Revisi 2 disimpan.')).toBeVisible();
 
     await page.getByRole('button', { name: 'Tandai siap posting' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Tandai siap posting' }).click();
-    await expect(page.getByTestId('status-summary')).toContainText('Revisi 1 siap diposting');
+    await expect(page.getByTestId('status-summary')).toContainText('Revisi 2 siap diposting');
+    await expect(page.getByTestId('more-settings')).toHaveAttribute('aria-expanded', 'false');
 
     // Posting package: copy, download, then record the human posting, all by the same person.
     await expect(page.getByRole('link', { name: 'Unduh gambar' })).toHaveAttribute('href', /\/content\/assets\/.+download=1/);
@@ -79,8 +89,43 @@ test('one person takes a post from draft to Ready to published, with no approval
     await publish.getByRole('button', { name: 'Tandai sudah diposting' }).click();
     await expect(page.getByTestId('publication')).toContainText('Diposting');
     await expect(page.getByRole('main').getByText('Sudah diposting', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai siap posting');
-    await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai sudah diposting');
+
+    await page.getByTestId('more-settings').click();
+    const activity = page.getByRole('list', { name: 'Riwayat audit' });
+    await expect(activity).toContainText('Draft AI diterapkan');
+    await expect(activity).toContainText('Ditandai siap posting');
+    await expect(activity).toContainText('Ditandai sudah diposting');
+});
+
+test('Pengaturan tambahan keeps every detail editable and opens itself on an error', async ({ page }) => {
+    await login(page, USERS.admin);
+    await page.goto('/content/calendar?view=list&search=Checklist');
+    await page.getByRole('link', { name: 'Checklist sebelum meluncurkan website' }).click();
+
+    const more = page.getByTestId('more-settings');
+    await more.click();
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('heading', { name: 'Rencana' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Riwayat revisi' })).toBeVisible();
+    await settled(page);
+    await expectNoAxeViolations(page);
+    await page.getByLabel('Audiens').fill('Pemilik toko roti.');
+    await page.getByRole('button', { name: 'Simpan detail konten' }).click();
+    await expect(page.getByText('Revisi 1 disimpan.')).toBeVisible();
+
+    // Close it, then cause an error on a field inside: it opens again and takes focus.
+    await more.click();
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    await page.getByLabel('Caption *').fill('Caption baru');
+    await page.evaluate(() => {
+        const alt = document.getElementById('content-alt_text') as HTMLTextAreaElement;
+        alt.removeAttribute('maxlength');
+        alt.value = 'x'.repeat(1001);
+        alt.dispatchEvent(new Event('input'));
+    });
+    await page.getByRole('button', { name: 'Simpan konten' }).click();
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByLabel('Alt text *')).toBeFocused();
 });
 
 test('editing Ready content makes a new revision and returns it to Draft', async ({ page }) => {
@@ -92,6 +137,7 @@ test('editing Ready content makes a new revision and returns it to Draft', async
     await page.getByLabel('Caption *').fill('Tiga tanda singkat website Anda perlu diperbarui.');
     await page.getByRole('button', { name: 'Simpan konten' }).click();
     await expect(page.getByText('Revisi 2 disimpan dan konten kembali ke Draft.')).toBeVisible();
+    await page.getByTestId('more-settings').click();
     await expect(page.getByTestId('revision-2')).toContainText('Masih draft');
     await expect(page.getByTestId('revision-diff')).toContainText('Tiga tanda singkat website Anda perlu diperbarui.');
 

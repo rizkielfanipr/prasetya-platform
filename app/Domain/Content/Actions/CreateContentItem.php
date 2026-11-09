@@ -14,26 +14,28 @@ use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Support\ContentPlan;
 use Illuminate\Support\Facades\DB;
 
-/** Plans a new post: a draft item with an empty first revision. */
+/** Plans a new post: a draft item whose first revision holds the idea as its brief, or nothing. */
 final class CreateContentItem
 {
     public function __construct(private readonly RecordAudit $audit) {}
 
-    public function __invoke(ContentBrand $brand, ContentPlan $plan, User $actor): ContentItem
+    public function __invoke(ContentBrand $brand, ContentPlan $plan, User $actor, ?string $brief = null): ContentItem
     {
         if (! $brand->is_active) {
             throw ContentActionRefused::because('Brand ini tidak aktif.');
         }
         $attributes = $plan->attributesFor($brand);
 
-        return DB::transaction(function () use ($brand, $plan, $attributes, $actor): ContentItem {
+        $brief = $brief === null || trim($brief) === '' ? null : trim(str_replace("\r\n", "\n", $brief));
+
+        return DB::transaction(function () use ($brand, $plan, $attributes, $actor, $brief): ContentItem {
             $item = ContentItem::query()->create([
                 ...$attributes,
                 'content_brand_id' => $brand->id,
                 'status' => ContentStatus::Draft,
                 'created_by_user_id' => $actor->id,
             ]);
-            $revision = ContentRevision::query()->create(['content_item_id' => $item->id, 'number' => 1, 'author_user_id' => $actor->id]);
+            $revision = ContentRevision::query()->create(['content_item_id' => $item->id, 'number' => 1, 'author_user_id' => $actor->id, 'brief' => $brief]);
             $item->forceFill(['active_revision_id' => $revision->id])->save();
 
             ($this->audit)('content.created', 'content_item', $item->public_id, $actor, null, [
@@ -43,6 +45,7 @@ final class CreateContentItem
                 'pillar' => $plan->pillar?->name,
                 'campaign' => $plan->campaign?->name,
                 'topic' => $item->topic,
+                'from_idea' => $brief !== null,
                 'status' => ContentStatus::Draft->value,
             ]);
 

@@ -191,30 +191,53 @@ export const brandListRules = [
 
 export type ContentField = keyof ContentFields;
 
-/** The editable fields, in form order, with their server limits (SaveContentRevisionRequest). */
-export const contentFields: readonly { key: ContentField; name: string; label: string; hint: string; max: number; rows: number; required: boolean }[] = [
-    { key: 'objective', name: 'objective', label: 'Tujuan', hint: 'Apa yang ingin dicapai posting ini.', max: 1000, rows: 2, required: false },
-    { key: 'audience', name: 'audience', label: 'Audiens', hint: 'Untuk siapa posting ini.', max: 1000, rows: 2, required: false },
-    { key: 'brief', name: 'brief', label: 'Brief', hint: 'Pesan utama dan isi gambar. Membantu AI menulis draft.', max: 5000, rows: 4, required: false },
+/**
+ * The editable fields with their server limits (SaveContentRevisionRequest). `main` fields make up the editor (ADR-0012,
+ * phase 3); `advanced` ones sit under Pengaturan tambahan, which opens by itself when one of them has an error.
+ */
+export const contentFields: readonly {
+    key: ContentField;
+    name: string;
+    label: string;
+    hint: string;
+    max: number;
+    rows: number;
+    required: boolean;
+    group: 'main' | 'advanced';
+}[] = [
     {
-        key: 'caption',
-        name: 'caption',
-        label: 'Caption',
-        hint: 'Teks posting Instagram. Wajib sebelum ditandai siap posting.',
-        max: 2200,
-        rows: 6,
-        required: true,
+        key: 'brief',
+        name: 'brief',
+        label: 'Brief',
+        hint: 'Ide, pesan utama, dan isi gambar. AI menulis dari sini.',
+        max: 5000,
+        rows: 4,
+        required: false,
+        group: 'main',
     },
-    { key: 'hashtags', name: 'hashtags', label: 'Hashtag', hint: 'Pisahkan dengan spasi, maksimal 30.', max: 1000, rows: 2, required: false },
+    { key: 'caption', name: 'caption', label: 'Caption', hint: 'Teks posting Instagram.', max: 2200, rows: 6, required: true, group: 'main' },
+    { key: 'hashtags', name: 'hashtags', label: 'Hashtag', hint: 'Pisahkan dengan spasi, maksimal 30.', max: 1000, rows: 2, required: false, group: 'main' },
     {
         key: 'altText',
         name: 'alt_text',
         label: 'Alt text',
-        hint: 'Deskripsi gambar untuk pembaca layar. Wajib sebelum ditandai siap posting.',
+        hint: 'Deskripsi gambar untuk pembaca layar. Wajib sebelum ditandai siap posting; AI dapat menuliskannya.',
         max: 1000,
         rows: 2,
         required: true,
+        group: 'advanced',
     },
+    {
+        key: 'objective',
+        name: 'objective',
+        label: 'Tujuan',
+        hint: 'Apa yang ingin dicapai posting ini.',
+        max: 1000,
+        rows: 2,
+        required: false,
+        group: 'advanced',
+    },
+    { key: 'audience', name: 'audience', label: 'Audiens', hint: 'Untuk siapa posting ini.', max: 1000, rows: 2, required: false, group: 'advanced' },
     {
         key: 'visualDirection',
         name: 'visual_direction',
@@ -223,6 +246,7 @@ export const contentFields: readonly { key: ContentField; name: string; label: s
         max: 3000,
         rows: 3,
         required: false,
+        group: 'advanced',
     },
 ];
 

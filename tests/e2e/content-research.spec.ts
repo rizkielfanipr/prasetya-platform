@@ -5,6 +5,7 @@ test('research a post on the web, cite a result, and add a manual source', async
     await login(page, USERS.admin);
     await page.goto('/content/calendar?view=list&search=Domain');
     await page.getByRole('link', { name: 'Domain, hosting, dan SSL dalam satu menit' }).click();
+    await page.getByTestId('more-settings').click();
     const panel = page.getByTestId('research-panel');
     await expect(panel).toContainText('knowledge berlaku');
 

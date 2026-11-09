@@ -12,9 +12,13 @@ import ContentDecisionDialog from './ContentDecisionDialog.vue';
  * The creator's own lifecycle (ADR-0012): mark Ready, return to Draft, or archive. There is no approval step. Every
  * button the user cannot use stays visible, disabled, with the server's reason beside it.
  */
-const props = defineProps<{ item: ContentItem; revision: ContentRevision; actions: ContentActions }>();
-
 type StatusAction = Extract<ContentAction, 'markReady' | 'returnToDraft' | 'archive'>;
+const props = withDefaults(defineProps<{ item: ContentItem; revision: ContentRevision; actions: ContentActions; dirty?: boolean }>(), { dirty: false });
+
+const UNSAVED = 'Simpan perubahan dulu sebelum menandai siap posting.';
+/** The server's reason, or the unsaved-changes reason for Ready: Ready freezes the saved revision, not the screen. */
+const reason = (action: StatusAction): string | null => (action === 'markReady' && props.dirty ? UNSAVED : null) ?? props.actions[action];
+
 const confirming = ref<Exclude<StatusAction, 'archive'> | null>(null);
 const archiving = ref(false);
 const submitting = ref(false);
@@ -82,12 +86,12 @@ function confirm(): void {
             <li v-for="action in shown" :key="action" class="flex max-w-xs flex-col gap-1">
                 <Button
                     :variant="action === 'archive' ? 'outline' : action === 'returnToDraft' ? 'secondary' : 'default'"
-                    :disabled="actions[action] !== null"
-                    :aria-describedby="actions[action] ? `reason-${action}` : undefined"
+                    :disabled="reason(action) !== null"
+                    :aria-describedby="reason(action) ? `reason-${action}` : undefined"
                     @click="open(action)"
                     >{{ contentActionLabels[action] }}</Button
                 >
-                <p v-if="actions[action]" :id="`reason-${action}`" class="text-xs text-muted-foreground">{{ actions[action] }}</p>
+                <p v-if="reason(action)" :id="`reason-${action}`" class="text-xs text-muted-foreground">{{ reason(action) }}</p>
             </li>
         </ul>
 

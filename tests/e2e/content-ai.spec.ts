@@ -7,10 +7,12 @@ test('AI drafts copy as a new Draft revision that the creator still checks', asy
     await page.getByRole('link', { name: 'Tanya jawab: berapa lama membuat website?' }).click();
 
     const panel = page.getByTestId('ai-panel');
-    await panel.getByRole('button', { name: 'Buat draft dengan AI' }).click();
+    await panel.getByRole('button', { name: 'Buat dengan AI' }).click();
     await expect(page.getByText('AI sedang membuat draft. Hasilnya menjadi revisi Draft baru untuk Anda periksa.')).toBeVisible();
 
-    await expect(panel.getByTestId('ai-run-SUCCEEDED').first()).toContainText('revisi 2');
+    await expect(panel.getByRole('button', { name: 'Buat ulang dengan AI' })).toBeVisible();
+    await page.getByTestId('more-settings').click();
+    await expect(page.getByTestId('ai-run-SUCCEEDED').first()).toContainText('revisi 2');
     await expect(page.getByTestId('ai-draft-note')).toContainText('Draft ini ditulis AI (fake-copy-1)');
     await expect(page.getByLabel('Caption *')).toHaveValue(/\[Draft AI contoh\] Tanya jawab: berapa lama membuat website\?/);
     await expect(page.getByTestId('revision-1')).toContainText('Masih draft');
@@ -46,14 +48,17 @@ test('the creator asks AI to redraft only the chosen parts, keeping every versio
 
     const panel = page.getByTestId('ai-panel');
     await expect(panel.getByTestId('ai-follows-review')).toHaveCount(0);
+    await panel.getByRole('button', { name: 'Opsi AI' }).click();
     for (const field of ['Hashtag', 'Alt text', 'Arahan visual']) {
         await panel.getByRole('checkbox', { name: field }).uncheck();
     }
     await expect(panel.getByRole('checkbox', { name: 'Caption' })).toBeChecked();
     await panel.getByLabel('Instruksi tambahan (opsional)').fill('lebih hangat');
-    await panel.getByRole('button', { name: 'Buat draft dengan AI' }).click();
+    await panel.getByRole('button', { name: 'Buat ulang dengan AI' }).click();
+    await expect(page.getByTestId('ai-draft-note')).toBeVisible();
 
-    const run = panel.getByTestId('ai-run-SUCCEEDED').first();
+    await page.getByTestId('more-settings').click();
+    const run = page.getByTestId('ai-run-SUCCEEDED').first();
     await expect(run).toContainText('Instruksi: “lebih hangat”');
     await expect(page.getByTestId('revision-2')).toContainText('dengan AI');
     await expect(page.getByTestId('status-summary')).toContainText('tandai siap posting');
@@ -62,5 +67,5 @@ test('the creator asks AI to redraft only the chosen parts, keeping every versio
     const why = page.getByRole('alertdialog', { name: 'Kenapa draft ini kurang berguna?' });
     await why.getByLabel('Alasan *').fill('Masih terlalu umum');
     await why.getByRole('button', { name: 'Simpan penilaian' }).click();
-    await expect(panel.getByTestId('ai-run-SUCCEEDED').first()).toContainText('Dinilai kurang berguna: Masih terlalu umum');
+    await expect(page.getByTestId('ai-run-SUCCEEDED').first()).toContainText('Dinilai kurang berguna: Masih terlalu umum');
 });
