@@ -65,7 +65,7 @@ describe('ContentComposition', () => {
 
         expect(wrapper.get('[data-testid="composition-Edukasi"]').text()).toContain('2 · 50% / target 60%');
         expect(wrapper.get('[data-testid="composition-Promo"]').text()).toContain('1 · 25% / target 40%');
-        expect(wrapper.text()).toContain('1 konten belum punya pilar.');
+        expect(wrapper.text()).toContain('(4 konten, 1 tanpa pilar)');
     });
 });
 

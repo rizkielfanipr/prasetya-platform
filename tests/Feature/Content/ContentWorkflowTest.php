@@ -164,7 +164,7 @@ it('never changes a status because the planned time passed', function (): void {
     $this->travelTo($ready->planned_at->addWeek());
     $this->artisan('schedule:run')->assertSuccessful();
     contentPage('/content/calendar');
-    contentPage('/content/to-post');
+    contentPage('/content/calendar?view=list&status=READY');
 
     expect($draft->refresh()->status)->toBe(ContentStatus::Draft)
         ->and($ready->refresh()->status)->toBe(ContentStatus::Ready)

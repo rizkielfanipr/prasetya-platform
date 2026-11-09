@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Disetujui; implementasi bertahap (Fase 0 dan 1 selesai) |
+| Status | Disetujui; implementasi bertahap (Fase 0–2 selesai) |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-09 |
 | Decision | [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) |
@@ -282,6 +282,16 @@ Rollback mengembalikan status target ke status kompatibel (`READY -> APPROVED`, 
 - Ringkaskan kartu dan komposisi pilar.
 
 **Exit:** seluruh pekerjaan rutin dapat dimulai dari Kalender pada 360, 768, dan 1280 px.
+
+**Status (2026-11-09): selesai** di branch `feat/simplify-content-studio`.
+
+- Navigasi Content Studio: Kalender (dengan jumlah posting yang jatuh tempo), Insight, Brand Knowledge, Pengaturan AI. Halaman Konten dan Siap posting dihapus.
+- Kalender punya tampilan **Minggu** dan **Daftar** (`view=list`: pencarian judul, urutan, halaman). Filter utama *Semua / Draft / Siap posting / Sudah diposting*; *Semua* menyembunyikan arsip. **Filter lainnya**: brand, pilar, campaign, arsip. Semua state ada di URL.
+- Panel **Perlu diposting** di atas Kalender: posting Ready yang jadwalnya hari ini atau lebih awal (maksimal 10 baris, total tetap dihitung), hanya pengingat. Kartu minggu menulis *Terlambat diposting* / *Jadwal hari ini* dan *Tanpa gambar* dengan kata.
+- Komposisi pilar menjadi ringkasan yang dapat dibuka. Tombol **Tambah konten** menggantikan *Buat konten*; form-nya berubah di Fase 3.
+- Redirect: `/content/items?…` → `/content/calendar?view=list&…` (hanya kunci yang dikenal; status lama tetap dipetakan), `/content/to-post` → `/content/calendar?view=list&status=READY&sort=planned_at&direction=asc`. Kalender tidak pernah redirect, jadi tidak ada loop. Link detail `/content/items/{id}` tidak berubah.
+- *Rencanakan minggu dengan AI* belum ditampilkan karena capability-nya baru ada di Fase 5.
+- Hasil: Pest 551, Vitest 98, e2e 69 hijau (termasuk keyboard dan axe pada Minggu, Daftar, dan Arsip). Query (e2e, median): Kalender minggu 14 query 13,6 ms (+1 query untuk pengingat); Daftar 13 query 13,1 ms; daftar Siap posting 13 query 11,9 ms; detail 27 query. Screenshot 360×780, 768×1024, 1280×900 dengan reduced motion, termasuk filter dan komposisi terbuka, tanpa overflow.
 
 ### Fase 3 — Form dan editor minimal
 

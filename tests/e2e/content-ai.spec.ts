@@ -3,7 +3,7 @@ import { expectNoAxeViolations, login, test, USERS } from './support';
 
 test('AI drafts copy as a new Draft revision that the creator still checks', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/items?search=Tanya');
+    await page.goto('/content/calendar?view=list&search=Tanya');
     await page.getByRole('link', { name: 'Tanya jawab: berapa lama membuat website?' }).click();
 
     const panel = page.getByTestId('ai-panel');
@@ -32,7 +32,7 @@ test('Pengaturan AI shows status, budget, and runs without any key', async ({ pa
 
 test('the AI panel is accessible', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/items?search=Domain');
+    await page.goto('/content/calendar?view=list&search=Domain');
     await page.getByRole('link', { name: 'Domain, hosting, dan SSL dalam satu menit' }).click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('ai-panel')).toBeVisible();
@@ -41,7 +41,7 @@ test('the AI panel is accessible', async ({ page }) => {
 
 test('the creator asks AI to redraft only the chosen parts, keeping every version', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/items?search=Cerita');
+    await page.goto('/content/calendar?view=list&search=Cerita');
     await page.getByRole('link', { name: 'Cerita klien: toko roti go online' }).click();
 
     const panel = page.getByTestId('ai-panel');

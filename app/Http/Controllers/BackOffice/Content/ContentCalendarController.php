@@ -8,10 +8,12 @@ use App\Domain\Content\Enums\CampaignPriority;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Support\PostingQueue;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
 use App\Http\Requests\BackOffice\Content\ContentFilterRequest;
 use App\Support\BusinessTime;
+use App\Support\Paginated;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,22 +21,61 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Kalender: one week, Monday to Sunday in business time. A planned time passing changes nothing. */
+/**
+ * Kalender, the Content Studio workspace (ADR-0012): one week, Monday to Sunday in business time, or every item as a
+ * searchable list. Archived items show only when asked for. Posts due today or earlier are a reminder; a planned time
+ * passing changes nothing.
+ */
 final class ContentCalendarController
 {
+    public const int REMINDER_LIMIT = 10;
+
+    /** Query keys the retired Konten and Siap posting pages understood, carried over by their redirects. */
+    public const array LIST_KEYS = ['brand', 'pillar', 'campaign', 'status', 'search', 'sort', 'direction', 'page'];
+
     public function home(): RedirectResponse
     {
         return redirect()->route('content.calendar');
     }
 
-    public function __invoke(ContentFilterRequest $request): Response
+    public function __invoke(ContentFilterRequest $request, PostingQueue $queue): Response
     {
-        /** @var array{brand?: string|null, pillar?: string|null, campaign?: string|null, status?: string|null, week?: string|null} $filters */
+        /** @var array{brand?: string|null, pillar?: string|null, campaign?: string|null, status?: string|null, week?: string|null, view?: string|null, search?: string|null, sort?: string|null, direction?: string|null} $filters */
         $filters = $request->validated();
         $zone = BusinessTime::zone();
         $start = CarbonImmutable::parse($filters['week'] ?? 'today', $zone)->startOfWeek(CarbonImmutable::MONDAY)->startOfDay();
-        $end = $start->addWeek();
+        $view = $filters['view'] ?? 'week';
+        $sort = $filters['sort'] ?? 'planned_at';
+        $direction = $filters['direction'] ?? 'desc';
 
+        $shared = [
+            'filters' => [
+                ...self::currentFilters($filters),
+                'week' => $start->toDateString(),
+                'view' => $view,
+                'search' => $filters['search'] ?? null,
+                'sort' => $sort,
+                'direction' => $direction,
+            ],
+            'reminders' => self::reminders($queue),
+            'manageCampaigns' => $request->boolean('manage_campaigns'),
+            'priorities' => array_map(static fn (CampaignPriority $priority): string => $priority->value, CampaignPriority::cases()),
+            ...self::options(),
+        ];
+
+        if ($view === 'list') {
+            $list = self::filtered($filters)
+                ->when($filters['search'] ?? null, static fn (Builder $q, string $search) => $q->where('title', 'like', '%'.addcslashes($search, '%_\\').'%'))
+                ->with(self::ROW_RELATIONS)
+                ->orderBy($sort, $direction)
+                ->orderBy('id', $direction)
+                ->paginate(20)
+                ->withQueryString();
+
+            return Inertia::render('content/ContentCalendarPage', [...$shared, 'list' => Paginated::present($list, ContentPresenter::row(...))]);
+        }
+
+        $end = $start->addWeek();
         $items = self::filtered($filters)
             ->whereBetween('planned_at', [$start->utc(), $end->utc()->subSecond()])
             ->with(self::ROW_RELATIONS)
@@ -43,7 +84,7 @@ final class ContentCalendarController
             ->get();
 
         return Inertia::render('content/ContentCalendarPage', [
-            'filters' => [...self::currentFilters($filters), 'week' => $start->toDateString()],
+            ...$shared,
             'week' => [
                 'start' => $start->toDateString(),
                 'end' => $end->subDay()->toDateString(),
@@ -54,9 +95,6 @@ final class ContentCalendarController
             ],
             'items' => $items->map(ContentPresenter::row(...))->all(),
             'composition' => self::composition($items),
-            'manageCampaigns' => $request->boolean('manage_campaigns'),
-            'priorities' => array_map(static fn (CampaignPriority $priority): string => $priority->value, CampaignPriority::cases()),
-            ...self::options(),
         ]);
     }
 
@@ -72,7 +110,29 @@ final class ContentCalendarController
             ->when($filters['brand'] ?? null, static fn (Builder $q, string $code) => $q->whereHas('brand', static fn (Builder $b) => $b->where('code', $code)))
             ->when($filters['pillar'] ?? null, static fn (Builder $q, string $id) => $q->whereHas('pillar', static fn (Builder $p) => $p->where('public_id', $id)))
             ->when($filters['campaign'] ?? null, static fn (Builder $q, string $id) => $q->whereHas('campaign', static fn (Builder $c) => $c->where('public_id', $id)))
-            ->when($filters['status'] ?? null, static fn (Builder $q, string $status) => $q->where('status', $status));
+            ->when(
+                $filters['status'] ?? null,
+                static fn (Builder $q, string $status) => $q->where('status', $status),
+                // Archived items are kept but out of the way: they show only when the archive filter asks for them.
+                static fn (Builder $q) => $q->where('status', '!=', ContentStatus::Archived),
+            );
+    }
+
+    /**
+     * Ready posts planned today or earlier and not yet marked posted, oldest first. A reminder only.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int}
+     */
+    private static function reminders(PostingQueue $queue): array
+    {
+        $due = $queue->waiting()->where('planned_at', '<=', $queue->endOfToday());
+        $items = (clone $due)->with(self::ROW_RELATIONS)->orderBy('planned_at')->orderBy('id')->limit(self::REMINDER_LIMIT)->get();
+        $total = $items->count() < self::REMINDER_LIMIT ? $items->count() : $due->count();
+
+        return [
+            'items' => $items->map(static fn (ContentItem $item): array => [...ContentPresenter::row($item), 'daysLate' => $queue->daysLate($item)])->values()->all(),
+            'total' => $total,
+        ];
     }
 
     /**
@@ -99,7 +159,7 @@ final class ContentCalendarController
     }
 
     /**
-     * How the week's planned posts spread over each brand's pillars, against their targets. Rejected items do not
+     * How the week's planned posts spread over each brand's pillars, against their targets. Archived items do not
      * count; an item without a pillar counts as unassigned.
      *
      * @param  Collection<int, ContentItem>  $items

@@ -11,7 +11,7 @@ import ContentPlanFields from './ContentPlanFields.vue';
 
 const props = withDefaults(defineProps<{ brands: ContentBrandOption[]; defaultDay?: string | null; label?: string }>(), {
     defaultDay: null,
-    label: 'Buat konten',
+    label: 'Tambah konten',
 });
 const open = ref(false);
 const form = useForm({ brand: props.brands[0]?.code ?? '', title: '', planned_at: '', pillar: '', campaign: '', topic: '' });
@@ -42,7 +42,7 @@ function submit(): void {
 <template>
     <ConfirmDialog
         v-model:open="open"
-        title="Buat konten"
+        title="Tambah konten"
         description="Konten baru dimulai sebagai draft. Isi caption, gambar, dan detail lain di halaman konten."
         confirm-label="Buat draft"
         :submitting="form.processing"

@@ -36,6 +36,14 @@ export const contentStatuses: Record<ContentStatus, StatusDefinition> = {
 
 export const contentStatusOrder: readonly ContentStatus[] = ['DRAFT', 'READY', 'PUBLISHED', 'ARCHIVED'];
 
+/** The Kalender's main status filter. *Semua* hides archived items; the archive is under Filter lainnya. */
+export const contentQuickStatuses: readonly { value: Exclude<ContentStatus, 'ARCHIVED'> | null; label: string }[] = [
+    { value: null, label: 'Semua' },
+    { value: 'DRAFT', label: 'Draft' },
+    { value: 'READY', label: 'Siap posting' },
+    { value: 'PUBLISHED', label: 'Sudah diposting' },
+];
+
 /** Decisions of the retired editorial workflow (ADR-0011), shown read-only in revision history. */
 export const contentDecisions: Record<ContentDecision, { label: string; icon: LucideIcon }> = {
     APPROVED: { label: 'Disetujui', icon: CheckCircle2 },
@@ -85,11 +93,9 @@ export function dueLabel(state: 'overdue' | 'today' | 'upcoming' | null, daysLat
     return null;
 }
 
-/** Content Studio sections. */
+/** Content Studio sections (ADR-0012): Konten and Siap posting are Kalender views and filters. */
 export const contentSections = [
     { value: 'calendar', label: 'Kalender' },
-    { value: 'to-post', label: 'Siap posting' },
-    { value: 'items', label: 'Konten' },
     { value: 'insights', label: 'Insight' },
     { value: 'brands', label: 'Brand Knowledge' },
     { value: 'settings', label: 'Pengaturan AI' },

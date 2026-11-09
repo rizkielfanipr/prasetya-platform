@@ -13,6 +13,7 @@ use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentPublication;
 use App\Domain\Content\Support\ContentPlan;
 use App\Domain\Content\Support\PostingQueue;
+use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
@@ -45,22 +46,36 @@ function publish(ContentItem $item, array $checklist = PostingQueue::CHECKLIST):
     ]);
 }
 
-it('groups Ready posts into overdue, today, and upcoming, and counts what is due', function (): void {
+it('reminds about Ready posts due today or earlier on the Kalender, whatever week is shown, and counts them', function (): void {
     readyAt('Kemarin', '2026-11-09T03:00:00Z');
     readyAt('Pagi ini', '2026-11-10T01:00:00Z');
     readyAt('Malam ini', '2026-11-10T14:00:00Z');
     readyAt('Minggu depan', '2026-11-17T03:00:00Z');
-    readyAt('Bulan depan', '2026-12-20T03:00:00Z');
     draftItem(title: 'Masih draft');
 
-    $this->actingAs(admin())->get('/content/to-post')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('content/ContentToPostPage')
-        ->where('overdue.0.title', 'Kemarin')
-        ->where('overdue.0.daysLate', 1)
-        ->has('today', 2)
-        ->where('upcoming.0.title', 'Minggu depan')
-        ->where('later', 1)
+    $this->actingAs(admin())->get('/content/calendar?week=2026-12-07')->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('content/ContentCalendarPage')
+        ->where('reminders.total', 3)
+        ->where('reminders.items.0.title', 'Kemarin')
+        ->where('reminders.items.0.daysLate', 1)
+        ->where('reminders.items.0.dueState', 'overdue')
+        ->where('reminders.items.1.dueState', 'today')
+        ->has('reminders.items', 3)
         ->where('contentDueCount', 3));
+
+    // Every Ready post, soonest first, is the list the retired Siap posting page now opens.
+    expect(collect(contentPage('/content/calendar?view=list&status=READY&sort=planned_at&direction=asc')['list']['data'])->pluck('title')->all())
+        ->toBe(['Kemarin', 'Pagi ini', 'Malam ini', 'Minggu depan']);
+});
+
+it('shows at most ten reminders but counts them all', function (): void {
+    foreach (range(1, ContentCalendarController::REMINDER_LIMIT + 2) as $n) {
+        readyAt("Terlambat {$n}", '2026-11-09T03:00:00Z');
+    }
+
+    $reminders = contentPage('/content/calendar')['reminders'];
+
+    expect($reminders['items'])->toHaveCount(ContentCalendarController::REMINDER_LIMIT)->and($reminders['total'])->toBe(ContentCalendarController::REMINDER_LIMIT + 2);
 });
 
 it('marks rows waiting to be posted so the calendar can remind', function (): void {
@@ -82,7 +97,7 @@ it('requires every checklist step and keeps it as evidence', function (): void {
     expect(ContentPublication::query()->sole()->checklist)->toBe(PostingQueue::CHECKLIST)
         ->and($item->refresh()->status)->toBe(ContentStatus::Published)
         ->and(contentPage("/content/items/{$item->public_id}")['item']['publication']['checklist'])->toBe(PostingQueue::CHECKLIST)
-        ->and(contentPage('/content/to-post')['today'])->toBe([]);
+        ->and(contentPage('/content/calendar')['reminders']['total'])->toBe(0);
 });
 
 it('refuses an incomplete checklist in the domain too', function (): void {
@@ -97,7 +112,7 @@ it('never publishes overdue posts by itself', function (): void {
 
     $this->travel(30)->days();
     $this->artisan('schedule:run')->assertSuccessful();
-    contentPage('/content/to-post');
+    contentPage('/content/calendar');
 
     expect($item->refresh()->status)->toBe(ContentStatus::Ready)->and(ContentPublication::query()->count())->toBe(0);
 });
@@ -114,12 +129,12 @@ it('names the downloaded image by planned date, title, and revision', function (
 it('keeps the reminder count fixed in queries however many posts wait', function (): void {
     readyAt('Satu', '2026-11-09T03:00:00Z');
     $count = function (): int {
-        test()->actingAs(admin())->get('/content/to-post')->assertOk();
+        test()->actingAs(admin())->get('/content/calendar')->assertOk();
         $queries = 0;
         DB::listen(function () use (&$queries): void {
             $queries++;
         });
-        test()->get('/content/to-post')->assertOk();
+        test()->get('/content/calendar')->assertOk();
 
         return $queries;
     };

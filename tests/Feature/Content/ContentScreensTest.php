@@ -58,24 +58,54 @@ it('validates calendar and list filters', function (string $uri, string $field):
 })->with([
     ['/content/calendar?week=next-week', 'week'],
     ['/content/calendar?status=LIVE', 'status'],
-    ['/content/items?sort=id', 'sort'],
-    ['/content/items?direction=sideways', 'direction'],
+    ['/content/calendar?view=list&sort=id', 'sort'],
+    ['/content/calendar?view=list&direction=sideways', 'direction'],
+    ['/content/calendar?view=table', 'view'],
 ]);
 
-it('lists, searches, sorts, and pages items', function (): void {
+it('lists, searches, sorts, and pages items in the Kalender list view', function (): void {
     foreach (range(1, 21) as $n) {
         planned("Posting {$n}", now()->addDays($n)->toIso8601String());
     }
     planned('Cerita klien toko roti', now()->subDay()->toIso8601String());
+    $list = static fn (string $query = ''): array => contentPage("/content/calendar?view=list{$query}")['list'];
 
-    $this->actingAs(admin())->get('/content/items')->assertInertia(fn (AssertableInertia $page) => $page->component('content/ContentListPage'));
+    $this->actingAs(admin())->get('/content/calendar?view=list')->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('content/ContentCalendarPage')
+        ->where('filters.view', 'list')
+        ->missing('week')
+        ->missing('composition'));
 
-    expect(contentPage('/content/items')['items']['meta']['total'])->toBe(22)
-        ->and(contentPage('/content/items?page=2')['items']['data'])->toHaveCount(2)
-        ->and(contentPage('/content/items')['items']['data'][0]['title'])->toBe('Posting 21')
-        ->and(contentPage('/content/items?sort=planned_at&direction=asc')['items']['data'][0]['title'])->toBe('Cerita klien toko roti')
-        ->and(contentPage('/content/items?search=roti')['items']['meta']['total'])->toBe(1)
-        ->and(contentPage('/content/items?search=%25')['items']['meta']['total'])->toBe(0);
+    expect($list()['meta']['total'])->toBe(22)
+        ->and($list('&page=2')['data'])->toHaveCount(2)
+        ->and($list()['data'][0]['title'])->toBe('Posting 21')
+        ->and($list('&sort=planned_at&direction=asc')['data'][0]['title'])->toBe('Cerita klien toko roti')
+        ->and($list('&search=roti')['meta']['total'])->toBe(1)
+        ->and($list('&search=%25')['meta']['total'])->toBe(0);
+});
+
+it('hides archived items unless the archive filter asks for them', function (): void {
+    planned('Masih jalan', now()->toIso8601String());
+    $archived = draftItem(title: 'Sudah dibatalkan');
+    $this->actingAs(admin())->post("/content/items/{$archived->public_id}/archive", ['revision' => revisionId($archived)])->assertSessionHas('success');
+    $titles = static fn (string $uri): array => collect(contentPage($uri)['list']['data'])->pluck('title')->all();
+
+    expect($titles('/content/calendar?view=list'))->toBe(['Masih jalan'])
+        ->and($titles('/content/calendar?view=list&status=ARCHIVED'))->toBe(['Sudah dibatalkan'])
+        ->and(collect(contentPage('/content/calendar')['items'])->pluck('title')->all())->not->toContain('Sudah dibatalkan');
+});
+
+it('redirects the retired Konten and Siap posting pages to the Kalender with the same filters, without a loop', function (): void {
+    $this->actingAs(admin());
+
+    $this->get('/content/items?search=roti&status=DRAFT&sort=updated_at&direction=asc&page=2&evil=1')
+        ->assertRedirect('/content/calendar?view=list&status=DRAFT&search=roti&sort=updated_at&direction=asc&page=2');
+    $this->get('/content/items')->assertRedirect('/content/calendar?view=list');
+    $this->get('/content/to-post')->assertRedirect('/content/calendar?view=list&status=READY&sort=planned_at&direction=asc');
+    $this->get('/content/calendar?view=list&status=READY&sort=planned_at&direction=asc')->assertOk();
+    // A legacy status in an old bookmark still lands on its new status.
+    $this->followingRedirects()->get('/content/items?status=APPROVED')->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->component('content/ContentCalendarPage')->where('filters.status', 'READY'));
 });
 
 it('shows an item with its revisions, decisions, and its own audit', function (): void {
@@ -141,7 +171,7 @@ it('never puts customer, order, or payment data in content screens', function ()
     $order = Order::factory()->create(['customer_name' => 'Pelanggan Rahasia', 'customer_email' => 'rahasia@example.test']);
     $item = draftItem();
 
-    foreach (['/content/calendar', '/content/items', "/content/items/{$item->public_id}"] as $uri) {
+    foreach (['/content/calendar', '/content/calendar?view=list', "/content/items/{$item->public_id}"] as $uri) {
         expect($this->actingAs(admin())->get($uri)->getContent())
             ->not->toContain('Pelanggan Rahasia')->not->toContain('rahasia@example.test')->not->toContain($order->invoice_number);
     }

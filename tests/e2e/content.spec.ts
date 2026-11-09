@@ -38,8 +38,8 @@ test('one person takes a post from draft to Ready to published, with no approval
 
     await page.getByRole('navigation', { name: 'Navigasi utama' }).getByRole('link', { name: 'Content Studio' }).click();
     await expect(page).toHaveURL(/\/content\/calendar/);
-    await page.getByRole('button', { name: 'Buat konten' }).click();
-    const create = page.getByRole('alertdialog', { name: 'Buat konten' });
+    await page.getByRole('button', { name: 'Tambah konten' }).click();
+    const create = page.getByRole('alertdialog', { name: 'Tambah konten' });
     await create.getByLabel('Judul kerja').fill(title);
     await create.getByRole('button', { name: 'Buat draft' }).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -85,7 +85,7 @@ test('one person takes a post from draft to Ready to published, with no approval
 
 test('editing Ready content makes a new revision and returns it to Draft', async ({ page }) => {
     await login(page, USERS.colleague);
-    await page.goto('/content/items?search=3%20tanda');
+    await page.goto('/content/calendar?view=list&search=3%20tanda');
     await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
 
     await expect(page.getByTestId('status-summary')).toContainText('siap diposting');
@@ -102,7 +102,7 @@ test('editing Ready content makes a new revision and returns it to Draft', async
 
 test('a draft can be archived with an optional reason', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/items?search=Checklist');
+    await page.goto('/content/calendar?view=list&search=Checklist');
     await page.getByRole('link', { name: 'Checklist sebelum meluncurkan website' }).click();
 
     await page.getByRole('button', { name: 'Arsipkan' }).click();
@@ -115,17 +115,17 @@ test('a draft can be archived with an optional reason', async ({ page }) => {
 
 test('content pages have no accessibility violations', async ({ page }) => {
     await login(page, USERS.admin);
-    for (const path of ['/content/calendar', '/content/items']) {
+    for (const path of ['/content/calendar', '/content/calendar?view=list', '/content/calendar?view=list&status=ARCHIVED']) {
         await page.goto(path);
         await settled(page);
         await expectNoAxeViolations(page);
     }
-    await page.goto('/content/items?search=Domain');
+    await page.goto('/content/calendar?view=list&search=Domain');
     await page.getByRole('link', { name: 'Domain, hosting, dan SSL dalam satu menit' }).click();
     await settled(page);
     await expectNoAxeViolations(page);
 
-    await page.goto('/content/items?search=3%20tanda');
+    await page.goto('/content/calendar?view=list&search=3%20tanda');
     await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
     await settled(page);
     await expectNoAxeViolations(page);

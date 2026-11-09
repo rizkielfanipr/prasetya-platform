@@ -15,7 +15,7 @@ const pages = [
     '/settings',
     '/settings/activity',
     '/content/calendar',
-    '/content/items',
+    '/content/calendar?view=list',
 ];
 
 for (const [name, width, height] of [
@@ -34,7 +34,7 @@ for (const [name, width, height] of [
         }
 
         // A seeded content item, with its image, editor, and history.
-        await page.goto('/content/items?search=Cerita');
+        await page.goto('/content/calendar?view=list&search=Cerita');
         await page.getByRole('link', { name: 'Cerita klien: toko roti go online' }).click();
         await page.waitForLoadState('networkidle');
         await expectNoHorizontalOverflow(page);

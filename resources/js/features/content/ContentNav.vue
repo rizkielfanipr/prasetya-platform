@@ -9,8 +9,6 @@ import { computed } from 'vue';
 defineProps<{ current: (typeof contentSections)[number]['value'] }>();
 const hrefs = {
     calendar: routes.contentCalendar,
-    'to-post': routes.contentToPost,
-    items: routes.contentItems,
     insights: routes.contentInsights,
     brands: routes.contentBrands,
     settings: routes.contentSettings,
@@ -30,7 +28,7 @@ const due = computed(() => usePage<SharedProps>().props.contentDueCount ?? 0);
         >
             {{ section.label }}
             <span
-                v-if="section.value === 'to-post' && due > 0"
+                v-if="section.value === 'calendar' && due > 0"
                 class="rounded-full bg-warning-surface px-2 py-0.5 text-[11px] font-bold text-warning tabular"
                 :aria-label="`${due} konten perlu diposting`"
                 >{{ formatNumber(due) }}</span

@@ -32,12 +32,10 @@ use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
 use App\Http\Presenters\ContentResearchPresenter;
 use App\Http\Presenters\TransactionPresenter;
-use App\Http\Requests\BackOffice\Content\ContentFilterRequest;
 use App\Http\Requests\BackOffice\Content\MarkContentPublishedRequest;
 use App\Http\Requests\BackOffice\Content\SaveContentRevisionRequest;
 use App\Http\Requests\BackOffice\Content\StoreContentItemRequest;
 use App\Http\Requests\BackOffice\Content\UpdateContentDetailsRequest;
-use App\Support\Paginated;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,31 +46,18 @@ use Inertia\Response;
 /** Konten: the list, one item's workspace, and its workflow. Rules live in App\Domain\Content (ADR-0011). */
 final class ContentItemController
 {
-    public function index(ContentFilterRequest $request): Response
+    /**
+     * The retired Konten list (ADR-0012, phase 2): the same search, filters, sort, and page now live in the Kalender's list
+     * view. Unknown keys are dropped; the Kalender never redirects, so this cannot loop.
+     */
+    public function index(Request $request): RedirectResponse
     {
-        /** @var array{brand?: string|null, pillar?: string|null, campaign?: string|null, status?: string|null, search?: string|null, sort?: string|null, direction?: string|null} $filters */
-        $filters = $request->validated();
-        $sort = $filters['sort'] ?? 'planned_at';
-        $direction = $filters['direction'] ?? 'desc';
+        $query = array_filter(
+            $request->only(ContentCalendarController::LIST_KEYS),
+            static fn (mixed $value): bool => is_string($value) && $value !== '',
+        );
 
-        $items = ContentCalendarController::filtered($filters)
-            ->when($filters['search'] ?? null, static fn ($q, string $search) => $q->where('title', 'like', '%'.addcslashes($search, '%_\\').'%'))
-            ->with(ContentCalendarController::ROW_RELATIONS)
-            ->orderBy($sort, $direction)
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
-
-        return Inertia::render('content/ContentListPage', [
-            'filters' => [
-                ...ContentCalendarController::currentFilters($filters),
-                'search' => $filters['search'] ?? null,
-                'sort' => $sort,
-                'direction' => $direction,
-            ],
-            'items' => Paginated::present($items, ContentPresenter::row(...)),
-            ...ContentCalendarController::options(),
-        ]);
+        return redirect()->route('content.calendar', ['view' => 'list', ...$query]);
     }
 
     public function store(StoreContentItemRequest $request, CreateContentItem $create): RedirectResponse

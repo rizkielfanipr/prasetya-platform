@@ -161,5 +161,5 @@ it('shows the week\'s pillar composition against targets and filters by pillar',
         ->and($composition['unassigned'])->toBe(1)
         ->and(collect($composition['pillars'])->pluck('count', 'name')->all())->toBe(['Edukasi' => 2, 'Promo' => 0])
         ->and(contentPage("/content/calendar?week=2026-11-09&pillar={$edukasi->public_id}")['items'])->toHaveCount(2)
-        ->and(contentPage("/content/items?pillar={$edukasi->public_id}")['items']['meta']['total'])->toBe(2);
+        ->and(contentPage("/content/calendar?view=list&pillar={$edukasi->public_id}")['list']['meta']['total'])->toBe(2);
 });

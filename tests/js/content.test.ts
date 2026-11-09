@@ -1,5 +1,7 @@
 import ContentEditor from '@/features/content/ContentEditor.vue';
+import ContentReminders from '@/features/content/ContentReminders.vue';
 import ContentRevisionHistory from '@/features/content/ContentRevisionHistory.vue';
+import ContentStatusFilter from '@/features/content/ContentStatusFilter.vue';
 import ContentStatusPanel from '@/features/content/ContentStatusPanel.vue';
 import ContentWeekView from '@/features/content/ContentWeekView.vue';
 import CopyButton from '@/features/content/CopyButton.vue';
@@ -217,5 +219,34 @@ describe('CopyButton', () => {
         expect(writeText).toHaveBeenCalledWith('Caption pertama');
         expect(wrapper.get('[aria-live="polite"]').text()).toBe('Caption disalin.');
         expect(wrapper.get('button').text()).toBe('Disalin');
+    });
+});
+
+describe('ContentStatusFilter', () => {
+    it('offers the four main statuses in words and announces the pressed one', async () => {
+        const wrapper = mount(ContentStatusFilter, { props: { status: 'READY' } });
+        const buttons = wrapper.findAll('button');
+
+        expect(buttons.map((button) => button.text())).toEqual(['Semua', 'Draft', 'Siap posting', 'Sudah diposting']);
+        expect(buttons.map((button) => button.attributes('aria-pressed'))).toEqual(['false', 'false', 'true', 'false']);
+        await buttons[0]?.trigger('click');
+        expect(wrapper.emitted('change')?.[0]).toEqual([null]);
+    });
+});
+
+describe('ContentReminders', () => {
+    it('lists due posts with their lateness in words and a link to the posting package', () => {
+        const wrapper = mount(ContentReminders, {
+            props: {
+                reminders: { items: [{ ...row({ status: 'READY', dueState: 'overdue', hasImage: false }), daysLate: 2 }], total: 3 },
+                allHref: '/content/calendar?view=list&status=READY',
+            },
+        });
+
+        expect(wrapper.text()).toContain('Perlu diposting (3)');
+        expect(wrapper.text()).toContain('Terlambat 2 hari');
+        expect(wrapper.text()).toContain('belum ada gambar');
+        expect(wrapper.text()).toContain('2 lainnya ada di daftar Siap posting.');
+        expect(wrapper.findAll('a').map((link) => link.attributes('href'))).toContain('/content/items/01ITEM00000000000000000000#paket-posting');
     });
 });

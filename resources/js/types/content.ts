@@ -112,7 +112,10 @@ export interface ContentFilters {
     status: ContentStatus | null;
 }
 
-export interface ContentListFilters extends ContentFilters {
+/** Kalender URL state: the week shown, the view, and the list's search and sort. */
+export interface ContentCalendarFilters extends ContentFilters {
+    week: string;
+    view: 'week' | 'list';
     search: string | null;
     sort: 'planned_at' | 'updated_at';
     direction: 'asc' | 'desc';
@@ -335,6 +338,12 @@ export interface ItemResearch {
 export type PostingStep = 'image' | 'caption' | 'alt_text' | 'account';
 
 export type ToPostRow = ContentRow & { daysLate: number };
+
+/** Ready posts due today or earlier, oldest first; `total` counts beyond the items shown. */
+export interface PostingReminders {
+    items: ToPostRow[];
+    total: number;
+}
 
 export interface InsightSnapshot {
     id: string;

@@ -3,7 +3,7 @@ import { expectNoAxeViolations, login, test, USERS } from './support';
 
 test('research a post on the web, cite a result, and add a manual source', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/items?search=Domain');
+    await page.goto('/content/calendar?view=list&search=Domain');
     await page.getByRole('link', { name: 'Domain, hosting, dan SSL dalam satu menit' }).click();
     const panel = page.getByTestId('research-panel');
     await expect(panel).toContainText('knowledge berlaku');

@@ -20,7 +20,6 @@ export const routes = {
     content: '/content',
     contentCalendar: '/content/calendar',
     contentItems: '/content/items',
-    contentToPost: '/content/to-post',
     contentInsights: '/content/insights',
     contentItemInsights: (id: string) => `/content/items/${id}/insights`,
     contentItem: (id: string) => `/content/items/${id}`,

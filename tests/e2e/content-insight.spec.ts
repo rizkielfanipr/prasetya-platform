@@ -3,7 +3,7 @@ import { expectNoAxeViolations, login, test, USERS } from './support';
 
 test('record Instagram insight for a published post and see it summarised', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/items?search=Kenapa');
+    await page.goto('/content/calendar?view=list&search=Kenapa');
     await page.getByRole('link', { name: 'Kenapa website lambat merugikan bisnis' }).click();
 
     const panel = page.getByTestId('insight-panel');

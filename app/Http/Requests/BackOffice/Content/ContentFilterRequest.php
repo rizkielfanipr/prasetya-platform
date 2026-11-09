@@ -9,7 +9,7 @@ use App\Domain\Content\Migration\LegacyStatusMap;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** Filters shared by the calendar and the item list. */
+/** Kalender filters, for the week view and the list view (ADR-0012). */
 final class ContentFilterRequest extends FormRequest
 {
     /** A bookmarked filter on a retired status (ADR-0011) still opens: it reads as the status it became (ADR-0012). */
@@ -29,6 +29,7 @@ final class ContentFilterRequest extends FormRequest
             'pillar' => ['nullable', 'string', 'size:26'],
             'campaign' => ['nullable', 'string', 'size:26'],
             'status' => ['nullable', Rule::enum(ContentStatus::class)],
+            'view' => ['nullable', Rule::in(['week', 'list'])],
             'week' => ['nullable', 'date_format:Y-m-d'],
             'search' => ['nullable', 'string', 'max:100'],
             'sort' => ['nullable', Rule::in(['planned_at', 'updated_at'])],
