@@ -281,6 +281,7 @@ Audit lives with what it is about ([ADR-0010](decisions/0010-consolidated-transa
 
 ### Content Studio
 
+> **Target ([ADR-0012](decisions/0012-simplified-content-studio-workflow.md), accepted, being implemented):** one operator, statuses *Draft*, *Siap posting*, *Sudah diposting*, *Diarsipkan*, always written in words. Navigation becomes **Kalender**, **Insight**, **Brand Knowledge**, **Pengaturan AI**; Konten and Siap posting become Kalender filters, and `/content/items` and `/content/to-post` redirect with equivalent filters. Create asks only for idea, schedule (WIB), and an optional campaign. The editor shows schedule and status, one Brief, **Buat dengan AI**, caption with hashtags, the image, brand findings, and **Siap posting**; pillar, audience, objective, visual direction, alt text, sources, and history move to **Pengaturan tambahan**, which opens on an error. No Tinjauan panel and no approval copy (Ajukan, Setujui, Tolak, Minta revisi) in the target UI; historical decisions stay readable. The posting package has no required checklist. The description below is the current runtime until each phase ships.
 
 Manual planning, review, and posting records for single-image Instagram posts ([ADR-0011](decisions/0011-content-studio-authority-boundary.md)). Nothing here posts to Instagram, and a planned time passing changes nothing.
 

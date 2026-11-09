@@ -13,6 +13,7 @@ Tests never touch real Duitku credentials or the network. Backend and browser te
 
 ## Fixtures
 
+- `legacyContentFixture()` (`tests/Support/content.php`) builds one item in each legacy Content Studio status through the real actions; `StatusMigrationRehearsalTest` uses it to rehearse the ADR-0012 mapping, rollback without invented approvals, breach detection, and that `content:status-audit` changes nothing. Later phases reuse it for the migration itself.
 
 - `DuitkuAdapterTest` uses the response shape from Duitku's documented sample, and checks signatures against `hash_hmac` over the documented strings.
 - `DemoDataSeeder` builds data through the real actions and the real signed callback path, so the demo cannot show a state the application cannot reach. Refused outside local and testing. Addresses are `@example.test`.

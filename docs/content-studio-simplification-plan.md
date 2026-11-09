@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft untuk persetujuan |
+| Status | Disetujui; implementasi bertahap (Fase 0 selesai) |
 | Owner | Prasetya Group |
 | Last updated | 2026-11-08 |
 | Decision | [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) |
@@ -243,6 +243,15 @@ Rollback mengembalikan status target ke status kompatibel (`READY -> APPROVED`, 
 - Finalisasi istilah UI: Draft, Siap posting, Sudah diposting, Diarsipkan.
 
 **Exit:** pemetaan migrasi dan rollback telah diuji pada salinan database.
+
+**Status (2026-11-08): selesai** di branch `feat/simplify-content-studio`.
+
+- ADR-0012 diterima. Runtime tetap mengikuti ADR-0011 sampai Fase 1 ship.
+- `App\Domain\Content\Migration\LegacyStatusMap` memegang pemetaan maju dan mundur; `ContentStatusAudit` dan `php artisan content:status-audit` (read-only, tanpa isi konten) menghitung status, relasi revision, bukti approval dan publikasi, serta pelanggaran invariant. Jalankan pada salinan database production sebelum migrasi; perintah gagal bila ada status tak dikenal atau pelanggaran.
+- Fixture `legacyContentFixture()` membangun keenam status lama lewat action asli; `StatusMigrationRehearsalTest` menguji pemetaan, rollback tanpa approval palsu, deteksi data rusak, dan bahwa audit tidak mengubah data.
+- Data saat audit: database lokal 1 item (`DRAFT`), database e2e 7 item (`DRAFT` 2, `READY_FOR_REVIEW` 1, `REVISION_REQUESTED` 1, `APPROVED` 1, `PUBLISHED` 2), 5 approval, 2 publikasi, tanpa pelanggaran. Item `PUBLISHED` menyimpan `approved_revision_id` sebagai bukti revisi yang diposting; ini sah dan dipertahankan.
+- Baseline: Pest 534, Vitest 96, e2e 67 hijau. Query (e2e, median): Kalender 13 query 9,9 ms; Konten 12 query 10,2 ms; Siap posting 9 query 5,1 ms; detail item disetujui 28 query 15,9 ms. Screenshot 360×780, 768×1024, 1280×900 dengan reduced motion, tanpa overflow.
+- Strategi kolom untuk Fase 1: tambah `content_items.ready_revision_id` (nullable), backfill dari `approved_revision_id` untuk `APPROVED` → `READY`; `approved_revision_id` dan `content_approvals` tetap sebagai bukti lama dan tidak diisi untuk Ready baru. Arsip memakai audit `content.archived` (actor, waktu, alasan opsional) tanpa kolom baru kecuali kebutuhan tampilan membuktikan sebaliknya.
 
 ### Fase 1 — Domain compatibility
 

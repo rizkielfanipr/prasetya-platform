@@ -113,3 +113,31 @@ function findingCodes(ContentItem $item): array
         app(ContentRuleValidator::class)->check($item, $item->activeRevision),
     );
 }
+
+/**
+ * One item in every legacy editorial status, built through the real actions (ADR-0012 migration rehearsal).
+ *
+ * @return array<string, ContentItem> legacy status => item
+ */
+function legacyContentFixture(): array
+{
+    $writer = admin();
+    $reviewer = admin();
+    $review = app(ReviewContent::class);
+
+    $revisionRequested = submittedItem($writer);
+    $review($revisionRequested, revisionId($revisionRequested), ContentDecision::RevisionRequested, 'Ringkas caption', $reviewer, []);
+    $rejected = submittedItem($writer);
+    $review($rejected, revisionId($rejected), ContentDecision::Rejected, 'Tidak sesuai kampanye', $reviewer);
+    $published = approvedItem($writer, $reviewer);
+    app(MarkContentPublished::class)($published, revisionId($published), now(), null, null, $writer);
+
+    return [
+        'DRAFT' => draftItem($writer),
+        'READY_FOR_REVIEW' => submittedItem($writer),
+        'REVISION_REQUESTED' => $revisionRequested->refresh(),
+        'APPROVED' => approvedItem($writer, $reviewer),
+        'PUBLISHED' => $published->refresh(),
+        'REJECTED' => $rejected->refresh(),
+    ];
+}

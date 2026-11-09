@@ -15,6 +15,8 @@ use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Ai\CopyPromptBuilder;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Exceptions\ContentActionRefused;
+use App\Domain\Content\Migration\ContentStatusAudit;
+use App\Domain\Content\Migration\LegacyStatusMap;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentFact;
 use App\Domain\Content\Models\ContentPillar;
@@ -205,6 +207,36 @@ Artisan::command('content:import-brand {code} {file} {--actor= : Username record
 
     return Command::SUCCESS;
 })->purpose('Apply a reviewed Content Studio brand file through the audited actions');
+
+// Content Studio (ADR-0012, phase 0): read-only rehearsal of the status migration. Prints counts, the planned
+// mapping, and invariant breaches; changes nothing. Run it on a production copy before migrating.
+Artisan::command('content:status-audit {--json : Machine-readable output}', function (ContentStatusAudit $audit): int {
+    $report = $audit->run();
+    if ($this->option('json')) {
+        $this->line((string) json_encode($report, JSON_PRETTY_PRINT));
+
+        return Command::SUCCESS;
+    }
+    $this->table(['Status lama', 'Jumlah', 'Status target'], array_map(
+        static fn (string $status, int $count): array => [$status, $count, LegacyStatusMap::FORWARD[$status] ?? 'TIDAK DIKENAL'],
+        array_keys($report['statuses']),
+        $report['statuses'],
+    ));
+    $this->table(['Status target', 'Jumlah'], array_map(null, array_keys($report['target']), $report['target']));
+    $this->line(sprintf('Item %d · tanpa revisi aktif %d · approved_revision_id terisi %d · approval %d · publikasi %d',
+        $report['items']['total'], $report['items']['without_active_revision'], $report['items']['approved_revision_set'],
+        $report['approvals']['total'], $report['publications']['total']));
+    $breaches = array_filter($report['issues']);
+    $this->table(['Pemeriksaan', 'Jumlah'], array_map(null, array_keys($report['issues']), $report['issues']));
+    if ($breaches !== [] || $report['unknown'] !== []) {
+        $this->warn('Ada data yang tidak sesuai invariant atau status tak dikenal. Jangan migrasi sebelum diputuskan.');
+
+        return Command::FAILURE;
+    }
+    $this->info('Siap dimigrasi: semua status dikenal dan tidak ada pelanggaran invariant.');
+
+    return Command::SUCCESS;
+})->purpose('Read-only audit of Content Studio statuses before the ADR-0012 migration');
 
 // Content Studio (ADR-0011, phase 3): check the configured AI provider against the evaluation scenarios before
 // enabling or switching it. Calls the provider for real when one is configured; writes nothing to the database.

@@ -117,6 +117,15 @@ This is retrieval/RAG, not model training. To update knowledge, edit the one sou
 
 When an item is in *Perlu revisi*, the AI panel preselects the copy parts the reviewer named and sends the reviewer's note and the writer's optional instruction with the prompt (`copy-v2`). The note never overrides the brand rules. People rate finished drafts *Berguna* or *Kurang berguna* (with a reason); **Pengaturan AI → Evaluasi draft AI** shows ratings, approvals, and cost per model and prompt version. Use it, together with `content:eval-copy`, before switching model or prompt; ratings never change a prompt by themselves.
 
+## Workflow simplification (ADR-0012)
+
+The workflow is moving to Draft, Siap posting, Sudah diposting, and Diarsipkan with no approval step. AI keeps writing only to Draft: no run marks content Ready, Published, or Archived. Before the status migration runs on any database, run the read-only audit there (or on a copy) and resolve every reported breach:
+
+```sh
+php artisan content:status-audit          # table; exits non-zero on an unknown status or an invariant breach
+php artisan content:status-audit --json   # counts only, never content text
+```
+
 ## Switch or roll back
 
 - Switch provider or model: change the `.env` values, `php artisan config:clear`, run `content:eval-copy`.

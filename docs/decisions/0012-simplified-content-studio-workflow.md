@@ -1,6 +1,6 @@
 # ADR-0012: Simplify Content Studio to a creator-owned workflow
 
-- Status: Proposed
+- Status: Accepted (2026-11-08); implementation staged per the simplification plan
 - Date: 2026-11-08
 - Decision owners: Prasetya Group
 - Related: [`../content-studio-simplification-plan.md`](../content-studio-simplification-plan.md), [ADR-0011](0011-content-studio-authority-boundary.md), [`../design.md`](../design.md), [`../data-dictionary.md`](../data-dictionary.md)

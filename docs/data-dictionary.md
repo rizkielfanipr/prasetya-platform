@@ -2,7 +2,7 @@
 
 MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a ULID; numeric ids never leave the server.
 
-> Content Studio tables below describe the current schema. [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) proposes `DRAFT`, `READY`, `PUBLISHED`, and `ARCHIVED` plus retention of historical approval evidence. The exact schema becomes authoritative only when the compatibility migration in the [simplification plan](content-studio-simplification-plan.md) ships.
+> Content Studio tables below describe the current schema. [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) (accepted 2026-11-08) moves to `DRAFT`, `READY`, `PUBLISHED`, and `ARCHIVED` and keeps historical approval evidence; see *Content item lifecycle target* below. The schema changes become authoritative when the compatibility migration in the [simplification plan](content-studio-simplification-plan.md) ships.
 
 ## Tables
 
@@ -45,6 +45,22 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `content_generation_runs` | One AI copy generation (phase 3) | Item, base revision, result revision, requester, requested fields, status (`QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `DISCARDED`), provider, model, prompt version, input and output tokens, estimated `cost_usd`, latency, attempts, safe error code and message, provider request id. Phase 6: the writer's `instruction`, `used_review_note`, and people's `feedback` (`USEFUL`, `NOT_USEFUL`) with reason, author, and time. No prompt or raw response is stored |
 
 Phase 2 also adds `content_items.content_pillar_id`, `content_campaign_id`, and `topic` (nullable plan details), and `content_revisions.brand_profile_id`: the rules version a revision met when it was submitted. Phase 3 adds `content_revisions.generation_run_id` on revisions AI drafted.
+
+### Content item lifecycle target (ADR-0012, accepted, not yet runtime)
+
+```text
+DRAFT <-> READY -> PUBLISHED
+  |         |
+  +---------+-> ARCHIVED
+```
+
+- `READY` is a person's completion marker, not an approval. It needs the active revision with caption, alt text, and a valid image, and no blocking brand finding. Warnings do not block.
+- Editing a `READY` item creates a new revision, makes it active, and returns the item to `DRAFT`.
+- `PUBLISHED` comes only from a person recording an actual posting time (URL and note optional) on a `READY` item. No checklist is required.
+- `ARCHIVED` keeps every revision, decision, publication, source, AI run, and audit entry.
+- AI, queues, schedulers, and Hermes may only create or revise `DRAFT` content.
+- Migration mapping (`App\Domain\Content\Migration\LegacyStatusMap`): `DRAFT`→`DRAFT`, `READY_FOR_REVIEW`→`DRAFT`, `REVISION_REQUESTED`→`DRAFT`, `APPROVED`→`READY`, `PUBLISHED`→`PUBLISHED`, `REJECTED`→`ARCHIVED`. Rollback: `READY`→`APPROVED` and `ARCHIVED`→`REJECTED` as statuses only; no approval row is ever created.
+- Compatibility: `content_approvals`, `approved_revision_id` (kept on `PUBLISHED` items as evidence of the posted revision), decision areas, and publication checklists stay as read-only legacy evidence. A new nullable `ready_revision_id` names the revision marked Ready. `php artisan content:status-audit` checks the data first.
 
 ### Brand rule check
 
