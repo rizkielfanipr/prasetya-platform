@@ -63,7 +63,7 @@ final class RequestResearch
             return $configuration;
         }
         if ($item->status->isFinal()) {
-            return 'Riset tidak diperlukan untuk konten yang sudah dipublikasikan atau ditolak.';
+            return 'Riset tidak diperlukan untuk konten yang sudah diposting atau diarsipkan.';
         }
         $active = ContentResearchRun::query()->where('content_item_id', $item->id)
             ->whereIn('status', [ResearchStatus::Queued, ResearchStatus::Running])

@@ -96,35 +96,38 @@ it('warns about campaign periods, inactive plans, and repeated topics', function
         ->and(findingCodes($first))->toBe(['topic_repeated']);
 });
 
-it('blocks submission on errors, allows it with warnings, and records the rules version', function (): void {
+it('blocks Ready on errors, allows it with warnings, and records the rules version', function (): void {
     brandRules(['forbidden_terms' => ['murah'], 'allowed_ctas' => ['DM kami']]);
     $writer = admin();
     $item = withCaption(draftItem($writer), ['caption' => 'Website murah']);
 
-    $this->actingAs($writer)->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)])
-        ->assertSessionHas('error', 'Perbaiki 1 pelanggaran aturan brand sebelum mengajukan.');
+    $this->actingAs($writer)->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])
+        ->assertSessionHas('error', 'Perbaiki 1 pelanggaran aturan brand sebelum menandai siap posting.');
     expect(contentPage("/content/items/{$item->public_id}", $writer))
         ->toMatchArray(['brandRulesVersion' => 1])
         ->and(collect(contentPage("/content/items/{$item->public_id}", $writer)['findings'])->pluck('severity')->all())->toBe(['ERROR', 'WARNING']);
 
     withCaption($item, ['caption' => 'Website rapi untuk usaha Anda']); // Still no CTA: a warning only.
-    $this->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)])->assertSessionHas('success');
+    $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
 
-    expect($item->refresh()->status)->toBe(ContentStatus::ReadyForReview)
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)
         ->and($item->activeRevision?->brand_profile_id)->toBe(webworks()->refresh()->current_profile_id);
 
-    // Rules changing later never rewrite which version the submitted revision met.
+    // Rules changing later never rewrite which version the Ready revision met.
     brandRules(['forbidden_terms' => ['usaha']], 'Lebih ketat');
     expect($item->activeRevision?->refresh()->brandProfile?->version)->toBe(1);
 });
 
-it('refuses an approved edit that breaks a brand rule', function (): void {
+it('saves an edit of Ready content that breaks a brand rule as a Draft, which cannot be Ready until fixed', function (): void {
     brandRules(['forbidden_terms' => ['murah']]);
-    $item = approvedItem();
+    $item = readyItem();
 
-    $this->actingAs(admin())->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'caption' => 'Sekarang murah'])
-        ->assertSessionHas('error', 'Perbaiki 1 pelanggaran aturan brand sebelum mengajukan.');
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved);
+    $this->actingAs(admin())->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'caption' => 'Sekarang murah'])->assertSessionHas('success');
+    expect($item->refresh()->status)->toBe(ContentStatus::Draft);
+
+    $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])
+        ->assertSessionHas('error', 'Perbaiki 1 pelanggaran aturan brand sebelum menandai siap posting.');
+    expect($item->refresh()->status)->toBe(ContentStatus::Draft);
 });
 
 it('plans an item with a pillar, campaign, and topic of its own brand only', function (): void {

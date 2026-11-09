@@ -26,18 +26,17 @@ export function linesToList(text: string): string[] {
         .filter((line) => line !== '');
 }
 
-/** Content item statuses (ADR-0011, data-dictionary.md). */
+/** Content item statuses (ADR-0012, data-dictionary.md), always shown in words. */
 export const contentStatuses: Record<ContentStatus, StatusDefinition> = {
     DRAFT: { label: 'Draft', tone: 'neutral', icon: Circle },
-    READY_FOR_REVIEW: { label: 'Menunggu tinjauan', tone: 'info', icon: Clock },
-    REVISION_REQUESTED: { label: 'Perlu revisi', tone: 'warning', icon: Pencil },
-    APPROVED: { label: 'Disetujui', tone: 'success', icon: CheckCircle2 },
-    PUBLISHED: { label: 'Dipublikasikan', tone: 'success', icon: Send },
-    REJECTED: { label: 'Ditolak', tone: 'danger', icon: XCircle },
+    READY: { label: 'Siap posting', tone: 'info', icon: CheckCircle2 },
+    PUBLISHED: { label: 'Sudah diposting', tone: 'success', icon: Send },
+    ARCHIVED: { label: 'Diarsipkan', tone: 'neutral', icon: Ban },
 };
 
-export const contentStatusOrder: readonly ContentStatus[] = ['DRAFT', 'READY_FOR_REVIEW', 'REVISION_REQUESTED', 'APPROVED', 'PUBLISHED', 'REJECTED'];
+export const contentStatusOrder: readonly ContentStatus[] = ['DRAFT', 'READY', 'PUBLISHED', 'ARCHIVED'];
 
+/** Decisions of the retired editorial workflow (ADR-0011), shown read-only in revision history. */
 export const contentDecisions: Record<ContentDecision, { label: string; icon: LucideIcon }> = {
     APPROVED: { label: 'Disetujui', icon: CheckCircle2 },
     REVISION_REQUESTED: { label: 'Revisi diminta', icon: Pencil },
@@ -47,11 +46,10 @@ export const contentDecisions: Record<ContentDecision, { label: string; icon: Lu
 export const contentActionLabels: Record<ContentAction, string> = {
     edit: 'Simpan konten',
     editDetails: 'Ubah rencana',
-    submit: 'Ajukan untuk ditinjau',
-    requestRevision: 'Minta revisi',
-    approve: 'Setujui',
-    reject: 'Tolak',
-    markPublished: 'Tandai sudah dipublikasikan',
+    markReady: 'Tandai siap posting',
+    returnToDraft: 'Kembali ke Draft',
+    archive: 'Arsipkan',
+    markPublished: 'Tandai sudah diposting',
 };
 
 /** The posting checklist, in order. The server requires every step (PostingQueue::CHECKLIST). */
@@ -191,14 +189,22 @@ export type ContentField = keyof ContentFields;
 export const contentFields: readonly { key: ContentField; name: string; label: string; hint: string; max: number; rows: number; required: boolean }[] = [
     { key: 'objective', name: 'objective', label: 'Tujuan', hint: 'Apa yang ingin dicapai posting ini.', max: 1000, rows: 2, required: false },
     { key: 'audience', name: 'audience', label: 'Audiens', hint: 'Untuk siapa posting ini.', max: 1000, rows: 2, required: false },
-    { key: 'brief', name: 'brief', label: 'Brief', hint: 'Pesan utama dan isi gambar. Wajib sebelum diajukan.', max: 5000, rows: 4, required: true },
-    { key: 'caption', name: 'caption', label: 'Caption', hint: 'Teks posting Instagram. Wajib sebelum diajukan.', max: 2200, rows: 6, required: true },
+    { key: 'brief', name: 'brief', label: 'Brief', hint: 'Pesan utama dan isi gambar. Membantu AI menulis draft.', max: 5000, rows: 4, required: false },
+    {
+        key: 'caption',
+        name: 'caption',
+        label: 'Caption',
+        hint: 'Teks posting Instagram. Wajib sebelum ditandai siap posting.',
+        max: 2200,
+        rows: 6,
+        required: true,
+    },
     { key: 'hashtags', name: 'hashtags', label: 'Hashtag', hint: 'Pisahkan dengan spasi, maksimal 30.', max: 1000, rows: 2, required: false },
     {
         key: 'altText',
         name: 'alt_text',
         label: 'Alt text',
-        hint: 'Deskripsi gambar untuk pembaca layar. Wajib sebelum diajukan.',
+        hint: 'Deskripsi gambar untuk pembaca layar. Wajib sebelum ditandai siap posting.',
         max: 1000,
         rows: 2,
         required: true,

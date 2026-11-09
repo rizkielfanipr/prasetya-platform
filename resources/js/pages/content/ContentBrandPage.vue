@@ -95,7 +95,7 @@ function openPillar(pillar: ContentPillar | null): void {
         <PanelCard
             v-if="tab === 'rules'"
             title="Panduan Brand"
-            description="Setiap perubahan disimpan sebagai versi baru; revisi yang sudah diajukan tetap merujuk versinya."
+            description="Setiap perubahan disimpan sebagai versi baru; revisi yang sudah ditandai siap posting tetap merujuk versinya."
         >
             <BrandRulesPanel :key="rules?.version ?? 0" :brand-id="brand.id" :rules="rules" :versions="versions" />
         </PanelCard>

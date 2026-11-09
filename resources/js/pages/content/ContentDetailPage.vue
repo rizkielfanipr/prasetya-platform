@@ -8,7 +8,7 @@ import ContentInsightPanel from '@/features/content/ContentInsightPanel.vue';
 import ContentEditor from '@/features/content/ContentEditor.vue';
 import ContentPostingPackage from '@/features/content/ContentPostingPackage.vue';
 import ContentResearchPanel from '@/features/content/ContentResearchPanel.vue';
-import ContentReviewPanel from '@/features/content/ContentReviewPanel.vue';
+import ContentStatusPanel from '@/features/content/ContentStatusPanel.vue';
 import ContentRuleFindings from '@/features/content/ContentRuleFindings.vue';
 import ContentRevisionHistory from '@/features/content/ContentRevisionHistory.vue';
 import ContentStatusBadge from '@/features/content/ContentStatusBadge.vue';
@@ -46,7 +46,7 @@ const props = defineProps<{
     insights: InsightSnapshot[] | null;
 }>();
 
-const postable = computed(() => props.item.status === 'APPROVED' || props.item.status === 'PUBLISHED');
+const postable = computed(() => props.item.status === 'READY' || props.item.status === 'PUBLISHED');
 const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item.plannedDay}`);
 </script>
 
@@ -90,7 +90,7 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
             </dl>
         </PanelCard>
 
-        <PanelCard title="Tinjauan"><ContentReviewPanel :item="item" :revision="revision" :actions="actions" :review-request="ai.reviewRequest" /></PanelCard>
+        <PanelCard title="Status"><ContentStatusPanel :item="item" :revision="revision" :actions="actions" /></PanelCard>
 
         <PanelCard title="Aturan brand" description="Pemeriksaan otomatis tanpa AI terhadap aturan, fakta, pilar, dan kampanye brand.">
             <ContentRuleFindings :findings="findings" :version="brandRulesVersion" :submitted-version="revision.brandRulesVersion" />
@@ -100,7 +100,7 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
             <ContentInsightPanel :item-id="item.id" :insights="insights" />
         </PanelCard>
 
-        <PanelCard v-if="postable" title="Paket posting" description="Posting manual di Instagram dari revisi yang disetujui, lalu catat di sini.">
+        <PanelCard v-if="postable" title="Paket posting" description="Posting manual di Instagram dari revisi yang siap posting, lalu catat di sini.">
             <ContentPostingPackage :item="item" :revision="revision" :actions="actions" />
         </PanelCard>
 
@@ -115,12 +115,14 @@ const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item
             <ContentAiPanel :item="item" :revision="revision" :ai="ai" />
         </PanelCard>
 
-        <PanelCard :title="`Konten · revisi ${revision.number}`" description="Kolom bertanda * wajib diisi sebelum diajukan.">
+        <PanelCard :title="`Konten · revisi ${revision.number}`" description="Kolom bertanda * wajib diisi sebelum ditandai siap posting.">
             <ContentEditor :key="revision.id" :item="item" :revision="revision" :blocked-reason="actions.edit" :limits="limits" />
         </PanelCard>
 
         <div class="grid gap-4 md:gap-5 lg:grid-cols-2 lg:gap-6">
-            <PanelCard title="Riwayat revisi"><ContentRevisionHistory :revisions="revisions" :approved-revision-id="item.approvedRevisionId" /></PanelCard>
+            <PanelCard title="Riwayat revisi"
+                ><ContentRevisionHistory :revisions="revisions" :ready-revision-id="item.readyRevisionId" :approved-revision-id="item.approvedRevisionId"
+            /></PanelCard>
             <PanelCard title="Aktivitas" description="Audit konten ini, terbaru di atas (maksimal 100 catatan)."
                 ><AuditTimeline :entries="activity"
             /></PanelCard>

@@ -15,7 +15,10 @@ use App\Domain\Content\Support\PostingQueue;
 use App\Support\BusinessTime;
 use Carbon\CarbonInterface;
 
-/* ADR-0011: the manual Content Studio workflow, four-eyes approval, immutable revisions, and human publishing. */
+/*
+ * ADR-0012: the creator-owned lifecycle (Draft, Ready, Published, Archived). One signed-in person drafts, marks Ready,
+ * and records the post; there is no approval step. Revisions stay immutable once frozen, and only a person publishes.
+ */
 
 beforeEach(fn () => contentSetUp());
 
@@ -70,53 +73,55 @@ it('edits a draft in place and records which fields changed', function (): void 
     expect($audit->new_state)->toMatchArray(['revision' => 1, 'fields' => ['caption'], 'image_changed' => false]);
 });
 
-it('refuses to submit until brief, caption, alt text, and image are present', function (): void {
+it('refuses Ready until caption, alt text, and image are present, without needing a brief', function (): void {
     $writer = admin();
     $item = draftItem($writer, complete: false);
 
-    $this->actingAs($writer)->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)])
-        ->assertSessionHas('error', 'Lengkapi brief, caption, alt text dan gambar sebelum mengajukan.');
-
+    $this->actingAs($writer)->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])
+        ->assertSessionHas('error', 'Lengkapi caption, alt text dan gambar sebelum menandai siap posting.');
     expect($item->refresh()->status)->toBe(ContentStatus::Draft);
+
+    $image = postImage();
+    $this->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), ...completeContent(['brief' => '']), 'image' => $image])->assertSessionHas('success');
+    $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
+
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)->and($item->activeRevision?->brief)->toBeNull();
 });
 
-it('runs one post from draft to published with two people', function (): void {
+it('lets one person take a post from draft to published, with no approval', function (): void {
     $writer = User::factory()->create(['name' => 'Penulis']);
-    $reviewer = User::factory()->create(['name' => 'Peninjau']);
     $item = draftItem($writer);
 
-    $this->actingAs($writer)->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)])->assertSessionHas('success');
-    expect($item->refresh()->status)->toBe(ContentStatus::ReadyForReview);
-
-    // Four-eyes: the submitter cannot approve their own revision.
-    $this->post("/content/items/{$item->public_id}/approve", ['revision' => revisionId($item)])
-        ->assertSessionHas('error', 'Revisi ini Anda ajukan sendiri. Pengguna lain harus menyetujuinya.');
-    expect($item->refresh()->status)->toBe(ContentStatus::ReadyForReview);
-
-    $this->actingAs($reviewer)->post("/content/items/{$item->public_id}/approve", ['revision' => revisionId($item), 'note' => 'Siap tayang'])->assertSessionHas('success');
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved)
-        ->and($item->approved_revision_id)->toBe($item->active_revision_id);
+    $this->actingAs($writer)->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
+    $item->refresh();
+    expect($item->status)->toBe(ContentStatus::Ready)
+        ->and($item->ready_revision_id)->toBe($item->active_revision_id)
+        ->and($item->approved_revision_id)->toBeNull()
+        ->and($item->activeRevision?->isSubmitted())->toBeTrue()
+        ->and($item->activeRevision?->submitted_by_user_id)->toBe($writer->id);
 
     $this->travel(10)->minutes();
     $postedAt = now()->subMinutes(2);
-    $this->actingAs($writer)->post("/content/items/{$item->public_id}/publication", [
+    $this->post("/content/items/{$item->public_id}/publication", [
         'revision' => revisionId($item),
         'published_at' => postedAtInput($postedAt),
         'url' => 'https://www.instagram.com/p/ABC123/',
         'checklist' => PostingQueue::CHECKLIST,
-    ])->assertSessionHas('success');
+    ])->assertSessionHas('success', 'Konten ditandai sudah diposting.');
 
     $publication = ContentPublication::query()->sole();
     expect($item->refresh()->status)->toBe(ContentStatus::Published)
         ->and($publication->content_revision_id)->toBe($item->active_revision_id)
         ->and($publication->published_at->format('Y-m-d H:i'))->toBe($postedAt->utc()->format('Y-m-d H:i'))
         ->and($publication->actor_user_id)->toBe($writer->id)
-        ->and(ContentApproval::query()->sole()->decision)->toBe(ContentDecision::Approved)
-        ->and(contentAudit($item))->toBe(['content.created', 'content.revised', 'content.submitted', 'content.approved', 'content.published']);
+        ->and(ContentApproval::query()->count())->toBe(0)
+        ->and(contentAudit($item))->toBe(['content.created', 'content.revised', 'content.marked_ready', 'content.published']);
+    $ready = AuditLog::query()->where('action', 'content.marked_ready')->sole();
+    expect($ready->previous_state)->toBe(['status' => 'DRAFT'])->and($ready->new_state)->toMatchArray(['status' => 'READY', 'revision' => 1]);
 });
 
 it('allows a published mark without an Instagram URL but always with the posting time', function (): void {
-    $item = approvedItem();
+    $item = readyItem();
 
     $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item)])->assertSessionHasErrors('published_at');
     $this->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])->assertSessionHas('success');
@@ -125,37 +130,49 @@ it('allows a published mark without an Instagram URL but always with the posting
 });
 
 it('accepts only an https Instagram URL', function (string $url): void {
-    $item = approvedItem();
+    $item = readyItem();
 
     $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'url' => $url, 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHasErrors('url');
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved);
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready);
 })->with(['http://www.instagram.com/p/x/', 'https://instagram.com.evil.test/p/x/', 'https://evil.test/www.instagram.com', 'javascript:alert(1)', 'https://user@www.instagram.com/p/x/']);
 
-it('refuses a posting time in the future or before the approval', function (): void {
-    $item = approvedItem();
+it('refuses a posting time in the future or before the item was marked Ready', function (): void {
+    $item = readyItem();
     $uri = "/content/items/{$item->public_id}/publication";
 
     $this->actingAs(admin())->post($uri, ['revision' => revisionId($item), 'published_at' => postedAtInput(now()->addHour()), 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHas('error', 'Waktu posting tidak boleh di masa depan. Tandai setelah konten benar-benar diposting.');
     $this->post($uri, ['revision' => revisionId($item), 'published_at' => postedAtInput(now()->subDay()), 'checklist' => PostingQueue::CHECKLIST])
-        ->assertSessionHas('error', 'Waktu posting tidak boleh sebelum revisi ini disetujui.');
+        ->assertSessionHas('error', 'Waktu posting tidak boleh sebelum konten ditandai siap posting.');
 
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved)->and(ContentPublication::query()->count())->toBe(0);
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)->and(ContentPublication::query()->count())->toBe(0);
 });
 
-it('never publishes because the planned time passed', function (): void {
-    $item = approvedItem();
+it('refuses a published mark on a Draft', function (): void {
+    $item = draftItem();
 
-    $this->travelTo($item->planned_at->addWeek());
+    $this->actingAs(admin())->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])
+        ->assertSessionHas('error', 'Tandai siap posting dulu sebelum mencatat posting.');
+    expect($item->refresh()->status)->toBe(ContentStatus::Draft)->and(ContentPublication::query()->count())->toBe(0);
+});
+
+it('never changes a status because the planned time passed', function (): void {
+    $draft = draftItem();
+    $ready = readyItem();
+
+    $this->travelTo($ready->planned_at->addWeek());
     $this->artisan('schedule:run')->assertSuccessful();
     contentPage('/content/calendar');
+    contentPage('/content/to-post');
 
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved)->and(ContentPublication::query()->count())->toBe(0);
+    expect($draft->refresh()->status)->toBe(ContentStatus::Draft)
+        ->and($ready->refresh()->status)->toBe(ContentStatus::Ready)
+        ->and(ContentPublication::query()->count())->toBe(0);
 });
 
-it('keeps submitted revisions immutable', function (): void {
-    $item = submittedItem();
+it('keeps frozen revisions immutable', function (): void {
+    $item = readyItem();
     $revision = $item->activeRevision;
 
     expect(fn () => $revision?->update(['caption' => 'diam-diam']))->toThrow(LogicException::class)
@@ -164,141 +181,169 @@ it('keeps submitted revisions immutable', function (): void {
         ->toThrow(LogicException::class);
 });
 
-it('refuses edits while an item is in review, rejected, or published', function (): void {
-    $user = admin();
-    $inReview = submittedItem();
-
-    $this->actingAs($user)->put("/content/items/{$inReview->public_id}", ['revision' => revisionId($inReview), 'caption' => 'Ubah'])
-        ->assertSessionHas('error', 'Konten sedang ditinjau. Minta revisi dulu untuk mengubahnya.');
-
-    $this->post("/content/items/{$inReview->public_id}/reject", ['revision' => revisionId($inReview), 'note' => 'Tidak sesuai kampanye'])->assertSessionHas('success');
-    $this->put("/content/items/{$inReview->public_id}", ['revision' => revisionId($inReview), 'caption' => 'Ubah'])
-        ->assertSessionHas('error', 'Konten ditolak dan tidak dapat diubah.');
-    $this->put("/content/items/{$inReview->public_id}/details", ['title' => 'Baru', 'planned_at' => '2026-12-01T10:00'])
-        ->assertSessionHas('error', 'Judul dan jadwal tidak dapat diubah setelah konten ditolak.');
-
-    expect($inReview->refresh()->activeRevision?->caption)->toBe('Website yang rapi membantu pelanggan percaya.');
-});
-
-it('needs a note to request a revision or reject', function (string $route): void {
-    $item = submittedItem();
-
-    $this->actingAs(admin())->post("/content/items/{$item->public_id}/{$route}", ['revision' => revisionId($item)])->assertSessionHasErrors('note');
-    expect($item->refresh()->status)->toBe(ContentStatus::ReadyForReview);
-})->with(['request-revision', 'reject']);
-
-it('starts a new revision after a revision request and keeps editing it until resubmitted', function (): void {
+it('edits Ready content as a new revision and returns it to Draft', function (): void {
     $writer = admin();
-    $reviewer = admin();
-    $item = submittedItem($writer);
-    $first = $item->activeRevision;
+    $item = readyItem($writer);
+    $ready = revisionId($item);
 
-    $this->actingAs($reviewer)->post("/content/items/{$item->public_id}/request-revision", ['revision' => revisionId($item), 'note' => 'Ringkas caption'])->assertSessionHas('success');
-    expect($item->refresh()->status)->toBe(ContentStatus::RevisionRequested);
-
-    $this->actingAs($writer)->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)])
-        ->assertSessionHas('error', 'Ubah konten sesuai catatan revisi sebelum mengajukan lagi.');
-
-    $this->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'caption' => 'Caption ringkas'])->assertSessionHas('success');
-    $second = $item->refresh()->activeRevision;
-    expect($second?->number)->toBe(2)
-        ->and($second?->brief)->toBe($first?->brief)
-        ->and($second?->asset?->checksum_sha256)->toBe($first?->asset?->checksum_sha256)
-        ->and($second?->asset?->id)->not->toBe($first?->asset?->id)
-        ->and($first?->refresh()->caption)->toBe('Website yang rapi membantu pelanggan percaya.')
-        ->and($item->status)->toBe(ContentStatus::RevisionRequested);
-
-    $this->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'hashtags' => '#baru'])->assertSessionHas('success');
-    expect($item->refresh()->activeRevision?->number)->toBe(2)->and(ContentRevision::query()->count())->toBe(2);
-
-    $this->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)])->assertSessionHas('success');
-    expect($item->refresh()->status)->toBe(ContentStatus::ReadyForReview)
-        ->and($item->activeRevision?->decisions)->toHaveCount(0)
-        ->and($first?->decisions()->sole()->decision)->toBe(ContentDecision::RevisionRequested);
-});
-
-it('sends edited approved content back to review and voids the approval for publishing', function (): void {
-    $writer = admin();
-    $reviewer = admin();
-    $editor = admin();
-    $item = approvedItem($writer, $reviewer);
-    $approved = revisionId($item);
-
-    $this->actingAs($editor)->put("/content/items/{$item->public_id}", ['revision' => $approved, 'caption' => 'Caption sesudah disetujui'])->assertSessionHas('success');
+    $this->actingAs($writer)->put("/content/items/{$item->public_id}", ['revision' => $ready, 'caption' => 'Caption sesudah siap'])
+        ->assertSessionHas('success', 'Revisi 2 disimpan dan konten kembali ke Draft. Tandai siap posting lagi setelah selesai.');
 
     $item->refresh();
-    expect($item->status)->toBe(ContentStatus::ReadyForReview)
-        ->and($item->approved_revision_id)->toBeNull()
+    expect($item->status)->toBe(ContentStatus::Draft)
+        ->and($item->ready_revision_id)->toBeNull()
         ->and($item->activeRevision?->number)->toBe(2)
-        ->and($item->activeRevision?->submitted_by_user_id)->toBe($editor->id);
+        ->and($item->activeRevision?->isSubmitted())->toBeFalse()
+        ->and(ContentRevision::query()->where('number', 1)->sole()->caption)->toBe('Website yang rapi membantu pelanggan percaya.');
+    $audit = AuditLog::query()->where('action', 'content.revised')->latest('id')->first();
+    expect($audit?->previous_state)->toEqual(['revision' => 1, 'status' => 'READY'])
+        ->and($audit?->new_state)->toMatchArray(['revision' => 2, 'status' => 'DRAFT', 'fields' => ['caption']]);
 
-    // The old approval cannot publish the new content, even with the old revision id.
-    $this->post("/content/items/{$item->public_id}/publication", ['revision' => $approved, 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])
+    // The old revision can no longer be posted, and the new one must be marked Ready first.
+    $this->post("/content/items/{$item->public_id}/publication", ['revision' => $ready, 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])
         ->assertSessionHas('error', ContentActionRefused::staleRevision()->getMessage());
     $this->post("/content/items/{$item->public_id}/publication", ['revision' => revisionId($item), 'published_at' => postedAtInput(now()), 'checklist' => PostingQueue::CHECKLIST])
-        ->assertSessionHas('error', 'Hanya revisi terbaru yang sudah disetujui yang dapat ditandai dipublikasikan.');
+        ->assertSessionHas('error', 'Tandai siap posting dulu sebelum mencatat posting.');
 
-    // The editor submitted revision 2, so someone else approves it; the original writer may.
-    $this->post("/content/items/{$item->public_id}/approve", ['revision' => revisionId($item)])->assertSessionHas('error');
-    $this->actingAs($writer)->post("/content/items/{$item->public_id}/approve", ['revision' => revisionId($item)])->assertSessionHas('success');
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved);
+    $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)->and($item->ready_revision_id)->toBe($item->active_revision_id);
 });
 
-it('refuses an approved edit that removes required content', function (): void {
-    $item = approvedItem();
+it('lets an edit to Ready content remove required fields, because the result is a Draft', function (): void {
+    $item = readyItem();
 
-    $this->actingAs(admin())->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'caption' => ''])
-        ->assertSessionHas('error', 'Lengkapi caption sebelum mengajukan.');
+    $this->actingAs(admin())->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'caption' => ''])->assertSessionHas('success');
 
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved)->and(ContentRevision::query()->count())->toBe(1);
+    expect($item->refresh()->status)->toBe(ContentStatus::Draft)
+        ->and($item->activeRevision?->caption)->toBeNull()
+        ->and(contentPage("/content/items/{$item->public_id}")['actions']['markReady'])->toBe('Lengkapi caption sebelum menandai siap posting.');
 });
 
-it('refuses a save of approved content that changes nothing', function (): void {
-    $item = approvedItem();
+it('refuses a save of Ready content that changes nothing', function (): void {
+    $item = readyItem();
 
     $this->actingAs(admin())->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), ...completeContent()])
         ->assertSessionHas('error', 'Tidak ada perubahan untuk disimpan.');
-    expect($item->refresh()->status)->toBe(ContentStatus::Approved);
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)->and(ContentRevision::query()->count())->toBe(1);
 });
 
-it('refuses a decision on a revision the reviewer has not seen', function (): void {
+it('returns Ready content to Draft and marks the same revision Ready again', function (): void {
     $writer = admin();
-    $item = submittedItem($writer);
-    $stale = revisionId($item);
-    $this->actingAs(admin())->post("/content/items/{$item->public_id}/request-revision", ['revision' => $stale, 'note' => 'Ubah']);
-    $this->actingAs($writer)->put("/content/items/{$item->public_id}", ['revision' => $stale, 'caption' => 'Baru'])->assertSessionHas('success');
-    $this->post("/content/items/{$item->public_id}/submit-review", ['revision' => revisionId($item)]);
+    $item = readyItem($writer);
+    $frozenAt = $item->activeRevision?->submitted_at;
 
-    $this->actingAs(admin())->post("/content/items/{$item->public_id}/approve", ['revision' => $stale])
-        ->assertSessionHas('error', ContentActionRefused::staleRevision()->getMessage());
-    expect($item->refresh()->status)->toBe(ContentStatus::ReadyForReview);
+    $this->actingAs($writer)->post("/content/items/{$item->public_id}/return-to-draft", ['revision' => revisionId($item)])->assertSessionHas('success', 'Konten kembali ke Draft.');
+    expect($item->refresh()->status)->toBe(ContentStatus::Draft)
+        ->and($item->ready_revision_id)->toBeNull()
+        ->and($item->activeRevision?->isSubmitted())->toBeTrue();
+
+    $this->travel(5)->minutes();
+    $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)
+        ->and($item->activeRevision?->submitted_at?->equalTo($frozenAt))->toBeTrue()
+        ->and(ContentRevision::query()->count())->toBe(1)
+        ->and(contentAudit($item))->toBe(['content.created', 'content.revised', 'content.marked_ready', 'content.returned_to_draft', 'content.marked_ready']);
 });
 
-it('changes title and planned time without a new revision or a lost approval', function (): void {
-    $item = approvedItem();
+it('archives a Draft or Ready item with an optional reason and keeps its history', function (): void {
+    $draft = draftItem();
+    $ready = readyItem();
+
+    $this->actingAs(admin())->post("/content/items/{$draft->public_id}/archive", ['revision' => revisionId($draft)])->assertSessionHas('success');
+    $this->post("/content/items/{$ready->public_id}/archive", ['revision' => revisionId($ready), 'reason' => 'Promo dibatalkan'])->assertSessionHas('success');
+
+    expect($draft->refresh()->status)->toBe(ContentStatus::Archived)
+        ->and($ready->refresh()->status)->toBe(ContentStatus::Archived)
+        ->and($ready->ready_revision_id)->toBeNull()
+        ->and(ContentRevision::query()->count())->toBe(2);
+    $audit = AuditLog::query()->where('action', 'content.archived')->where('entity_id', $ready->public_id)->sole();
+    expect($audit->previous_state)->toBe(['status' => 'READY'])->and($audit->reason)->toBe('Promo dibatalkan');
+
+    $this->post("/content/items/{$ready->public_id}/archive", ['revision' => revisionId($ready), 'reason' => str_repeat('a', 501)])->assertSessionHasErrors('reason');
+});
+
+it('refuses edits and transitions once archived or published', function (): void {
+    $user = admin();
+    $archived = draftItem();
+    $published = publishedItem();
+    $this->actingAs($user)->post("/content/items/{$archived->public_id}/archive", ['revision' => revisionId($archived)]);
+
+    $this->put("/content/items/{$archived->public_id}", ['revision' => revisionId($archived), 'caption' => 'Ubah'])
+        ->assertSessionHas('error', 'Konten diarsipkan dan tidak dapat diubah.');
+    $this->put("/content/items/{$archived->public_id}/details", ['title' => 'Baru', 'planned_at' => '2026-12-01T10:00'])
+        ->assertSessionHas('error', 'Konten diarsipkan dan tidak dapat diubah.');
+    $this->post("/content/items/{$archived->public_id}/ready", ['revision' => revisionId($archived)])
+        ->assertSessionHas('error', 'Hanya Draft yang dapat ditandai siap posting.');
+    $this->put("/content/items/{$published->public_id}", ['revision' => revisionId($published), 'caption' => 'Ubah'])
+        ->assertSessionHas('error', 'Konten sudah diposting dan tidak dapat diubah.');
+    $this->post("/content/items/{$published->public_id}/archive", ['revision' => revisionId($published)])
+        ->assertSessionHas('error', 'Hanya Draft atau konten Siap posting yang dapat diarsipkan.');
+    $this->post("/content/items/{$published->public_id}/return-to-draft", ['revision' => revisionId($published)])
+        ->assertSessionHas('error', 'Hanya konten Siap posting yang dapat dikembalikan ke Draft.');
+
+    expect($archived->refresh()->status)->toBe(ContentStatus::Archived)
+        ->and($published->refresh()->status)->toBe(ContentStatus::Published)
+        ->and($published->activeRevision?->caption)->toBe('Website yang rapi membantu pelanggan percaya.');
+});
+
+it('refuses a transition on a revision the person has not seen', function (string $route): void {
+    $writer = admin();
+    $item = readyItem($writer);
+    $stale = revisionId($item);
+    // Editing Ready content makes revision 2 (Draft); mark it Ready again for the routes that need Ready.
+    $this->actingAs($writer)->put("/content/items/{$item->public_id}", ['revision' => $stale, 'caption' => 'Baru'])->assertSessionHas('success');
+    if ($route !== 'ready') {
+        $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
+    }
+    $before = $item->refresh()->status;
+
+    $this->post("/content/items/{$item->public_id}/{$route}", ['revision' => $stale])
+        ->assertSessionHas('error', ContentActionRefused::staleRevision()->getMessage());
+    expect($item->refresh()->status)->toBe($before);
+})->with(['ready', 'return-to-draft', 'archive']);
+
+it('answers the retired editorial routes without changing anything', function (string $route): void {
+    $item = readyItem();
+    $audit = contentAudit($item);
+
+    $this->actingAs(admin())->post("/content/items/{$item->public_id}/{$route}", ['revision' => revisionId($item), 'note' => 'x'])
+        ->assertSessionHas('error', 'Alur pengajuan dan persetujuan sudah tidak dipakai. Gunakan Siap posting.');
+
+    expect($item->refresh()->status)->toBe(ContentStatus::Ready)
+        ->and(ContentApproval::query()->count())->toBe(0)
+        ->and(contentAudit($item))->toBe($audit);
+})->with(['submit-review', 'request-revision', 'approve', 'reject']);
+
+it('changes title and planned time without a new revision or leaving Ready', function (): void {
+    $item = readyItem();
 
     $this->actingAs(admin())->put("/content/items/{$item->public_id}/details", ['title' => 'Judul baru', 'planned_at' => '2026-12-01T19:30'])->assertSessionHas('success');
 
     $item->refresh();
     expect($item->title)->toBe('Judul baru')
         ->and($item->planned_at->toIso8601ZuluString())->toBe('2026-12-01T12:30:00Z')
-        ->and($item->status)->toBe(ContentStatus::Approved)
+        ->and($item->status)->toBe(ContentStatus::Ready)
         ->and(ContentRevision::query()->count())->toBe(1)
         ->and(contentAudit($item))->toContain('content.details_updated');
 });
 
 it('tells the screen which actions are open and why the others are not', function (): void {
     $writer = admin();
-    $item = submittedItem($writer);
+    $draft = draftItem($writer, complete: false);
+    $ready = readyItem($writer);
 
-    $mine = contentPage("/content/items/{$item->public_id}", $writer)['actions'];
-    $theirs = contentPage("/content/items/{$item->public_id}", admin())['actions'];
+    $forDraft = contentPage("/content/items/{$draft->public_id}", $writer)['actions'];
+    $forReady = contentPage("/content/items/{$ready->public_id}", admin())['actions'];
 
-    expect($mine['approve'])->toBe('Revisi ini Anda ajukan sendiri. Pengguna lain harus menyetujuinya.')
-        ->and($mine['edit'])->toBe('Konten sedang ditinjau. Minta revisi dulu untuk mengubahnya.')
-        ->and($theirs['approve'])->toBeNull()
-        ->and($theirs['requestRevision'])->toBeNull()
-        ->and($theirs['markPublished'])->not->toBeNull();
+    expect(array_keys($forDraft))->toBe(['edit', 'editDetails', 'markReady', 'returnToDraft', 'archive', 'markPublished'])
+        ->and($forDraft['markReady'])->toBe('Lengkapi caption, alt text dan gambar sebelum menandai siap posting.')
+        ->and($forDraft['returnToDraft'])->toBe('Hanya konten Siap posting yang dapat dikembalikan ke Draft.')
+        ->and($forDraft['markPublished'])->toBe('Tandai siap posting dulu sebelum mencatat posting.')
+        ->and($forDraft['archive'])->toBeNull()
+        ->and($forReady['edit'])->toBeNull()
+        ->and($forReady['markReady'])->toBe('Hanya Draft yang dapat ditandai siap posting.')
+        ->and($forReady['returnToDraft'])->toBeNull()
+        ->and($forReady['markPublished'])->toBeNull();
 });
 
 it('keeps every content route behind sign-in and addresses items by public id', function (): void {
@@ -306,7 +351,20 @@ it('keeps every content route behind sign-in and addresses items by public id', 
 
     $this->get('/content/calendar')->assertRedirect('/login');
     $this->get("/content/items/{$item->public_id}")->assertRedirect('/login');
-    $this->post("/content/items/{$item->public_id}/approve")->assertRedirect('/login');
+    foreach (['ready', 'return-to-draft', 'archive', 'approve'] as $route) {
+        $this->post("/content/items/{$item->public_id}/{$route}")->assertRedirect('/login');
+    }
     $this->actingAs(admin())->get("/content/items/{$item->id}")->assertNotFound();
     $this->get('/content')->assertRedirect('/content/calendar');
+});
+
+it('refuses the lifecycle routes to a deactivated user', function (): void {
+    $user = admin();
+    $item = draftItem($user);
+    $user->update(['is_active' => false]);
+
+    $this->actingAs($user)->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertRedirect('/login');
+
+    expect($item->refresh()->status)->toBe(ContentStatus::Draft);
+    $this->assertGuest();
 });

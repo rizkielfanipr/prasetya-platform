@@ -119,12 +119,20 @@ When an item is in *Perlu revisi*, the AI panel preselects the copy parts the re
 
 ## Workflow simplification (ADR-0012)
 
-The workflow is moving to Draft, Siap posting, Sudah diposting, and Diarsipkan with no approval step. AI keeps writing only to Draft: no run marks content Ready, Published, or Archived. Before the status migration runs on any database, run the read-only audit there (or on a copy) and resolve every reported breach:
+The workflow is Draft, Siap posting, Sudah diposting, and Diarsipkan with no approval step. AI writes only to Draft: no run marks content Ready, Published, or Archived, and a run that finishes after the item left Draft is discarded.
+
+Migrating a database (staging or production, only when the owner asks):
+
+1. Back up the database. Run the read-only audit there (or on a copy) and resolve every reported breach first; do not fix data silently.
+2. `php artisan migrate --force` runs `2026_11_09_000001_simplify_content_lifecycle`: adds `content_items.ready_revision_id`, then maps statuses. Running it again changes nothing.
+3. Run the audit again; it must pass. Restart the queue worker so it loads the new code.
 
 ```sh
 php artisan content:status-audit          # table; exits non-zero on an unknown status or an invariant breach
 php artisan content:status-audit --json   # counts only, never content text
 ```
+
+Rollback: `php artisan migrate:rollback --step=1 --force` together with the previous release. Statuses return as `READY`→`APPROVED` and `ARCHIVED`→`REJECTED`; review states are not reconstructed, and no approval is created. A post marked Ready after the migration therefore shows in the audit as `APPROVED` without an approval, and the previous release will not let it be posted until someone approves it. Migrating forward again restores it as Ready.
 
 ## Switch or roll back
 

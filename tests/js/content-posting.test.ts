@@ -5,11 +5,11 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const item = (overrides: Partial<ContentItem> = {}): ContentItem =>
-    ({ id: 'item-1', status: 'APPROVED', dueState: 'overdue', plannedAt: '2026-11-09T03:00:00Z', publication: null, ...overrides }) as ContentItem;
+    ({ id: 'item-1', status: 'READY', dueState: 'overdue', plannedAt: '2026-11-09T03:00:00Z', publication: null, ...overrides }) as ContentItem;
 const revision = { id: 'rev-1', number: 1, caption: 'Caption', hashtags: '#a', altText: 'Alt', asset: null } as unknown as ContentRevision;
 const actions = { markPublished: null } as ContentActions;
 const mountPackage = (i: ContentItem = item()) => mount(ContentPostingPackage, { props: { item: i, revision, actions } });
-const publishButton = (wrapper: ReturnType<typeof mountPackage>) => wrapper.findAll('button').find((b) => b.text().includes('Tandai sudah dipublikasikan'));
+const publishButton = (wrapper: ReturnType<typeof mountPackage>) => wrapper.findAll('button').find((b) => b.text().includes('Tandai sudah diposting'));
 
 afterEach(() => window.sessionStorage.clear());
 
@@ -23,7 +23,7 @@ describe('dueLabel', () => {
 });
 
 describe('ContentPostingPackage', () => {
-    it('reminds that an approved post is overdue', () => {
+    it('reminds that a Ready post is overdue', () => {
         expect(mountPackage().get('[data-testid="due-banner"]').text()).toContain('Terlambat');
     });
 

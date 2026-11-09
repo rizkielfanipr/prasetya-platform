@@ -117,8 +117,7 @@ it('never sends the storage path or disk to the browser', function (): void {
 
 it('keeps the original image on the old revision when a new one is uploaded', function (): void {
     $writer = admin();
-    $item = submittedItem($writer);
-    $this->actingAs(admin())->post("/content/items/{$item->public_id}/request-revision", ['revision' => revisionId($item), 'note' => 'Ganti gambar']);
+    $item = readyItem($writer);
     $before = $item->refresh()->activeRevision?->asset?->checksum_sha256;
 
     $this->actingAs($writer)->put("/content/items/{$item->public_id}", ['revision' => revisionId($item), 'image' => postImage(rgb: [200, 0, 0])])->assertSessionHas('success');

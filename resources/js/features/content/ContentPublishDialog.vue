@@ -34,9 +34,9 @@ function submit(): void {
 <template>
     <ConfirmDialog
         v-model:open="open"
-        title="Tandai sudah dipublikasikan?"
+        title="Tandai sudah diposting?"
         :description="`Catat bahwa revisi ${revision.number} sudah diposting di Instagram. Platform tidak memposting apa pun.`"
-        confirm-label="Tandai dipublikasikan"
+        confirm-label="Tandai sudah diposting"
         :submitting="publishForm.processing"
         @confirm="submit"
     >

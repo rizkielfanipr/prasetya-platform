@@ -32,7 +32,7 @@ final class InternalContext
         $mine = $this->tokens($item->title.' '.$item->topic);
         $similar = [];
         $candidates = ContentItem::query()->where('content_brand_id', $item->content_brand_id)->whereKeyNot($item->id)
-            ->where('status', '!=', ContentStatus::Rejected)
+            ->where('status', '!=', ContentStatus::Archived)
             ->whereBetween('planned_at', [$item->planned_at->copy()->subDays(self::SIMILAR_DAYS), $item->planned_at->copy()->addDays(self::SIMILAR_DAYS)])
             ->get(['id', 'public_id', 'title', 'topic', 'status', 'planned_at']);
         foreach ($candidates as $other) {

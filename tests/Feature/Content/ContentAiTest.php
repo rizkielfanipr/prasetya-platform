@@ -134,14 +134,15 @@ it('regenerates only the chosen fields', function (): void {
     Http::assertSent(fn (Request $request) => str_contains($request['messages'][1]['content'], '"caption"') && ! str_contains($request['messages'][1]['content'], 'Kembalikan JSON dengan kunci persis: {"caption":"caption lengkap, tanpa hashtag","hashtags"'));
 });
 
-it('only drafts for draft or revision-requested content', function (): void {
+it('only drafts for Draft content', function (string $state): void {
     useAi();
     Http::fake();
-    $item = submittedItem();
+    $item = $state === 'ready' ? readyItem() : publishedItem();
 
-    generate($item)->assertSessionHas('error', 'AI hanya membuat draft untuk konten berstatus Draft atau Perlu revisi.');
+    generate($item)->assertSessionHas('error', 'AI hanya menulis konten berstatus Draft. Kembalikan ke Draft dulu untuk membuat ulang.');
     Http::assertNothingSent();
-});
+    expect(ContentGenerationRun::query()->count())->toBe(0);
+})->with(['ready', 'published']);
 
 it('retrieves Brand Knowledge with legacy rules and facts, but never customer or order data', function (): void {
     useAi();
@@ -276,6 +277,25 @@ it('discards the answer when the content changed while the provider worked', fun
 
     expect(ContentGenerationRun::query()->sole()->status)->toBe(GenerationStatus::Discarded)
         ->and($item->refresh()->activeRevision?->caption)->toBe('Ditulis manual sementara AI bekerja');
+});
+
+it('never moves an item out of Draft: a run that finishes after the item was marked Ready is discarded', function (): void {
+    useAi();
+    Queue::fake();
+    Http::fake(['*' => Http::response(chatResponse(goodCopy()))]);
+    $writer = admin();
+    $item = draftItem($writer);
+    generate($item, actor: $writer);
+    $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
+
+    app(RunCopyGeneration::class)(ContentGenerationRun::query()->sole()->id);
+
+    expect(ContentGenerationRun::query()->sole()->status)->toBe(GenerationStatus::Discarded)
+        ->and($item->refresh()->status)->toBe(ContentStatus::Ready)
+        ->and($item->ready_revision_id)->toBe($item->active_revision_id)
+        ->and($item->revisions()->count())->toBe(1)
+        ->and(AuditLog::query()->where('entity_id', $item->public_id)->whereIn('action', ['content.marked_ready', 'content.published', 'content.archived'])->pluck('actor_user_id')->unique()->all())
+        ->toBe([$writer->id]);
 });
 
 it('does nothing when a finished run is delivered again', function (): void {

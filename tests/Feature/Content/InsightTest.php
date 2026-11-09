@@ -20,7 +20,7 @@ beforeEach(fn () => contentSetUp());
 
 function published(string $title = 'Posting', ?ContentPillar $pillar = null, ?string $topic = null): ContentItem
 {
-    $item = approvedItem();
+    $item = readyItem();
     if ($pillar !== null || $topic !== null) {
         app(UpdateContentDetails::class)($item, new ContentPlan($item->title, $item->planned_at, $pillar, null, $topic), admin());
     }
@@ -65,7 +65,7 @@ it('validates and refuses impossible readings', function (): void {
 
     $draft = draftItem();
     $this->post("/content/items/{$draft->public_id}/insights", ['measured_at' => $now->format('Y-m-d\TH:i'), 'reach' => 10])
-        ->assertSessionHas('error', 'Insight hanya dapat dicatat untuk konten yang sudah dipublikasikan.');
+        ->assertSessionHas('error', 'Insight hanya dapat dicatat untuk konten yang sudah diposting.');
     expect(ContentInsightSnapshot::query()->count())->toBe(0);
 });
 

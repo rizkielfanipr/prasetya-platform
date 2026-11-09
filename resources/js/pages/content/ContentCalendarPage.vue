@@ -68,7 +68,7 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
 </script>
 
 <template>
-    <AppLayout title="Content Studio" description="Rencanakan, tinjau, dan catat posting Instagram. Posting tetap dilakukan manual.">
+    <AppLayout title="Content Studio" description="Rencanakan, tulis, dan catat posting Instagram. Posting tetap dilakukan manual.">
         <ContentNav current="calendar" />
 
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">

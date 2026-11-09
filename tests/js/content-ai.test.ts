@@ -57,7 +57,7 @@ describe('formatUsd', () => {
 
 describe('ContentAiPanel', () => {
     it('keeps the button visible but disabled, with the reason', () => {
-        const wrapper = mountPanel({ unavailableReason: 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.', reviewRequest: null, runs: [] });
+        const wrapper = mountPanel({ unavailableReason: 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.', runs: [] });
 
         const button = aiButton(wrapper);
         expect(button.attributes('disabled')).toBeDefined();
@@ -66,7 +66,7 @@ describe('ContentAiPanel', () => {
     });
 
     it('asks for the chosen fields of the current revision', async () => {
-        const wrapper = mountPanel({ unavailableReason: null, reviewRequest: null, runs: [] });
+        const wrapper = mountPanel({ unavailableReason: null, runs: [] });
 
         await aiButton(wrapper).trigger('click');
 
@@ -80,7 +80,6 @@ describe('ContentAiPanel', () => {
     it('lists runs with outcome, usage, and cost in words', () => {
         const wrapper = mountPanel({
             unavailableReason: null,
-            reviewRequest: null,
             runs: [run(), run({ id: 'r2', status: 'FAILED', errorMessage: 'Provider AI sedang bermasalah (503).', resultRevisionNumber: null })],
         });
 
@@ -90,27 +89,26 @@ describe('ContentAiPanel', () => {
     });
 
     it('refreshes while a run is active and stops when it finishes', async () => {
-        const wrapper = mountPanel({ unavailableReason: 'AI sedang membuat draft untuk konten ini.', reviewRequest: null, runs: [run({ status: 'RUNNING' })] });
+        const wrapper = mountPanel({ unavailableReason: 'AI sedang membuat draft untuk konten ini.', runs: [run({ status: 'RUNNING' })] });
 
         vi.advanceTimersByTime(3000);
         expect(inertia.reload).toHaveBeenCalledTimes(1);
 
-        await wrapper.setProps({ ai: { unavailableReason: null, reviewRequest: null, runs: [run()] } });
+        await wrapper.setProps({ ai: { unavailableReason: null, runs: [run()] } });
         vi.advanceTimersByTime(9000);
         expect(inertia.reload).toHaveBeenCalledTimes(1);
         expect(wrapper.get('[aria-live="polite"]').text()).toBe('Draft dibuat');
     });
 });
 
-describe('ContentAiPanel answering a revision request', () => {
-    it("preselects the copy parts the reviewer named and sends the writer's instruction", async () => {
-        const wrapper = mountPanel({
-            unavailableReason: null,
-            reviewRequest: { areas: ['caption', 'image'], note: 'Ringkas caption', actor: 'Peninjau', at: '2026-11-08T03:00:00Z' },
-            runs: [],
-        });
+describe('ContentAiPanel instructions', () => {
+    it("sends the creator's instruction with the chosen copy parts", async () => {
+        const wrapper = mountPanel({ unavailableReason: null, runs: [] });
 
-        expect(wrapper.get('[data-testid="ai-follows-review"]').text()).toContain('catatan peninjau');
+        expect(wrapper.find('[data-testid="ai-follows-review"]').exists()).toBe(false);
+        await wrapper.get('#ai-field-hashtags').trigger('click');
+        await wrapper.get('#ai-field-alt_text').trigger('click');
+        await wrapper.get('#ai-field-visual_direction').trigger('click');
         await wrapper.get('#ai-instruction').setValue('lebih singkat');
         await aiButton(wrapper).trigger('click');
 
@@ -122,7 +120,7 @@ describe('ContentAiPanel answering a revision request', () => {
     });
 
     it('offers a verdict on each finished draft', () => {
-        const wrapper = mountPanel({ unavailableReason: null, reviewRequest: null, runs: [run({ feedback: 'NOT_USEFUL', feedbackReason: 'Terlalu formal' })] });
+        const wrapper = mountPanel({ unavailableReason: null, runs: [run({ feedback: 'NOT_USEFUL', feedbackReason: 'Terlalu formal' })] });
 
         expect(wrapper.text()).toContain('Dinilai kurang berguna: Terlalu formal');
         expect(wrapper.findAll('button').some((b) => b.text().includes('Berguna'))).toBe(true);

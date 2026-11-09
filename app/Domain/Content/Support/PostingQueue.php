@@ -11,7 +11,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Approved posts waiting to be posted by hand (ADR-0011, phase 7). Overdue and due-today items are reminders; nothing
+ * Ready posts waiting to be posted by hand (ADR-0012). Overdue and due-today items are reminders; nothing
  * here ever publishes: only a person marking the post does.
  */
 final class PostingQueue
@@ -22,10 +22,10 @@ final class PostingQueue
     /** @return Builder<ContentItem> */
     public function waiting(): Builder
     {
-        return ContentItem::query()->where('status', ContentStatus::Approved);
+        return ContentItem::query()->where('status', ContentStatus::Ready);
     }
 
-    /** Approved posts planned up to the end of today (WIB), not yet marked posted. */
+    /** Ready posts planned up to the end of today (WIB), not yet marked posted. */
     public function dueCount(): int
     {
         return $this->waiting()->where('planned_at', '<=', $this->endOfToday())->count();
@@ -34,7 +34,7 @@ final class PostingQueue
     /** overdue (an earlier day), today, upcoming, or null when the item is not waiting to be posted. */
     public function dueState(ContentItem $item): ?string
     {
-        if ($item->status !== ContentStatus::Approved) {
+        if ($item->status !== ContentStatus::Ready) {
             return null;
         }
         $day = $item->planned_at->setTimezone(BusinessTime::zone())->toDateString();

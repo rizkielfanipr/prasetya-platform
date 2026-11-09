@@ -6,16 +6,16 @@ namespace App\Http\Controllers\BackOffice\Content;
 
 use App\Domain\Audit\Queries\AuditTrail;
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Actions\ArchiveContent;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
+use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\RequestCopyGeneration;
 use App\Domain\Content\Actions\RequestResearch;
-use App\Domain\Content\Actions\ReviewContent;
+use App\Domain\Content\Actions\ReturnContentToDraft;
 use App\Domain\Content\Actions\SaveContentRevision;
-use App\Domain\Content\Actions\SubmitContentForReview;
 use App\Domain\Content\Actions\UpdateContentDetails;
 use App\Domain\Content\ContentAvailability;
-use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Exceptions\InvalidContentImage;
@@ -27,7 +27,6 @@ use App\Domain\Content\Models\ContentResearchSource;
 use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Research\InternalContext;
 use App\Domain\Content\Support\ContentRuleValidator;
-use App\Domain\Content\Support\RevisionRequestLookup;
 use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
@@ -35,7 +34,6 @@ use App\Http\Presenters\ContentResearchPresenter;
 use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\Content\ContentFilterRequest;
 use App\Http\Requests\BackOffice\Content\MarkContentPublishedRequest;
-use App\Http\Requests\BackOffice\Content\ReviewContentRequest;
 use App\Http\Requests\BackOffice\Content\SaveContentRevisionRequest;
 use App\Http\Requests\BackOffice\Content\StoreContentItemRequest;
 use App\Http\Requests\BackOffice\Content\UpdateContentDetailsRequest;
@@ -88,7 +86,7 @@ final class ContentItemController
         });
     }
 
-    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation, RevisionRequestLookup $requests, RequestResearch $research, InternalContext $context): Response
+    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation, RequestResearch $research, InternalContext $context): Response
     {
         $item->load([
             'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'sources', 'publication.actor', 'publication.revision',
@@ -114,12 +112,6 @@ final class ContentItemController
                 : null,
             'ai' => [
                 'unavailableReason' => $generation->reason($item),
-                'reviewRequest' => ($current = $requests->current($item)) === null ? null : [
-                    'areas' => $current->areas ?? [],
-                    'note' => $current->note,
-                    'actor' => $current->actor->name,
-                    'at' => $current->created_at->toIso8601ZuluString(),
-                ],
                 'runs' => ContentGenerationRun::query()->where('content_item_id', $item->id)->with(['item', 'requester', 'resultRevision'])->latest('id')->limit(10)->get()
                     ->map(ContentAiPresenter::run(...))->all(),
             ],
@@ -136,8 +128,10 @@ final class ContentItemController
         return $this->attempt(function () use ($save, $item, $request, $fields, $image): RedirectResponse {
             $revision = $save($item, (string) $request->validated('revision'), $fields, $image, $this->actor($request));
 
-            return back()->with('success', $item->refresh()->status === ContentStatus::ReadyForReview
-                ? "Revisi {$revision->number} disimpan dan diajukan ulang untuk ditinjau. Persetujuan sebelumnya tidak berlaku lagi."
+            $wasReady = $item->status === ContentStatus::Ready;
+
+            return back()->with('success', $wasReady && $item->refresh()->status === ContentStatus::Draft
+                ? "Revisi {$revision->number} disimpan dan konten kembali ke Draft. Tandai siap posting lagi setelah selesai."
                 : "Revisi {$revision->number} disimpan.");
         });
     }
@@ -151,30 +145,47 @@ final class ContentItemController
         });
     }
 
-    public function submit(Request $request, ContentItem $item, SubmitContentForReview $submit): RedirectResponse
+    public function ready(Request $request, ContentItem $item, MarkContentReady $ready): RedirectResponse
     {
-        $revision = (string) $request->validate(['revision' => ['required', 'string', 'size:26']])['revision'];
+        $revision = $this->expectedRevision($request);
 
-        return $this->attempt(function () use ($submit, $item, $revision, $request): RedirectResponse {
-            $submit($item, $revision, $this->actor($request));
+        return $this->attempt(function () use ($ready, $item, $revision, $request): RedirectResponse {
+            $ready($item, $revision, $this->actor($request));
 
-            return back()->with('success', 'Konten diajukan untuk ditinjau. Pengguna lain perlu menyetujuinya.');
+            return back()->with('success', 'Konten siap diposting. Buka paket posting saat jadwalnya tiba.');
         });
     }
 
-    public function requestRevision(ReviewContentRequest $request, ContentItem $item, ReviewContent $review): RedirectResponse
+    public function returnToDraft(Request $request, ContentItem $item, ReturnContentToDraft $return): RedirectResponse
     {
-        return $this->review($request, $item, $review, ContentDecision::RevisionRequested, 'Revisi diminta. Penulis dapat mengubah konten lalu mengajukan lagi.');
+        $revision = $this->expectedRevision($request);
+
+        return $this->attempt(function () use ($return, $item, $revision, $request): RedirectResponse {
+            $return($item, $revision, $this->actor($request));
+
+            return back()->with('success', 'Konten kembali ke Draft.');
+        });
     }
 
-    public function approve(ReviewContentRequest $request, ContentItem $item, ReviewContent $review): RedirectResponse
+    public function archive(Request $request, ContentItem $item, ArchiveContent $archive): RedirectResponse
     {
-        return $this->review($request, $item, $review, ContentDecision::Approved, 'Konten disetujui dan siap diposting.');
+        $data = $request->validate(['revision' => ['required', 'string', 'size:26'], 'reason' => ['nullable', 'string', 'max:500']]);
+
+        return $this->attempt(function () use ($archive, $item, $data, $request): RedirectResponse {
+            $reason = $data['reason'] ?? null;
+            $archive($item, (string) $data['revision'], is_string($reason) ? $reason : null, $this->actor($request));
+
+            return back()->with('success', 'Konten diarsipkan. Riwayatnya tetap tersimpan.');
+        });
     }
 
-    public function reject(ReviewContentRequest $request, ContentItem $item, ReviewContent $review): RedirectResponse
+    /**
+     * The editorial routes of ADR-0011 (submit, approve, reject, request revision) during the compatibility window:
+     * they change nothing and explain where the action went (ADR-0012).
+     */
+    public function retiredReview(): RedirectResponse
     {
-        return $this->review($request, $item, $review, ContentDecision::Rejected, 'Konten ditolak.');
+        return back()->with('error', 'Alur pengajuan dan persetujuan sudah tidak dipakai. Gunakan Siap posting.');
     }
 
     public function markPublished(MarkContentPublishedRequest $request, ContentItem $item, MarkContentPublished $mark): RedirectResponse
@@ -190,18 +201,13 @@ final class ContentItemController
                 $request->checklist(),
             );
 
-            return back()->with('success', 'Konten ditandai sudah dipublikasikan.');
+            return back()->with('success', 'Konten ditandai sudah diposting.');
         });
     }
 
-    private function review(ReviewContentRequest $request, ContentItem $item, ReviewContent $review, ContentDecision $decision, string $message): RedirectResponse
+    private function expectedRevision(Request $request): string
     {
-        return $this->attempt(function () use ($review, $item, $request, $decision, $message): RedirectResponse {
-            $note = $request->validated('note');
-            $review($item, (string) $request->validated('revision'), $decision, $note === null ? null : (string) $note, $this->actor($request), $request->areas());
-
-            return back()->with('success', $message);
-        });
+        return (string) $request->validate(['revision' => ['required', 'string', 'size:26']])['revision'];
     }
 
     /** @return array<string, mixed> */

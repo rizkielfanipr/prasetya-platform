@@ -12,7 +12,7 @@ import { CheckCircle2, ImageIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 /**
- * Siap posting (ADR-0011, phase 7): approved posts to post by hand, overdue first. A reminder only; a post becomes
+ * Siap posting (ADR-0012): posts marked Ready to post by hand, overdue first. A reminder only; a post becomes
  * published when someone marks it, never because its time passed.
  */
 const props = defineProps<{ overdue: ToPostRow[]; today: ToPostRow[]; upcoming: ToPostRow[]; upcomingDays: number; later: number }>();
@@ -23,7 +23,7 @@ const groups = computed(() => [
     {
         key: 'upcoming',
         title: `${props.upcomingDays} hari ke depan`,
-        description: 'Sudah disetujui, siap saat jadwalnya tiba.',
+        description: 'Sudah siap, tinggal menunggu jadwal.',
         rows: props.upcoming,
         tone: 'text-muted-foreground',
     },
@@ -32,14 +32,14 @@ const nothing = computed(() => props.overdue.length + props.today.length + props
 </script>
 
 <template>
-    <AppLayout title="Content Studio" description="Konten yang sudah disetujui dan menunggu diposting manual.">
+    <AppLayout title="Content Studio" description="Konten yang sudah ditandai siap dan menunggu diposting manual.">
         <ContentNav current="to-post" />
 
         <PanelCard v-if="nothing">
             <EmptyState
                 :icon="CheckCircle2"
                 title="Tidak ada yang menunggu diposting"
-                description="Konten yang disetujui akan muncul di sini sampai ditandai sudah dipublikasikan."
+                description="Konten yang ditandai siap posting muncul di sini sampai ditandai sudah diposting."
             />
         </PanelCard>
 
@@ -66,7 +66,7 @@ const nothing = computed(() => props.overdue.length + props.today.length + props
                     </li>
                 </ul>
             </PanelCard>
-            <p v-if="later > 0" class="text-sm text-muted-foreground">{{ later }} konten lain disetujui untuk jadwal yang lebih jauh.</p>
+            <p v-if="later > 0" class="text-sm text-muted-foreground">{{ later }} konten lain siap untuk jadwal yang lebih jauh.</p>
         </template>
     </AppLayout>
 </template>

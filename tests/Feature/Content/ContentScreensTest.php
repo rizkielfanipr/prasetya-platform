@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Content\Actions\CreateContentItem;
-use App\Domain\Content\Actions\ReviewContent;
+use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\SaveContentRevision;
-use App\Domain\Content\Actions\SubmitContentForReview;
-use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Support\ContentPlan;
@@ -47,7 +45,11 @@ it('renders the calendar page and filters it by status and brand', function (): 
     $this->actingAs(admin())->get('/content/calendar')->assertInertia(fn (AssertableInertia $page) => $page->component('content/ContentCalendarPage')->has('items', 2));
 
     expect(contentPage('/content/calendar?brand=SATAMU')['items'])->toHaveCount(1)
-        ->and(contentPage('/content/calendar?status=APPROVED')['items'])->toHaveCount(0)
+        ->and(contentPage('/content/calendar?status=READY')['items'])->toHaveCount(0)
+        ->and(contentPage('/content/calendar?status=DRAFT')['items'])->toHaveCount(2)
+        // A bookmark on a retired status reads as the status it became.
+        ->and(contentPage('/content/calendar?status=READY_FOR_REVIEW')['filters']['status'])->toBe('DRAFT')
+        ->and(contentPage('/content/calendar?status=APPROVED')['filters']['status'])->toBe('READY')
         ->and(collect(contentPage('/content/calendar')['brands'])->pluck('code')->all())->toBe(['WEBWORKS', 'SATAMU']);
 });
 
@@ -77,13 +79,14 @@ it('lists, searches, sorts, and pages items', function (): void {
 });
 
 it('shows an item with its revisions, decisions, and its own audit', function (): void {
-    $item = submittedItem();
+    $item = readyItem();
     $other = draftItem();
 
     $this->actingAs(admin())->get("/content/items/{$item->public_id}")->assertInertia(fn (AssertableInertia $page) => $page
         ->component('content/ContentDetailPage')
         ->where('item.id', $item->public_id)
-        ->where('item.status', 'READY_FOR_REVIEW')
+        ->where('item.status', 'READY')
+        ->where('item.readyRevisionId', fn ($id) => $id !== null)
         ->where('revision.number', 1)
         ->has('revisions', 1)
         ->has('revision.asset.url')
@@ -91,7 +94,7 @@ it('shows an item with its revisions, decisions, and its own audit', function ()
 
     $activity = contentPage("/content/items/{$item->public_id}")['activity'];
     expect(collect($activity)->pluck('entityId')->unique()->all())->toBe([$item->public_id])
-        ->and(collect($activity)->pluck('action')->all())->toBe(['content.submitted', 'content.revised', 'content.created'])
+        ->and(collect($activity)->pluck('action')->all())->toBe(['content.marked_ready', 'content.revised', 'content.created'])
         ->and($other->public_id)->not->toBe($item->public_id);
 });
 
@@ -110,8 +113,7 @@ it('loads an item with a fixed number of queries, however many revisions', funct
     $writer = admin();
     $grow = function (ContentItem $item, int $times) use ($writer): void {
         foreach (range(1, $times) as $n) {
-            app(SubmitContentForReview::class)($item, revisionId($item), $writer);
-            app(ReviewContent::class)($item, revisionId($item), ContentDecision::RevisionRequested, "Catatan {$n}", admin());
+            app(MarkContentReady::class)($item, revisionId($item), $writer);
             app(SaveContentRevision::class)($item, revisionId($item), ['caption' => "Caption {$n}"], null, $writer);
         }
     };

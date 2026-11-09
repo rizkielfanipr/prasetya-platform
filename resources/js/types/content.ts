@@ -1,7 +1,8 @@
 /** Mirrors App\Http\Presenters\ContentPresenter (ADR-0011). Content only: never customer, order, or payment data. */
-export type ContentStatus = 'DRAFT' | 'READY_FOR_REVIEW' | 'REVISION_REQUESTED' | 'APPROVED' | 'PUBLISHED' | 'REJECTED';
+/** ADR-0012: one operator drafts, marks Ready, and records the post. */
+export type ContentStatus = 'DRAFT' | 'READY' | 'PUBLISHED' | 'ARCHIVED';
 export type ContentDecision = 'APPROVED' | 'REVISION_REQUESTED' | 'REJECTED';
-export type ContentAction = 'edit' | 'editDetails' | 'submit' | 'requestRevision' | 'approve' | 'reject' | 'markPublished';
+export type ContentAction = 'edit' | 'editDetails' | 'markReady' | 'returnToDraft' | 'archive' | 'markPublished';
 /** Each workflow action, and why it is unavailable (null when it is allowed). The server enforces the same answers. */
 export type ContentActions = Record<ContentAction, string | null>;
 
@@ -48,6 +49,9 @@ export interface ContentPublication {
 export interface ContentItem extends ContentRow {
     createdAt: string;
     createdBy: string;
+    /** The revision marked Ready, while the item is Ready. */
+    readyRevisionId: string | null;
+    /** Legacy evidence: the revision approved under the retired editorial workflow. */
     approvedRevisionId: string | null;
     publication: ContentPublication | null;
 }
@@ -254,18 +258,9 @@ export interface GenerationRun {
     finishedAt: string | null;
 }
 
-export interface ReviewRequest {
-    areas: RevisionArea[];
-    note: string | null;
-    actor: string;
-    at: string;
-}
-
 export interface ItemAi {
     /** Why AI copy cannot be requested now, or null. */
     unavailableReason: string | null;
-    /** The revision request the item is answering, if any. */
-    reviewRequest: ReviewRequest | null;
     runs: GenerationRun[];
 }
 

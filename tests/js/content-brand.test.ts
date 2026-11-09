@@ -16,7 +16,7 @@ describe('linesToList', () => {
 });
 
 describe('ContentRuleFindings', () => {
-    it('lists errors before warnings, in words, and says whether submission is blocked', () => {
+    it('lists errors before warnings, in words, and says whether Ready is blocked', () => {
         const wrapper = mount(ContentRuleFindings, {
             props: {
                 version: 2,
@@ -33,7 +33,7 @@ describe('ContentRuleFindings', () => {
         expect(items[0]).toContain('Pelanggaran');
         expect(items[0]).toContain('murah');
         expect(items[1]).toContain('Peringatan');
-        expect(wrapper.text()).toContain('1 pelanggaran harus diperbaiki sebelum diajukan.');
+        expect(wrapper.text()).toContain('1 pelanggaran harus diperbaiki sebelum ditandai siap posting.');
         expect(wrapper.text()).toContain('aturan brand versi 2');
         expect(wrapper.text()).toContain('memenuhi aturan versi 1');
     });

@@ -55,7 +55,7 @@ const columns: DataTableColumn[] = [
                 <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{{ status.unavailableReason }}
             </p>
             <p v-else class="mb-4 flex items-start gap-2 rounded-lg bg-success-surface p-3 text-sm text-success" data-testid="ai-status">
-                <CheckCircle2 class="mt-0.5 size-4 shrink-0" aria-hidden="true" />AI siap membuat draft. Hasilnya selalu draft yang perlu ditinjau.
+                <CheckCircle2 class="mt-0.5 size-4 shrink-0" aria-hidden="true" />AI siap membuat draft. Hasilnya selalu draft yang Anda periksa sendiri.
             </p>
             <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
@@ -121,7 +121,7 @@ const columns: DataTableColumn[] = [
 
         <PanelCard
             title="Evaluasi draft AI"
-            description="Per model dan versi prompt: penilaian orang dan berapa yang akhirnya disetujui. Untuk membandingkan, bukan mengubah prompt otomatis."
+            description="Per model dan versi prompt: penilaian orang dan berapa yang akhirnya siap posting. Untuk membandingkan, bukan mengubah prompt otomatis."
         >
             <EmptyState v-if="evaluation.length === 0" title="Belum ada draft AI" />
             <ul v-else class="divide-y rounded-lg border" data-testid="ai-evaluation">
@@ -134,7 +134,7 @@ const columns: DataTableColumn[] = [
                         ><span class="font-mono">{{ row.model ?? '—' }}</span> · prompt {{ row.promptVersion }}</span
                     >
                     <span class="tabular"
-                        >{{ row.drafts }} draft · {{ row.useful }} berguna · {{ row.notUseful }} kurang berguna · {{ row.approved }} disetujui<template
+                        >{{ row.drafts }} draft · {{ row.useful }} berguna · {{ row.notUseful }} kurang berguna · {{ row.approved }} siap posting<template
                             v-if="row.costUsd > 0"
                         >
                             · {{ formatUsd(row.costUsd) }}</template

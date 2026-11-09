@@ -17,7 +17,6 @@ use App\Domain\Content\Jobs\GenerateContentCopy;
 use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Support\ContentItemLock;
-use App\Domain\Content\Support\RevisionRequestLookup;
 use App\Support\BusinessTime;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +34,6 @@ final class RequestCopyGeneration
         private readonly ContentItemLock $lock,
         private readonly CopyBudget $budget,
         private readonly CopyGenerator $generator,
-        private readonly RevisionRequestLookup $requests,
     ) {}
 
     /**
@@ -63,8 +61,8 @@ final class RequestCopyGeneration
                 'requested_by_user_id' => $actor->id,
                 'fields' => array_map(static fn (CopyField $f): string => $f->value, $fields),
                 'instruction' => $instruction,
-                // A revision answers the reviewer's note: the run carries it into the prompt.
-                'used_review_note' => $this->requests->current($item) !== null,
+                // Reviewer notes belonged to the retired editorial workflow (ADR-0012); kept for legacy runs only.
+                'used_review_note' => false,
                 'status' => GenerationStatus::Queued,
                 'provider' => $this->generator->provider(),
                 'model' => $this->generator->model(),
@@ -94,8 +92,8 @@ final class RequestCopyGeneration
         if ($configuration !== null) {
             return $configuration;
         }
-        if (! in_array($item->status, [ContentStatus::Draft, ContentStatus::RevisionRequested], true)) {
-            return 'AI hanya membuat draft untuk konten berstatus Draft atau Perlu revisi.';
+        if ($item->status !== ContentStatus::Draft) {
+            return 'AI hanya menulis konten berstatus Draft. Kembalikan ke Draft dulu untuk membuat ulang.';
         }
         if ($this->activeRun($item)) {
             return 'AI sedang membuat draft untuk konten ini.';

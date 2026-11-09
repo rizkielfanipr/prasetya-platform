@@ -107,7 +107,7 @@ final class ContentCalendarController
      */
     private static function composition(Collection $items): array
     {
-        $counted = $items->reject(static fn (ContentItem $item): bool => $item->status === ContentStatus::Rejected);
+        $counted = $items->reject(static fn (ContentItem $item): bool => $item->status === ContentStatus::Archived);
         $brands = ContentBrand::query()->whereIn('id', $counted->pluck('content_brand_id')->unique())
             ->orWhereHas('pillars', static fn (Builder $q) => $q->where('is_active', true))
             ->with('pillars')->orderBy('name')->get();

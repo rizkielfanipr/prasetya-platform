@@ -14,20 +14,13 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
  * Ask AI for a draft of some fields. The result is a new draft revision, checked against the brand rules like any
- * other; AI never submits or approves. While a run is queued or running the page refreshes its content every few
+ * other; AI only ever writes a Draft and never marks it Ready, Published, or Archived (ADR-0012). While a run is queued or running the page refreshes its content every few
  * seconds, and the outcome is announced politely.
  */
 const props = defineProps<{ item: ContentItem; revision: ContentRevision; ai: ItemAi }>();
 
 const POLL_MS = 3000;
-// Answering a revision request: start from the copy parts the reviewer named; otherwise everything.
-const requested = props.ai.reviewRequest?.areas.filter((area): area is CopyField => copyFields.some((field) => field.value === area)) ?? [];
-const chosen = ref<Record<CopyField, boolean>>({
-    caption: requested.length === 0 || requested.includes('caption'),
-    hashtags: requested.length === 0 || requested.includes('hashtags'),
-    alt_text: requested.length === 0 || requested.includes('alt_text'),
-    visual_direction: requested.length === 0 || requested.includes('visual_direction'),
-});
+const chosen = ref<Record<CopyField, boolean>>({ caption: true, hashtags: true, alt_text: true, visual_direction: true });
 const instruction = ref('');
 const submitting = ref(false);
 const announcement = ref('');
@@ -86,9 +79,6 @@ function generate(): void {
                 </div>
             </div>
         </fieldset>
-        <p v-if="ai.reviewRequest" class="text-sm text-muted-foreground" data-testid="ai-follows-review">
-            AI akan mengikuti catatan peninjau di atas dan hanya menulis ulang bagian yang dicentang.
-        </p>
         <div v-if="ai.unavailableReason === null" class="space-y-1.5">
             <label for="ai-instruction" class="text-sm font-semibold">Instruksi tambahan (opsional)</label>
             <Textarea id="ai-instruction" v-model="instruction" :rows="2" :maxlength="500" aria-describedby="ai-instruction-hint" />

@@ -67,11 +67,11 @@ function save(): void {
         >
             <Sparkles class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Draft ini ditulis AI ({{
                 revision.generatedBy.model ?? revision.generatedBy.provider
-            }}). Periksa fakta, gaya bahasa, dan temuan aturan brand sebelum mengajukan.
+            }}). Periksa fakta, gaya bahasa, dan temuan aturan brand sebelum menandai siap posting.
         </p>
-        <p v-else-if="item.status === 'APPROVED'" class="flex items-start gap-2 rounded-lg bg-warning-surface p-3 text-sm text-warning">
-            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Konten ini sudah disetujui. Menyimpan perubahan membuat revisi baru, membatalkan
-            persetujuan untuk posting, dan mengembalikannya ke tinjauan.
+        <p v-else-if="item.status === 'READY'" class="flex items-start gap-2 rounded-lg bg-warning-surface p-3 text-sm text-warning">
+            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Konten ini sudah siap posting. Menyimpan perubahan membuat revisi baru dan
+            mengembalikannya ke Draft.
         </p>
 
         <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">

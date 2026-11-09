@@ -46,7 +46,7 @@ final class ContentAiController
             return back()->with('error', $refused->getMessage());
         }
 
-        return back()->with('success', 'AI sedang membuat draft. Hasilnya menjadi revisi baru yang tetap perlu ditinjau.');
+        return back()->with('success', 'AI sedang membuat draft. Hasilnya menjadi revisi Draft baru untuk Anda periksa.');
     }
 
     public function selectModel(Request $request, SelectCopyModel $select): RedirectResponse

@@ -21,10 +21,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Saves the post's content (ADR-0011, decision 6).
  *
- * - An unsubmitted revision (a draft, or the new revision after a revision request) is edited in place.
- * - A submitted revision is never changed: the edit becomes a new revision that copies it.
- * - Editing approved content creates that new revision already submitted by the editor, voids the approval for
- *   publishing, and returns the item to review.
+ * - An open revision (a draft) is edited in place.
+ * - A frozen revision (marked Ready, or submitted under the old editorial workflow) is never changed: the edit becomes
+ *   a new revision that copies it.
+ * - Editing Ready content therefore starts a new Draft revision and returns the item to Draft (ADR-0012).
  *
  * The image is inspected and stored before the transaction; files are content-addressed, so an aborted save leaves
  * at most an unreferenced file that a later upload of the same bytes reuses.
@@ -73,7 +73,7 @@ final class SaveContentRevision
                 return $current;
             }
 
-            $wasApproved = $item->status === ContentStatus::Approved;
+            $wasReady = $item->status === ContentStatus::Ready;
             $revision = $current->isSubmitted() ? $this->copier->copy($item, $current, $actor) : $current;
             $revision->fill($values);
             $revision->save();
@@ -96,11 +96,8 @@ final class SaveContentRevision
 
             $previousStatus = $item->status;
             $item->forceFill(['active_revision_id' => $revision->id]);
-            if ($wasApproved) {
-                $item->setRelation('activeRevision', $revision->load('asset'));
-                $this->availability->ensureReady($item, $revision);
-                $revision->forceFill(['submitted_by_user_id' => $actor->id, 'submitted_at' => now(), 'brand_profile_id' => $item->brand->current_profile_id])->save();
-                $item->forceFill(['status' => ContentStatus::ReadyForReview, 'approved_revision_id' => null]);
+            if ($wasReady) {
+                $item->forceFill(['status' => ContentStatus::Draft, 'ready_revision_id' => null]);
             }
             $item->save();
 

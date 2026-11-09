@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { expectNoAxeViolations, login, test, USERS } from './support';
 
-test('Siap posting lists approved posts waiting to be posted by hand', async ({ page }) => {
+test('Siap posting lists Ready posts waiting to be posted by hand', async ({ page }) => {
     await login(page, USERS.admin);
     await page
         .getByRole('navigation', { name: 'Navigasi utama' })

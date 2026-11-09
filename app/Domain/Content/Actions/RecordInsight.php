@@ -25,7 +25,7 @@ final class RecordInsight
     public function __invoke(ContentItem $item, CarbonInterface $measuredAt, array $metrics, ?string $note, User $actor): ContentInsightSnapshot
     {
         if ($item->status !== ContentStatus::Published) {
-            throw ContentActionRefused::because('Insight hanya dapat dicatat untuk konten yang sudah dipublikasikan.');
+            throw ContentActionRefused::because('Insight hanya dapat dicatat untuk konten yang sudah diposting.');
         }
         $item->loadMissing('publication');
         if ($measuredAt->isAfter(now()->addMinutes(5))) {

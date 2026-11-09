@@ -22,7 +22,7 @@ const POLL_MS = 3000;
 const query = ref(props.research.suggestedQuery);
 const busy = ref(false);
 const manualOpen = ref(false);
-const editable = computed(() => props.item.status !== 'PUBLISHED' && props.item.status !== 'REJECTED');
+const editable = computed(() => props.item.status !== 'PUBLISHED' && props.item.status !== 'ARCHIVED');
 const citedIds = computed(() => new Set(props.research.cited.map((source) => source.id)));
 const active = computed(() => props.research.runs.some((run) => run.status === 'QUEUED' || run.status === 'RUNNING'));
 const internal = computed(() => props.research.internal);

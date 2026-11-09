@@ -29,7 +29,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon $planned_at
  * @property ContentStatus $status
  * @property int|null $active_revision_id
- * @property int|null $approved_revision_id
+ * @property int|null $approved_revision_id legacy evidence: the revision approved under ADR-0011
+ * @property int|null $ready_revision_id the revision a person marked Ready (ADR-0012)
  * @property int $created_by_user_id
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -118,12 +119,12 @@ class ContentItem extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
-    /** True only while the current revision is the one that was approved. */
-    public function isApprovedOnCurrentRevision(): bool
+    /** True only while the current revision is the one a person marked Ready. */
+    public function isReadyOnCurrentRevision(): bool
     {
-        return $this->status === ContentStatus::Approved
-            && $this->approved_revision_id !== null
-            && $this->approved_revision_id === $this->active_revision_id;
+        return $this->status === ContentStatus::Ready
+            && $this->ready_revision_id !== null
+            && $this->ready_revision_id === $this->active_revision_id;
     }
 
     protected function casts(): array

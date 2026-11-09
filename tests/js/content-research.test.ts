@@ -49,7 +49,7 @@ describe('ContentResearchPanel', () => {
         expect(wrapper.text()).toContain('4 knowledge berlaku');
         expect(wrapper.text()).toContain('kampanye berjalan: November');
         expect(wrapper.get('[data-testid="similar-content"]').text()).toContain('Tips SEO UMKM');
-        expect(wrapper.get('[data-testid="similar-content"]').text()).toContain('Dipublikasikan');
+        expect(wrapper.get('[data-testid="similar-content"]').text()).toContain('Sudah diposting');
     });
 
     it('links sources with no referrer or follow and labels their trust in words', () => {

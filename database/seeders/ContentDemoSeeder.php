@@ -6,14 +6,13 @@ namespace Database\Seeders;
 
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\AddContentFact;
+use App\Domain\Content\Actions\ArchiveContent;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
-use App\Domain\Content\Actions\ReviewContent;
+use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\SavePillar;
-use App\Domain\Content\Actions\SubmitContentForReview;
 use App\Domain\Content\Actions\UpdateBrandProfile;
-use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Support\ContentPlan;
@@ -24,8 +23,9 @@ use Illuminate\Database\Seeder;
 use RuntimeException;
 
 /**
- * One week of Prasetya Webworks posts in every state, built through the real actions: demo writes and submits, demo2
- * reviews (four-eyes). Local and testing only; the copy is illustrative and states no real price or promise.
+ * One week of Prasetya Webworks posts in every state (Draft, Ready, Published, Archived), built through the real
+ * actions by one operator, demo (ADR-0012). Local and testing only; the copy is illustrative and states no real price
+ * or promise.
  */
 class ContentDemoSeeder extends Seeder
 {
@@ -36,8 +36,7 @@ class ContentDemoSeeder extends Seeder
         }
         $brand = ContentBrand::query()->where('code', 'WEBWORKS')->first();
         $writer = User::query()->where('username', 'demo')->first();
-        $reviewer = User::query()->where('username', 'demo2')->first();
-        if ($brand === null || $writer === null || $reviewer === null || ContentItem::query()->exists()) {
+        if ($brand === null || $writer === null || ContentItem::query()->exists()) {
             return;
         }
 
@@ -68,11 +67,12 @@ class ContentDemoSeeder extends Seeder
         $monday = CarbonImmutable::now(BusinessTime::zone())->startOfWeek(CarbonImmutable::MONDAY)->setTime(10, 0);
         $posts = [
             ['Kenapa website lambat merugikan bisnis', 0, 'published', [42, 157, 143], 'Edukasi'],
-            ['3 tanda website Anda perlu diperbarui', 1, 'approved', [233, 196, 106], 'Edukasi'],
-            ['Cerita klien: toko roti go online', 2, 'review', [244, 162, 97], 'Portofolio'],
-            ['Checklist sebelum meluncurkan website', 3, 'revision', [231, 111, 81], 'Edukasi'],
+            ['3 tanda website Anda perlu diperbarui', 1, 'ready', [233, 196, 106], 'Edukasi'],
+            ['Cerita klien: toko roti go online', 2, 'draft', [244, 162, 97], 'Portofolio'],
+            ['Checklist sebelum meluncurkan website', 3, 'draft', [231, 111, 81], 'Edukasi'],
             ['Domain, hosting, dan SSL dalam satu menit', 4, 'draft', null, null],
             ['Tanya jawab: berapa lama membuat website?', 5, 'empty', null, null],
+            ['Promo lama yang dibatalkan', 6, 'archived', null, null],
         ];
 
         foreach ($posts as [$title, $day, $state, $colour, $pillar]) {
@@ -98,12 +98,12 @@ class ContentDemoSeeder extends Seeder
                 continue;
             }
 
-            app(SubmitContentForReview::class)($item, $revision->public_id, $writer);
-            match ($state) {
-                'revision' => app(ReviewContent::class)($item, $revision->public_id, ContentDecision::RevisionRequested, 'Poin utama terlalu panjang; ringkas jadi satu kalimat.', $reviewer),
-                'approved', 'published' => app(ReviewContent::class)($item, $revision->public_id, ContentDecision::Approved, null, $reviewer),
-                default => null,
-            };
+            if ($state === 'archived') {
+                app(ArchiveContent::class)($item, $revision->public_id, 'Kampanye dibatalkan (data contoh).', $writer);
+
+                continue;
+            }
+            app(MarkContentReady::class)($item, $revision->public_id, $writer);
             if ($state === 'published') {
                 app(MarkContentPublished::class)($item, $revision->public_id, CarbonImmutable::now(), null, 'Diposting manual dari akun Instagram brand.', $writer);
             }

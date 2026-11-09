@@ -50,7 +50,7 @@ final class CiteSource
             throw ContentActionRefused::because('Sumber ini milik brand lain.');
         }
         if ($item->status->isFinal()) {
-            throw ContentActionRefused::because('Sumber konten yang sudah dipublikasikan atau ditolak tidak dapat diubah.');
+            throw ContentActionRefused::because('Sumber konten yang sudah diposting atau diarsipkan tidak dapat diubah.');
         }
     }
 }

@@ -20,7 +20,7 @@ const ordered = computed(() => [...props.findings].sort((a, b) => (a.severity ==
             <template v-if="version">Diperiksa dengan aturan brand versi {{ version }}.</template>
             <template v-else>Aturan brand belum diisi.</template>
             <template v-if="submittedVersion && submittedVersion !== version">
-                Saat diajukan, revisi ini memenuhi aturan versi {{ submittedVersion }}.</template
+                Saat ditandai siap posting, revisi ini memenuhi aturan versi {{ submittedVersion }}.</template
             >
             <Link :href="routes.contentBrands" class="ml-1 font-medium text-primary-text hover:underline">Lihat Brand Knowledge</Link>
         </p>
@@ -29,7 +29,11 @@ const ordered = computed(() => [...props.findings].sort((a, b) => (a.severity ==
         </p>
         <template v-else>
             <p class="text-sm font-semibold">
-                {{ errors > 0 ? `${errors} pelanggaran harus diperbaiki sebelum diajukan.` : 'Hanya peringatan; konten tetap dapat diajukan.' }}
+                {{
+                    errors > 0
+                        ? `${errors} pelanggaran harus diperbaiki sebelum ditandai siap posting.`
+                        : 'Hanya peringatan; konten tetap dapat ditandai siap posting.'
+                }}
             </p>
             <ul class="space-y-2">
                 <li v-for="(finding, index) in ordered" :key="index" class="flex flex-wrap items-start gap-2 text-sm">

@@ -4,26 +4,25 @@ declare(strict_types=1);
 
 namespace App\Domain\Content\Enums;
 
-/** Content item lifecycle (ADR-0011, data-dictionary.md). Only the actions in App\Domain\Content\Actions move it. */
+/**
+ * Content item lifecycle (ADR-0012): one operator plans, drafts, marks Ready, and records the post.
+ * Only the actions in App\Domain\Content\Actions move it; AI and queues only ever write Draft content.
+ * Legacy editorial statuses were migrated (App\Domain\Content\Migration\LegacyStatusMap).
+ */
 enum ContentStatus: string
 {
     case Draft = 'DRAFT';
-    case ReadyForReview = 'READY_FOR_REVIEW';
-    case RevisionRequested = 'REVISION_REQUESTED';
-    case Approved = 'APPROVED';
+    case Ready = 'READY';
     case Published = 'PUBLISHED';
-    case Rejected = 'REJECTED';
+    case Archived = 'ARCHIVED';
 
     /** @return list<self> */
     public function next(): array
     {
         return match ($this) {
-            self::Draft => [self::ReadyForReview, self::Rejected],
-            self::ReadyForReview => [self::RevisionRequested, self::Approved, self::Rejected],
-            self::RevisionRequested => [self::ReadyForReview],
-            // Editing approved content creates a new revision that goes back to review.
-            self::Approved => [self::Published, self::ReadyForReview],
-            self::Published, self::Rejected => [],
+            self::Draft => [self::Ready, self::Archived],
+            self::Ready => [self::Draft, self::Published, self::Archived],
+            self::Published, self::Archived => [],
         };
     }
 

@@ -58,6 +58,8 @@ final class ContentPresenter
             ...self::row($item),
             'createdAt' => $item->created_at->toIso8601ZuluString(),
             'createdBy' => $item->creator->name,
+            'readyRevisionId' => $item->ready_revision_id === null ? null : $item->revisions->firstWhere('id', $item->ready_revision_id)?->public_id,
+            // Legacy evidence (ADR-0011): the revision approved under the old editorial workflow, if any.
             'approvedRevisionId' => $item->approved_revision_id === null ? null : $item->revisions->firstWhere('id', $item->approved_revision_id)?->public_id,
             'publication' => $item->publication === null ? null : self::publication($item->publication),
         ];

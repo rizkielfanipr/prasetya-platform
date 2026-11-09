@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { crc32, deflateSync } from 'node:zlib';
-import { expectNoAxeViolations, login, logout, test, USERS } from './support';
+import { expectNoAxeViolations, login, test, USERS } from './support';
 
 /** A valid single-colour PNG, built here so the test needs no image fixture on disk. */
 function png(width: number, height: number): Buffer {
@@ -32,7 +32,7 @@ async function settled(page: Page): Promise<void> {
     await page.evaluate(() => Promise.allSettled(document.getAnimations().map((animation) => animation.finished)));
 }
 
-test('one post goes from draft to published with two people, and the submitter cannot approve it', async ({ page }) => {
+test('one person takes a post from draft to Ready to published, with no approval step', async ({ page }) => {
     const title = `Posting uji ${Date.now().toString(36)}`;
     await login(page, USERS.admin);
 
@@ -44,11 +44,11 @@ test('one post goes from draft to published with two people, and the submitter c
     await create.getByRole('button', { name: 'Buat draft' }).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 
-    // Submitting needs the required content first; the reason is shown beside the disabled button.
-    await expect(page.getByRole('button', { name: 'Ajukan untuk ditinjau' })).toBeDisabled();
-    await expect(page.locator('#reason-submit')).toHaveText('Lengkapi brief, caption, alt text dan gambar sebelum mengajukan.');
+    // Ready needs the required content first; the reason is shown beside the disabled button.
+    await expect(page.getByRole('button', { name: 'Tandai siap posting' })).toBeDisabled();
+    await expect(page.locator('#reason-markReady')).toHaveText('Lengkapi caption, alt text dan gambar sebelum menandai siap posting.');
+    await expect(page.getByRole('button', { name: /Setujui|Ajukan|Minta revisi|Tolak/ })).toHaveCount(0);
 
-    await page.getByLabel('Brief *').fill('Satu gambar dengan judul besar.');
     await page.getByLabel('Caption *').fill('Website yang rapi membantu pelanggan percaya.');
     await page.getByRole('textbox', { name: 'Hashtag', exact: true }).fill('#websiteumkm #bisnisonline');
     await page.getByLabel('Alt text *').fill('Kartu abu-abu bertuliskan judul posting.');
@@ -57,23 +57,13 @@ test('one post goes from draft to published with two people, and the submitter c
     await expect(page.getByText('Revisi 1 disimpan.')).toBeVisible();
     await expect(page.getByRole('img', { name: 'Kartu abu-abu bertuliskan judul posting.' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Ajukan untuk ditinjau' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Ajukan' }).click();
-    await expect(page.getByTestId('review-summary')).toContainText('menunggu tinjauan');
-    await expect(page.getByRole('button', { name: 'Setujui' })).toBeDisabled();
-    await expect(page.locator('#reason-approve')).toHaveText('Revisi ini Anda ajukan sendiri. Pengguna lain harus menyetujuinya.');
-    const itemUrl = page.url();
+    await page.getByRole('button', { name: 'Tandai siap posting' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Tandai siap posting' }).click();
+    await expect(page.getByTestId('status-summary')).toContainText('Revisi 1 siap diposting');
 
-    await logout(page);
-    await login(page, USERS.colleague);
-    await page.goto(itemUrl);
-    await page.getByRole('button', { name: 'Setujui' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Setujui' }).click();
-    await expect(page.getByTestId('review-summary')).toContainText('Revisi 1 disetujui');
-
-    // Posting package: copy, download, then record the human posting.
+    // Posting package: copy, download, then record the human posting, all by the same person.
     await expect(page.getByRole('link', { name: 'Unduh gambar' })).toHaveAttribute('href', /\/content\/assets\/.+download=1/);
-    await expect(page.getByRole('button', { name: 'Tandai sudah dipublikasikan' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Tandai sudah diposting' })).toBeDisabled();
     for (const step of [
         'Gambar dari paket ini sudah diunggah ke Instagram',
         'Caption dan hashtag ditempel apa adanya',
@@ -82,31 +72,45 @@ test('one post goes from draft to published with two people, and the submitter c
     ]) {
         await page.getByRole('checkbox', { name: step }).check();
     }
-    await page.getByRole('button', { name: 'Tandai sudah dipublikasikan' }).click();
-    const publish = page.getByRole('alertdialog', { name: 'Tandai sudah dipublikasikan?' });
+    await page.getByRole('button', { name: 'Tandai sudah diposting' }).click();
+    const publish = page.getByRole('alertdialog', { name: 'Tandai sudah diposting?' });
     await expect(publish.getByLabel('Waktu diposting (WIB) *')).not.toHaveValue('');
     await publish.getByLabel('URL posting Instagram').fill('https://www.instagram.com/p/UJI123/');
-    await publish.getByRole('button', { name: 'Tandai dipublikasikan' }).click();
-    await expect(page.getByTestId('publication')).toContainText('Dipublikasikan');
-    await expect(page.getByRole('main').getByText('Dipublikasikan', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai dipublikasikan');
+    await publish.getByRole('button', { name: 'Tandai sudah diposting' }).click();
+    await expect(page.getByTestId('publication')).toContainText('Diposting');
+    await expect(page.getByRole('main').getByText('Sudah diposting', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai siap posting');
+    await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai sudah diposting');
 });
 
-test('a reviewer asks for a revision and the writer resubmits a new revision', async ({ page }) => {
+test('editing Ready content makes a new revision and returns it to Draft', async ({ page }) => {
     await login(page, USERS.colleague);
+    await page.goto('/content/items?search=3%20tanda');
+    await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
+
+    await expect(page.getByTestId('status-summary')).toContainText('siap diposting');
+    await page.getByLabel('Caption *').fill('Tiga tanda singkat website Anda perlu diperbarui.');
+    await page.getByRole('button', { name: 'Simpan konten' }).click();
+    await expect(page.getByText('Revisi 2 disimpan dan konten kembali ke Draft.')).toBeVisible();
+    await expect(page.getByTestId('revision-2')).toContainText('Masih draft');
+    await expect(page.getByTestId('revision-diff')).toContainText('Tiga tanda singkat website Anda perlu diperbarui.');
+
+    await page.getByRole('button', { name: 'Tandai siap posting' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Tandai siap posting' }).click();
+    await expect(page.getByTestId('status-summary')).toContainText('Revisi 2 siap diposting');
+});
+
+test('a draft can be archived with an optional reason', async ({ page }) => {
+    await login(page, USERS.admin);
     await page.goto('/content/items?search=Checklist');
     await page.getByRole('link', { name: 'Checklist sebelum meluncurkan website' }).click();
 
-    await expect(page.getByTestId('review-summary')).toContainText('meminta revisi');
-    await page.getByLabel('Caption *').fill('Checklist singkat sebelum website diluncurkan.');
-    await page.getByRole('button', { name: 'Simpan konten' }).click();
-    await expect(page.getByText('Revisi 2 disimpan.')).toBeVisible();
-    await expect(page.getByTestId('revision-2')).toContainText('Belum diajukan');
-    await expect(page.getByTestId('revision-diff')).toContainText('Checklist singkat sebelum website diluncurkan.');
-
-    await page.getByRole('button', { name: 'Ajukan untuk ditinjau' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Ajukan' }).click();
-    await expect(page.getByTestId('review-summary')).toContainText('Revisi 2 diajukan');
+    await page.getByRole('button', { name: 'Arsipkan' }).click();
+    const dialog = page.getByRole('alertdialog', { name: /Arsipkan/ });
+    await dialog.getByLabel('Alasan (opsional)').fill('Digabung ke posting lain');
+    await dialog.getByRole('button', { name: 'Arsipkan' }).click();
+    await expect(page.getByTestId('status-summary')).toContainText('diarsipkan');
+    await expect(page.getByRole('button', { name: 'Arsipkan' })).toHaveCount(0);
 });
 
 test('content pages have no accessibility violations', async ({ page }) => {
@@ -133,7 +137,7 @@ test('content pages have no accessibility violations', async ({ page }) => {
     ]) {
         await page.getByRole('checkbox', { name: step }).check();
     }
-    await page.getByRole('button', { name: 'Tandai sudah dipublikasikan' }).click();
+    await page.getByRole('button', { name: 'Tandai sudah diposting' }).click();
     await settled(page);
     await expectNoAxeViolations(page);
 });

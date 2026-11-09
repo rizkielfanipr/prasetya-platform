@@ -63,7 +63,7 @@ const t = computed(() => props.summary.totals);
             <EmptyState
                 :icon="BarChart3"
                 title="Belum ada posting di periode ini"
-                description="Insight muncul setelah konten ditandai dipublikasikan dan angkanya dicatat."
+                description="Insight muncul setelah konten ditandai sudah diposting dan angkanya dicatat."
             />
         </PanelCard>
         <template v-else>
@@ -74,7 +74,7 @@ const t = computed(() => props.summary.totals);
                 <MetricCard label="Total simpan" :value="formatNumber(t.saves)" :icon="Bookmark" tone="warning" />
             </div>
 
-            <PanelCard v-if="summary.missing.length" title="Belum dicatat insight-nya" description="Dipublikasikan lebih dari 2 hari lalu tanpa angka Insight.">
+            <PanelCard v-if="summary.missing.length" title="Belum dicatat insight-nya" description="Diposting lebih dari 2 hari lalu tanpa angka Insight.">
                 <ul class="space-y-1 text-sm" data-testid="insight-missing">
                     <li v-for="row in summary.missing" :key="row.id">
                         <Link :href="`${routes.contentItem(row.id)}#insight`" class="font-medium hover:underline">{{ row.title }}</Link>

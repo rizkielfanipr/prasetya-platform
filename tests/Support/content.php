@@ -5,11 +5,9 @@ declare(strict_types=1);
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
-use App\Domain\Content\Actions\ReviewContent;
+use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\SaveContentRevision;
-use App\Domain\Content\Actions\SubmitContentForReview;
 use App\Domain\Content\Actions\UpdateBrandProfile;
-use App\Domain\Content\Enums\ContentDecision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentBrandProfile;
 use App\Domain\Content\Models\ContentItem;
@@ -19,9 +17,13 @@ use App\Domain\Content\Support\RuleFinding;
 use Database\Seeders\ContentBrandSeeder;
 use Database\Seeders\Support\DemoImage;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
-/* Content Studio test helpers (ADR-0011). States are reached through the real actions, never by setting a status. */
+/*
+ * Content Studio test helpers (ADR-0011, ADR-0012). Current states are reached through the real actions, never by
+ * setting a status. Only legacyContentFixture() writes rows directly, because the actions that made those shapes are gone.
+ */
 
 function contentSetUp(): void
 {
@@ -67,19 +69,20 @@ function draftItem(?User $writer = null, bool $complete = true, string $title = 
     return $item->refresh();
 }
 
-function submittedItem(?User $writer = null): ContentItem
+function readyItem(?User $writer = null): ContentItem
 {
     $writer ??= admin();
     $item = draftItem($writer);
-    app(SubmitContentForReview::class)($item, revisionId($item), $writer);
+    app(MarkContentReady::class)($item, revisionId($item), $writer);
 
     return $item->refresh();
 }
 
-function approvedItem(?User $writer = null, ?User $reviewer = null): ContentItem
+function publishedItem(?User $writer = null): ContentItem
 {
-    $item = submittedItem($writer);
-    app(ReviewContent::class)($item, revisionId($item), ContentDecision::Approved, null, $reviewer ?? admin());
+    $writer ??= admin();
+    $item = readyItem($writer);
+    app(MarkContentPublished::class)($item, revisionId($item), now(), null, null, $writer);
 
     return $item->refresh();
 }
@@ -115,29 +118,38 @@ function findingCodes(ContentItem $item): array
 }
 
 /**
- * One item in every legacy editorial status, built through the real actions (ADR-0012 migration rehearsal).
+ * One item in every legacy editorial status, as ADR-0011 left it in the database (ADR-0012 migration rehearsal).
+ * Each starts from a frozen revision made by the real actions; the legacy status, approval rows, and
+ * approved_revision_id are then written the way the retired review actions wrote them, with ready_revision_id unset.
  *
  * @return array<string, ContentItem> legacy status => item
  */
 function legacyContentFixture(): array
 {
     $writer = admin();
-    $reviewer = admin();
-    $review = app(ReviewContent::class);
+    $legacy = static function (ContentItem $item, string $status, ?string $decision = null, ?string $note = null, ?array $areas = null) use ($writer): ContentItem {
+        $revision = (int) $item->active_revision_id;
+        if ($decision !== null) {
+            DB::table('content_approvals')->insert([
+                'content_revision_id' => $revision, 'decision' => $decision, 'areas' => $areas === null ? null : json_encode($areas),
+                'note' => $note, 'actor_user_id' => $writer->id, 'created_at' => now(),
+            ]);
+        }
+        DB::table('content_items')->where('id', $item->id)->update([
+            'status' => $status,
+            'ready_revision_id' => null,
+            'approved_revision_id' => in_array($status, ['APPROVED', 'PUBLISHED'], true) ? $revision : null,
+        ]);
 
-    $revisionRequested = submittedItem($writer);
-    $review($revisionRequested, revisionId($revisionRequested), ContentDecision::RevisionRequested, 'Ringkas caption', $reviewer, []);
-    $rejected = submittedItem($writer);
-    $review($rejected, revisionId($rejected), ContentDecision::Rejected, 'Tidak sesuai kampanye', $reviewer);
-    $published = approvedItem($writer, $reviewer);
-    app(MarkContentPublished::class)($published, revisionId($published), now(), null, null, $writer);
+        return $item->refresh();
+    };
 
     return [
-        'DRAFT' => draftItem($writer),
-        'READY_FOR_REVIEW' => submittedItem($writer),
-        'REVISION_REQUESTED' => $revisionRequested->refresh(),
-        'APPROVED' => approvedItem($writer, $reviewer),
-        'PUBLISHED' => $published->refresh(),
-        'REJECTED' => $rejected->refresh(),
+        'DRAFT' => $legacy(draftItem($writer), 'DRAFT'),
+        'READY_FOR_REVIEW' => $legacy(readyItem($writer), 'READY_FOR_REVIEW'),
+        'REVISION_REQUESTED' => $legacy(readyItem($writer), 'REVISION_REQUESTED', 'REVISION_REQUESTED', 'Ringkas caption', ['caption']),
+        'APPROVED' => $legacy(readyItem($writer), 'APPROVED', 'APPROVED'),
+        'PUBLISHED' => $legacy(publishedItem($writer), 'PUBLISHED', 'APPROVED'),
+        'REJECTED' => $legacy(readyItem($writer), 'REJECTED', 'REJECTED', 'Tidak sesuai kampanye'),
     ];
 }

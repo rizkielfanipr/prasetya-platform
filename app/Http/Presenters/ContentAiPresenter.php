@@ -48,7 +48,8 @@ final class ContentAiPresenter
     }
 
     /**
-     * How AI drafts fared, per model and prompt version: people's verdicts and how many became approved revisions.
+     * How AI drafts fared, per model and prompt version: people's verdicts and how many went on to be marked Ready
+     * or posted (a legacy approval also counts, ADR-0012).
      * For comparing providers and prompts; nothing here changes a prompt.
      *
      * @return list<array<string, mixed>>
@@ -60,7 +61,10 @@ final class ContentAiPresenter
             ->selectRaw('model, prompt_version, count(*) as drafts')
             ->selectRaw("sum(case when feedback = 'USEFUL' then 1 else 0 end) as useful")
             ->selectRaw("sum(case when feedback = 'NOT_USEFUL' then 1 else 0 end) as not_useful")
-            ->selectRaw("sum(case when exists (select 1 from content_approvals a where a.content_revision_id = content_generation_runs.result_revision_id and a.decision = 'APPROVED') then 1 else 0 end) as approved")
+            ->selectRaw("sum(case when exists (select 1 from content_items i where i.ready_revision_id = content_generation_runs.result_revision_id)
+                or exists (select 1 from content_publications p where p.content_revision_id = content_generation_runs.result_revision_id)
+                or exists (select 1 from content_approvals a where a.content_revision_id = content_generation_runs.result_revision_id and a.decision = 'APPROVED')
+                then 1 else 0 end) as approved")
             ->selectRaw('sum(cost_usd) as cost')
             ->groupBy('model', 'prompt_version')
             ->orderByDesc('drafts')

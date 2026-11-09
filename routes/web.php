@@ -63,10 +63,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('content/items/{item:public_id}', [ContentItemController::class, 'show'])->name('content.items.show');
     Route::put('content/items/{item:public_id}', [ContentItemController::class, 'update'])->name('content.items.update');
     Route::put('content/items/{item:public_id}/details', [ContentItemController::class, 'details'])->name('content.items.details');
-    Route::post('content/items/{item:public_id}/submit-review', [ContentItemController::class, 'submit'])->name('content.items.submit');
-    Route::post('content/items/{item:public_id}/request-revision', [ContentItemController::class, 'requestRevision'])->name('content.items.request-revision');
-    Route::post('content/items/{item:public_id}/approve', [ContentItemController::class, 'approve'])->name('content.items.approve');
-    Route::post('content/items/{item:public_id}/reject', [ContentItemController::class, 'reject'])->name('content.items.reject');
+    // Creator-owned lifecycle (ADR-0012): Draft <-> Ready -> Published, Draft|Ready -> Archived.
+    Route::post('content/items/{item:public_id}/ready', [ContentItemController::class, 'ready'])->name('content.items.ready');
+    Route::post('content/items/{item:public_id}/return-to-draft', [ContentItemController::class, 'returnToDraft'])->name('content.items.return-to-draft');
+    Route::post('content/items/{item:public_id}/archive', [ContentItemController::class, 'archive'])->name('content.items.archive');
+    // Retired editorial routes (ADR-0011) during the compatibility window: refuse safely, change nothing.
+    Route::post('content/items/{item:public_id}/{retired}', [ContentItemController::class, 'retiredReview'])
+        ->whereIn('retired', ['submit-review', 'request-revision', 'approve', 'reject'])->name('content.items.retired-review');
     Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
     Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
 

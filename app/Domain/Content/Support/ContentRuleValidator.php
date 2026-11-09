@@ -193,7 +193,7 @@ final class ContentRuleValidator
         $nearby = ContentItem::query()
             ->where('content_brand_id', $item->content_brand_id)
             ->whereKeyNot($item->id)
-            ->where('status', '!=', ContentStatus::Rejected)
+            ->where('status', '!=', ContentStatus::Archived)
             ->whereRaw('lower(topic) = ?', [mb_strtolower(trim($item->topic))])
             ->whereBetween('planned_at', [$item->planned_at->copy()->subDays($days), $item->planned_at->copy()->addDays($days)])
             ->orderBy('planned_at')

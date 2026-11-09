@@ -5,12 +5,22 @@ declare(strict_types=1);
 namespace App\Http\Requests\BackOffice\Content;
 
 use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Migration\LegacyStatusMap;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /** Filters shared by the calendar and the item list. */
 final class ContentFilterRequest extends FormRequest
 {
+    /** A bookmarked filter on a retired status (ADR-0011) still opens: it reads as the status it became (ADR-0012). */
+    protected function prepareForValidation(): void
+    {
+        $status = $this->query('status');
+        if (is_string($status) && ContentStatus::tryFrom($status) === null && array_key_exists($status, LegacyStatusMap::FORWARD)) {
+            $this->merge(['status' => LegacyStatusMap::forward($status)]);
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {

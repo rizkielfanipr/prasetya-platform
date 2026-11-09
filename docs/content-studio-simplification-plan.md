@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Disetujui; implementasi bertahap (Fase 0 selesai) |
+| Status | Disetujui; implementasi bertahap (Fase 0 dan 1 selesai) |
 | Owner | Prasetya Group |
-| Last updated | 2026-11-08 |
+| Last updated | 2026-11-09 |
 | Decision | [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) |
 | Related | [`content-studio-ai-planning-plan.md`](content-studio-ai-planning-plan.md), [`design.md`](design.md), [`data-dictionary.md`](data-dictionary.md), [`testing/strategy.md`](testing/strategy.md) |
 
@@ -261,6 +261,18 @@ Rollback mengembalikan status target ke status kompatibel (`READY -> APPROVED`, 
 - Larang AI dan Hermes melakukan transisi manusia.
 
 **Exit:** feature test state machine dan migration test lulus.
+
+**Status (2026-11-09): selesai** di branch `feat/simplify-content-studio`. Runtime kini mengikuti ADR-0012.
+
+- `ContentStatus`: `DRAFT`, `READY`, `PUBLISHED`, `ARCHIVED`. Action baru `MarkContentReady`, `ReturnContentToDraft`, `ArchiveContent` (alasan opsional, audit `content.archived`); `SubmitContentForReview`, `ReviewContent`, dan `RevisionRequestLookup` dihapus. `ContentAvailability` menjawab `edit`, `editDetails`, `markReady`, `returnToDraft`, `archive`, `markPublished` dengan alasan dalam kata.
+- Ready membekukan revisi aktif (memakai imutabilitas `submitted_at`) dan mencatat versi aturan brand; error aturan brand mencegah Ready, warning tidak. Brief tidak lagi wajib; caption, alt text, dan gambar wajib. Revisi yang sudah beku tidak dibekukan ulang saat ditandai Ready lagi.
+- Edit konten Ready membuat revisi baru dan mengembalikan item ke Draft (`ready_revision_id` dikosongkan). Published hanya dari orang yang mencatat posting pada revisi Ready saat ini; waktu posting tidak boleh sebelum revisi itu ditandai Ready. Checklist posting tetap wajib sampai Fase 4.
+- AI hanya menulis item Draft; run yang selesai setelah item menjadi Ready dibuang (`DISCARDED`). Catatan peninjau tidak lagi dikirim ke prompt (`copy-v4` tidak berubah).
+- Route `submit-review`, `request-revision`, `approve`, `reject` tetap ada selama compatibility window, tetap di balik auth dan active-user, dan hanya menolak dengan pesan "Alur pengajuan dan persetujuan sudah tidak dipakai. Gunakan Siap posting." tanpa mengubah data. Filter status lama di URL (`?status=APPROVED`) dibaca sebagai status barunya.
+- Migration `2026_11_09_000001_simplify_content_lifecycle`: tambah `content_items.ready_revision_id`; data dipetakan oleh `LegacyStatusBackfill` (idempotent). `APPROVED` menjadi Ready pada revisi aktif bila revisi itu beku dan tidak bertentangan dengan approval revisi lain; item yang disetujui pada revisi lama tetap tanpa `ready_revision_id`, tidak bisa diposting, dan dilaporkan audit. `approved_revision_id`, `content_approvals`, area keputusan, revisi, publikasi, dan checklist tidak disentuh. Rollback hanya mengembalikan status (`READY`→`APPROVED`, `ARCHIVED`→`REJECTED`) lalu menghapus kolom; tidak pernah membuat approval, sehingga audit sesudah rollback melaporkan item Ready baru tanpa approval apa adanya.
+- Rehearsal pada database e2e: maju → audit bersih; rollback → audit melaporkan 1 item `APPROVED` tanpa approval (item Ready baru), sesuai desain; maju lagi → audit bersih, dan menjalankan ulang migrate tidak mengubah apa pun.
+- UI minimal: panel **Status** menggantikan Tinjauan (Tandai siap posting, Kembali ke Draft, Arsipkan; tombol yang tidak tersedia tetap tampil dengan alasan), label status dalam kata, riwayat menandai revisi *siap posting* dan *disetujui (alur lama)*. Penataan Kalender dan editor menyusul di Fase 2 dan 3.
+- Hasil: Pest 547, Vitest 96, e2e 68 hijau; PHPStan dan lint bersih. Query (e2e, median): Kalender 13 query 11,1 ms; Konten 12 query 9,7 ms; Siap posting 9 query 5,9 ms; detail item Ready 27 query 18,6 ms (baseline 13/12/9/28 query; selisih waktu dalam rentang derau lokal). Screenshot 360×780, 768×1024, 1280×900 dengan reduced motion, tanpa overflow.
 
 ### Fase 2 — Kalender terpadu
 

@@ -2,7 +2,7 @@
 
 MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a ULID; numeric ids never leave the server.
 
-> Content Studio tables below describe the current schema. [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) (accepted 2026-11-08) moves to `DRAFT`, `READY`, `PUBLISHED`, and `ARCHIVED` and keeps historical approval evidence; see *Content item lifecycle target* below. The schema changes become authoritative when the compatibility migration in the [simplification plan](content-studio-simplification-plan.md) ships.
+> Content Studio follows [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) since phase 1 of the [simplification plan](content-studio-simplification-plan.md): `DRAFT`, `READY`, `PUBLISHED`, and `ARCHIVED`, with ADR-0011 approval data kept as read-only legacy evidence; see *Content item lifecycle* below.
 
 ## Tables
 
@@ -25,10 +25,10 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 | `idempotency_keys` | Public mutation guard | Unique (`scope`, `idempotency_key`); stores a fingerprint and a resource reference |
 | `audit_logs` | Append-only record of sensitive actions | Actor, action, entity, previous and new state, reason, request id. User changes: `user.created`, `user.updated`, `user.activated`, `user.deactivated`, `user.password_reset`, never with a password. Shown by entity ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md), `AuditTrail`): order and payment on the transaction detail; any entry about a user on that user's page; everything else, including sign-in, profile, and packages, under Pengaturan → Aktivitas Sistem, which can also search every entry |
 | `content_brands` | Brands Content Studio plans for ([ADR-0011](decisions/0011-content-studio-authority-boundary.md)) | Unique `code`, name, `is_active`. Brand knowledge (audience, voice, facts) arrives in phase 2 |
-| `content_items` | One planned single-image Instagram post | Brand, title, `planned_at` (UTC), status (state machine below), `active_revision_id`, `approved_revision_id` (null unless the current revision is approved), creator |
-| `content_revisions` | One version of an item's content | Unique (`content_item_id`, `number`). Objective, audience, brief, caption, hashtags, alt text, visual direction, author. **Immutable once `submitted_at` is set**; any later change is a new revision |
+| `content_items` | One planned single-image Instagram post | Brand, title, `planned_at` (UTC), status (lifecycle below), `active_revision_id`, `ready_revision_id` (the revision marked Ready; kept on `PUBLISHED`), `approved_revision_id` (legacy ADR-0011 evidence, never set for new items), creator |
+| `content_revisions` | One version of an item's content | Unique (`content_item_id`, `number`). Objective, audience, brief, caption, hashtags, alt text, visual direction, author. **Immutable once `submitted_at` is set** (marked Ready, or submitted under ADR-0011); any later change is a new revision |
 | `content_assets` | The image of a revision | One per revision. Private disk, path by SHA-256 checksum (deduplicated), MIME type from the bytes, size, width, height, original name, uploader |
-| `content_approvals` | Append-only review decisions | Revision, decision (`APPROVED`, `REVISION_REQUESTED`, `REJECTED`), `areas` (phase 6: parts a revision request names), note, actor, time. An approval names exactly one revision |
+| `content_approvals` | Legacy review decisions (ADR-0011), read-only | Revision, decision (`APPROVED`, `REVISION_REQUESTED`, `REJECTED`), `areas`, note, actor, time. No new rows since ADR-0012; never created by migration or rollback |
 | `content_publications` | The human statement that an item was posted | One per item. Revision posted, actual `published_at` (required), Instagram URL (optional), note, `checklist` (phase 7: the posting steps confirmed, all required), actor. Immutable |
 | `content_brand_profiles` | Legacy structured brand rules (phase 2 compatibility) | Append-only; unique (`content_brand_id`, `version`). Audience, voice, visual guidance, bounded lists, caption/hashtag limits, topic repeat days, change note, and author. Existing revisions continue to reference the version they met. It is no longer the primary user-facing Brand editor |
 | `content_brand_knowledge_versions` | One free-text Brand Knowledge document per saved version | Append-only; unique (`content_brand_id`, `version`). `source_text`, author, and creation time. `content_brands.current_knowledge_version_id` points at the active version. Saving identical text is refused |
@@ -46,7 +46,7 @@ MySQL 8. All timestamps UTC. Money is unsigned integer rupiah. `public_id` is a 
 
 Phase 2 also adds `content_items.content_pillar_id`, `content_campaign_id`, and `topic` (nullable plan details), and `content_revisions.brand_profile_id`: the rules version a revision met when it was submitted. Phase 3 adds `content_revisions.generation_run_id` on revisions AI drafted.
 
-### Content item lifecycle target (ADR-0012, accepted, not yet runtime)
+### Content item lifecycle (ADR-0012)
 
 ```text
 DRAFT <-> READY -> PUBLISHED
@@ -56,11 +56,14 @@ DRAFT <-> READY -> PUBLISHED
 
 - `READY` is a person's completion marker, not an approval. It needs the active revision with caption, alt text, and a valid image, and no blocking brand finding. Warnings do not block.
 - Editing a `READY` item creates a new revision, makes it active, and returns the item to `DRAFT`.
-- `PUBLISHED` comes only from a person recording an actual posting time (URL and note optional) on a `READY` item. No checklist is required.
-- `ARCHIVED` keeps every revision, decision, publication, source, AI run, and audit entry.
-- AI, queues, schedulers, and Hermes may only create or revise `DRAFT` content.
+- `READY` → `DRAFT` (**Kembali ke Draft**) keeps the frozen revision; marking it Ready again does not refreeze it.
+- `PUBLISHED` comes only from a person recording an actual posting time (URL and note optional) on the current Ready revision, not before it was marked Ready. The posting checklist stays required until phase 4.
+- `ARCHIVED` (from `DRAFT` or `READY`, optional reason in audit `content.archived`) keeps every revision, decision, publication, source, AI run, and audit entry.
+- AI, queues, schedulers, and Hermes may only create or revise `DRAFT` content; a run that finishes after the item left Draft is discarded. A passed planned time changes nothing.
+- Audit actions: `content.marked_ready`, `content.returned_to_draft`, `content.archived`, `content.revised` (with previous and new status), `content.published`.
 - Migration mapping (`App\Domain\Content\Migration\LegacyStatusMap`): `DRAFT`→`DRAFT`, `READY_FOR_REVIEW`→`DRAFT`, `REVISION_REQUESTED`→`DRAFT`, `APPROVED`→`READY`, `PUBLISHED`→`PUBLISHED`, `REJECTED`→`ARCHIVED`. Rollback: `READY`→`APPROVED` and `ARCHIVED`→`REJECTED` as statuses only; no approval row is ever created.
-- Compatibility: `content_approvals`, `approved_revision_id` (kept on `PUBLISHED` items as evidence of the posted revision), decision areas, and publication checklists stay as read-only legacy evidence. A new nullable `ready_revision_id` names the revision marked Ready. `php artisan content:status-audit` checks the data first.
+- Migration `2026_11_09_000001_simplify_content_lifecycle` adds `ready_revision_id`, then `LegacyStatusBackfill` maps statuses (idempotent). An `APPROVED` item becomes Ready on its active revision when that revision is frozen and no approval of another revision contradicts it; one approved on an older revision stays without `ready_revision_id`, cannot be posted, and is reported by the audit.
+- Compatibility: `content_approvals`, `approved_revision_id` (kept on `PUBLISHED` items as evidence of the posted revision), decision areas, and publication checklists stay as read-only legacy evidence. `php artisan content:status-audit` checks the data before and after; it also reads a rolled-back schema.
 
 ### Brand rule check
 

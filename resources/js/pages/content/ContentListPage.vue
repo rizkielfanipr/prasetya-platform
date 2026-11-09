@@ -58,7 +58,7 @@ function sortBy(key: string): void {
 </script>
 
 <template>
-    <AppLayout title="Content Studio" description="Semua konten, dari draft sampai dipublikasikan.">
+    <AppLayout title="Content Studio" description="Semua konten, dari draft sampai sudah diposting.">
         <ContentNav current="items" />
         <FilterBar :active="active" @remove="remove" @clear="clear">
             <div class="w-full md:w-72">

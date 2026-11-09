@@ -11,7 +11,7 @@ import ContentPublishDialog from './ContentPublishDialog.vue';
 import CopyButton from './CopyButton.vue';
 
 /**
- * Everything needed to post by hand, from the approved revision only (ADR-0011, phase 7). The checklist is ticked as
+ * Everything needed to post by hand, from the revision marked Ready only (ADR-0012). The checklist is ticked as
  * you go, survives switching to the Instagram app, and is sent as evidence when the post is marked published.
  */
 const props = defineProps<{ item: ContentItem; revision: ContentRevision; actions: ContentActions }>();
@@ -64,7 +64,7 @@ async function share(): Promise<void> {
 <template>
     <div id="paket-posting" class="space-y-5">
         <div v-if="item.publication" class="space-y-1 rounded-lg bg-success-surface p-3 text-sm text-success" data-testid="publication">
-            <p class="font-semibold">Dipublikasikan {{ formatDateTime(item.publication.publishedAt) }} (revisi {{ item.publication.revisionNumber }})</p>
+            <p class="font-semibold">Diposting {{ formatDateTime(item.publication.publishedAt) }} (revisi {{ item.publication.revisionNumber }})</p>
             <p>Ditandai oleh {{ item.publication.actor }} · {{ formatDateTime(item.publication.recordedAt) }}</p>
             <p v-if="item.publication.checklist">Checklist posting dikonfirmasi ({{ item.publication.checklist.length }}/{{ postingSteps.length }}).</p>
             <a
@@ -138,7 +138,7 @@ async function share(): Promise<void> {
                 :aria-describedby="actions.markPublished ? 'reason-markPublished' : !complete ? 'reason-checklist' : undefined"
                 @click="publishOpen = true"
             >
-                Tandai sudah dipublikasikan
+                Tandai sudah diposting
             </Button>
             <p v-if="actions.markPublished" id="reason-markPublished" class="text-xs text-muted-foreground">{{ actions.markPublished }}</p>
             <p v-else-if="!complete" id="reason-checklist" class="text-xs text-muted-foreground">Centang semua langkah checklist dulu.</p>

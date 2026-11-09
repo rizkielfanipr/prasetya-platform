@@ -5,7 +5,7 @@ import type { ContentRevision } from '@/types/content';
 import { computed, ref, watch } from 'vue';
 
 /** Every revision, newest first, with its decisions, and a field-by-field comparison of any two. */
-const props = defineProps<{ revisions: ContentRevision[]; approvedRevisionId: string | null }>();
+const props = defineProps<{ revisions: ContentRevision[]; readyRevisionId: string | null; approvedRevisionId: string | null }>();
 
 const before = ref('');
 const after = ref('');
@@ -36,7 +36,8 @@ const comparison = computed(() => {
                 <span class="absolute top-1.5 -left-[5px] size-2 rounded-full bg-muted-foreground" aria-hidden="true" />
                 <p class="font-semibold">
                     Revisi {{ revision.number }}
-                    <span v-if="revision.id === approvedRevisionId" class="ml-1 text-xs font-semibold text-success">· disetujui</span>
+                    <span v-if="revision.id === readyRevisionId" class="ml-1 text-xs font-semibold text-info">· siap posting</span>
+                    <span v-else-if="revision.id === approvedRevisionId" class="ml-1 text-xs font-semibold text-success">· disetujui (alur lama)</span>
                 </p>
                 <p class="text-xs text-muted-foreground">
                     Ditulis {{ revision.author
@@ -44,8 +45,8 @@ const comparison = computed(() => {
                     {{ formatDateTime(revision.createdAt) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    <template v-if="revision.submittedAt">Diajukan {{ revision.submittedBy }} · {{ formatDateTime(revision.submittedAt) }}</template>
-                    <template v-else>Belum diajukan (masih dapat diubah)</template>
+                    <template v-if="revision.submittedAt">Dikunci oleh {{ revision.submittedBy }} · {{ formatDateTime(revision.submittedAt) }}</template>
+                    <template v-else>Masih draft (dapat diubah)</template>
                 </p>
                 <ul v-if="revision.decisions.length" class="mt-2 space-y-1">
                     <li v-for="(decision, index) in revision.decisions" :key="index" class="text-xs">
