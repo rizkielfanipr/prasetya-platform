@@ -84,7 +84,7 @@ Re-running skips unchanged rules, existing pillars, and facts already in force.
 
 ## Records
 
-`content_generation_runs` keeps who asked, which fields, provider, model, prompt version, tokens, estimated cost, latency, attempts, and a safe error message. Prompts and raw responses are not stored. **Content Studio → Pengaturan AI** shows status, the week's spend, and the last 30 runs; it never shows or accepts a key. Audit: `content.generation_requested`, `content.generation_applied`, `content.generation_failed` on the item.
+`content_generation_runs` keeps who asked, which fields, provider, model, prompt version, tokens, estimated cost, latency, attempts, and a safe error message. Prompts and raw responses are not stored. **Content Studio → Pengaturan AI** shows status, the week's spend, and the last 30 runs; it never shows or accepts a key. Audit: `content.generation_requested`, `content.generation_applied`, `content.generation_failed` on the item. On an item, the Draft shows only the latest outcome in words; **Lainnya → Riwayat versi** lists its runs with model and tokens, and **Lainnya → Aktivitas** its audit (ADR-0013).
 
 ## Web research
 

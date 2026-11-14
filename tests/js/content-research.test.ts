@@ -29,8 +29,8 @@ const research = (overrides: Partial<ItemResearch> = {}): ItemResearch => ({
     ...overrides,
 });
 const item = { id: 'item-1', status: 'DRAFT' } as ContentItem;
-const mountPanel = (r: ItemResearch, i: ContentItem = item) =>
-    mount(ContentResearchPanel, { props: { item: i, research: r }, global: { stubs: { Link: RouterLinkStub } } });
+const mountPanel = (r: ItemResearch, editable = true) =>
+    mount(ContentResearchPanel, { props: { item, research: r, editable }, global: { stubs: { Link: RouterLinkStub } } });
 
 afterEach(() => vi.clearAllMocks());
 
@@ -101,9 +101,12 @@ describe('ContentResearchPanel', () => {
         expect(inertia.post).toHaveBeenCalledWith('/content/items/item-1/sources/s2', {}, expect.anything());
     });
 
-    it('cannot change sources once published', () => {
-        const wrapper = mountPanel(research({ cited: [source()] }), { id: 'item-1', status: 'PUBLISHED' } as ContentItem);
+    it('is read-only outside Draft: sources stay readable, nothing can change', () => {
+        const wrapper = mountPanel(research({ cited: [source()] }), false);
 
-        expect(wrapper.findAll('button').some((b) => b.text().includes('Lepas') || b.text().includes('Tambah sumber manual'))).toBe(false);
+        expect(wrapper.findAll('button')).toHaveLength(0);
+        expect(wrapper.find('#research-query').exists()).toBe(false);
+        expect(wrapper.get('[data-testid="cited-sources"]').text()).toContain('Statistik UMKM');
+        expect(wrapper.text()).toContain('Tidak ada riset web untuk konten ini.');
     });
 });

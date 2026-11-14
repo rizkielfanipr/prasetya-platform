@@ -49,7 +49,7 @@ test('the Kalender is the workspace: four sections, a status filter, a list view
     await page.getByRole('link', { name: 'Cerita klien: toko roti go online' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Cerita klien: toko roti go online' })).toBeVisible();
     await page.goto('/content/calendar?view=list&status=READY');
-    await page.getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
+    await page.getByRole('table').getByRole('link', { name: '3 tanda website Anda perlu diperbarui' }).click();
     await expect(page.getByRole('heading', { name: 'Paket posting' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Tandai sudah diposting' })).toBeEnabled();
 });

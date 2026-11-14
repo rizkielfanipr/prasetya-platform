@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
-import { expectNoAxeViolations, login, test, USERS } from './support';
+import { expectNoAxeViolations, login, openContent, openDetailSurface, test, USERS } from './support';
 
 test('record Instagram insight for a published post and see it summarised', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/calendar?view=list&search=Kenapa');
-    await page.getByRole('link', { name: 'Kenapa website lambat merugikan bisnis' }).click();
+    await openContent(page, 'Kenapa website lambat merugikan bisnis');
+    await expect(page.getByLabel('Caption *')).toHaveCount(0); // Published: evidence and insight, no editor.
 
     const panel = page.getByTestId('insight-panel');
     await expect(panel).toContainText('Belum ada insight.');
@@ -15,8 +15,9 @@ test('record Instagram insight for a published post and see it summarised', asyn
     await dialog.getByLabel('Simpan', { exact: true }).fill('20');
     await dialog.getByRole('button', { name: 'Simpan insight' }).click();
     await expect(panel).toContainText('8,3%');
-    await page.getByTestId('more-settings').click();
-    await expect(page.getByRole('list', { name: 'Riwayat audit' })).toContainText('Insight dicatat');
+    const activity = await openDetailSurface(page, 'Aktivitas');
+    await expect(activity.getByRole('list', { name: 'Riwayat audit' })).toContainText('Insight dicatat');
+    await page.keyboard.press('Escape');
 
     await page.goto('/content/calendar');
     await page.getByRole('navigation', { name: 'Bagian Content Studio' }).getByRole('link', { name: 'Insight' }).click();

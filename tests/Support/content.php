@@ -98,6 +98,16 @@ function contentPage(string $uri, ?User $viewer = null): array
     return test()->actingAs($viewer ?? admin())->get($uri)->assertOk()->viewData('page')['props'];
 }
 
+/**
+ * One evidence sheet of an item's detail page (ADR-0013), as the browser loads it: `research`, `history`, or `activity`.
+ *
+ * @return array<string, mixed>
+ */
+function contentEvidence(ContentItem $item, string $sheet, ?User $viewer = null): array
+{
+    return test()->actingAs($viewer ?? admin())->getJson("/content/items/{$item->public_id}/{$sheet}")->assertOk()->json();
+}
+
 /** @param  array<string, mixed>  $rules */
 function brandRules(array $rules = [], string $note = 'Aturan uji'): ContentBrandProfile
 {

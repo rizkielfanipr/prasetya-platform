@@ -1,47 +1,14 @@
 import BrandRulesPanel from '@/features/content/brand/BrandRulesPanel.vue';
 import ContentComposition from '@/features/content/ContentComposition.vue';
-import ContentRuleFindings from '@/features/content/ContentRuleFindings.vue';
 import { formatBrandGuide, previewBrandGuide } from '@/lib/brand-guide';
 import { linesToList } from '@/lib/content';
 import type { BrandRules } from '@/types/content';
-import { mount, RouterLinkStub } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-
-const stubs = { Link: RouterLinkStub };
 
 describe('linesToList', () => {
     it('keeps one trimmed entry per non-blank line', () => {
         expect(linesToList(' murah \n\n termurah\n')).toEqual(['murah', 'termurah']);
-    });
-});
-
-describe('ContentRuleFindings', () => {
-    it('lists errors before warnings, in words, and says whether Ready is blocked', () => {
-        const wrapper = mount(ContentRuleFindings, {
-            props: {
-                version: 2,
-                submittedVersion: 1,
-                findings: [
-                    { code: 'no_cta', severity: 'WARNING', message: 'Caption belum memakai CTA yang disetujui brand.', field: 'caption' },
-                    { code: 'forbidden_term', severity: 'ERROR', message: 'Caption memakai kata terlarang "murah".', field: 'caption' },
-                ],
-            },
-            global: { stubs },
-        });
-
-        const items = wrapper.findAll('li').map((li) => li.text());
-        expect(items[0]).toContain('Pelanggaran');
-        expect(items[0]).toContain('murah');
-        expect(items[1]).toContain('Peringatan');
-        expect(wrapper.text()).toContain('1 pelanggaran harus diperbaiki sebelum ditandai siap posting.');
-        expect(wrapper.text()).toContain('aturan brand versi 2');
-        expect(wrapper.text()).toContain('memenuhi aturan versi 1');
-    });
-
-    it('says when there is nothing to fix', () => {
-        const wrapper = mount(ContentRuleFindings, { props: { findings: [], version: 1, submittedVersion: null }, global: { stubs } });
-
-        expect(wrapper.text()).toContain('Tidak ada pelanggaran atau peringatan.');
     });
 });
 

@@ -25,7 +25,7 @@ async function copyText(): Promise<void> {
 </script>
 
 <template>
-    <Button type="button" variant="outline" size="sm" class="gap-1.5" :disabled="text === ''" @click="copyText">
+    <Button type="button" variant="outline" class="h-11 gap-1.5" :disabled="text === ''" @click="copyText">
         <Check v-if="copied" class="size-4" aria-hidden="true" /><Copy v-else class="size-4" aria-hidden="true" />{{ copied ? 'Disalin' : label }}
     </Button>
     <span class="sr-only" aria-live="polite">{{ announcement }}</span>

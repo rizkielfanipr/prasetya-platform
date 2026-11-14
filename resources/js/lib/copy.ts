@@ -21,6 +21,8 @@ export const copy = {
     errorTitle: 'Data tidak dapat dimuat',
     errorBody: 'Terjadi gangguan saat mengambil data. Tidak ada data yang berubah.',
     networkError: 'Koneksi terputus. Periksa jaringan Anda, lalu coba lagi.',
+    sessionExpired: 'Sesi Anda berakhir. Muat ulang halaman untuk masuk lagi.',
+    close: 'Tutup',
     forbiddenTitle: 'Akses ditolak',
     forbiddenBody: 'Anda tidak memiliki izin untuk membuka halaman ini.',
     noTransaction: 'Transaksi tidak ditemukan',

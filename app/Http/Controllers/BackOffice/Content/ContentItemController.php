@@ -11,7 +11,6 @@ use App\Domain\Content\Actions\CreateContentItem;
 use App\Domain\Content\Actions\MarkContentPublished;
 use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\RequestCopyGeneration;
-use App\Domain\Content\Actions\RequestResearch;
 use App\Domain\Content\Actions\ReturnContentToDraft;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\UpdateContentDetails;
@@ -22,16 +21,11 @@ use App\Domain\Content\Exceptions\InvalidContentImage;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
-use App\Domain\Content\Models\ContentResearchRun;
-use App\Domain\Content\Models\ContentResearchSource;
 use App\Domain\Content\Models\ContentRevision;
-use App\Domain\Content\Research\InternalContext;
 use App\Domain\Content\Support\ContentRuleValidator;
 use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
-use App\Http\Presenters\ContentResearchPresenter;
-use App\Http\Presenters\TransactionPresenter;
 use App\Http\Requests\BackOffice\Content\MarkContentPublishedRequest;
 use App\Http\Requests\BackOffice\Content\SaveContentRevisionRequest;
 use App\Http\Requests\BackOffice\Content\StoreContentItemRequest;
@@ -71,35 +65,45 @@ final class ContentItemController
         });
     }
 
-    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation, RequestResearch $research, InternalContext $context): Response
+    /**
+     * One item's workspace, shaped by its status (ADR-0013): Draft gets the editor, its brand check, and AI; Ready the
+     * posting package; Published the posted revision and insight; Archived a read-only summary. Research, the full
+     * revision history, AI runs, and the audit are loaded on demand by ContentItemEvidenceController.
+     */
+    public function show(Request $request, ContentItem $item, ContentAvailability $availability, AuditTrail $trail, ContentRuleValidator $rules, RequestCopyGeneration $generation): Response
     {
         $item->load([
-            'brand.currentProfile', 'brand.pillars', 'brand.campaigns', 'pillar', 'campaign', 'creator', 'sources', 'publication.actor', 'publication.revision',
-            'revisions.asset', 'revisions.decisions.actor', 'revisions.author', 'revisions.submitter', 'revisions.brandProfile', 'revisions.generationRun',
+            'brand.currentProfile', 'pillar', 'campaign', 'creator', 'revisions:id,public_id,content_item_id,number',
+            ...array_map(static fn (string $relation): string => "activeRevision.{$relation}", ContentPresenter::REVISION_RELATIONS),
         ]);
         /** @var ContentRevision $active */
-        $active = $item->revisions->firstWhere('id', $item->active_revision_id);
-        $item->setRelation('activeRevision', $active);
+        $active = $item->activeRevision;
+        $status = $item->status;
+        $editable = in_array($status, [ContentStatus::Draft, ContentStatus::Ready], true);
+
+        if ($status === ContentStatus::Published) {
+            $item->load(['publication.actor', ...array_map(static fn (string $relation): string => "publication.revision.{$relation}", ContentPresenter::REVISION_RELATIONS)]);
+        }
+        if ($editable) {
+            $item->load(['brand.pillars', 'brand.campaigns']);
+        }
 
         return Inertia::render('content/ContentDetailPage', [
             'item' => ContentPresenter::item($item),
             'revision' => ContentPresenter::revision($active),
-            'revisions' => $item->revisions->map(ContentPresenter::revision(...))->values()->all(),
             'actions' => $availability->for($item, $this->actor($request)),
-            'activity' => $trail->forContentItem($item->public_id)->latest('id')->limit(100)->get()->map(TransactionPresenter::audit(...))->all(),
-            'limits' => ['maxHashtags' => SaveContentRevisionRequest::MAX_HASHTAGS, 'captionMax' => 2200],
-            'findings' => ContentBrandPresenter::findings($rules->check($item, $active)),
-            'brandRulesVersion' => $item->brand->currentProfile?->version,
-            'planOptions' => ContentBrandPresenter::planOptions($item->brand),
-            'research' => $this->research($item, $research, $context),
-            'insights' => $item->status === ContentStatus::Published
+            'limits' => $editable ? ['maxHashtags' => SaveContentRevisionRequest::MAX_HASHTAGS, 'captionMax' => 2200] : null,
+            'findings' => $editable ? ContentBrandPresenter::findings($rules->check($item, $active)) : null,
+            'brandRulesVersion' => $editable ? $item->brand->currentProfile?->version : null,
+            'planOptions' => $editable ? ContentBrandPresenter::planOptions($item->brand) : null,
+            // AI only writes Drafts, so only a Draft gets its availability and latest run; the run history is evidence.
+            'ai' => $status === ContentStatus::Draft ? ['unavailableReason' => $generation->reason($item), 'current' => $this->latestRun($item)] : null,
+            // Evidence of the post comes from the revision that was posted, never from whatever revision is active now.
+            'postedRevision' => $status === ContentStatus::Published && $item->publication !== null ? ContentPresenter::revision($item->publication->revision) : null,
+            'insights' => $status === ContentStatus::Published
                 ? $item->insights()->with('recordedBy')->limit(20)->get()->map(ContentPresenter::insight(...))->all()
                 : null,
-            'ai' => [
-                'unavailableReason' => $generation->reason($item),
-                'runs' => ContentGenerationRun::query()->where('content_item_id', $item->id)->with(['item', 'requester', 'resultRevision'])->latest('id')->limit(10)->get()
-                    ->map(ContentAiPresenter::run(...))->all(),
-            ],
+            'archive' => $status === ContentStatus::Archived ? $this->archiveEvidence($trail, $item) : null,
         ]);
     }
 
@@ -195,20 +199,24 @@ final class ContentItemController
         return (string) $request->validate(['revision' => ['required', 'string', 'size:26']])['revision'];
     }
 
-    /** @return array<string, mixed> */
-    private function research(ContentItem $item, RequestResearch $research, InternalContext $context): array
+    /** @return array<string, mixed>|null */
+    private function latestRun(ContentItem $item): ?array
     {
-        $runs = ContentResearchRun::query()->where('content_item_id', $item->id)->with('requester')->latest('id')->limit(5)->get();
-        $ids = $runs->flatMap(static fn (ContentResearchRun $run): array => $run->result_source_ids ?? [])->unique()->values()->all();
-        $sources = ContentResearchSource::query()->whereIn('id', $ids)->get();
+        $run = ContentGenerationRun::query()->where('content_item_id', $item->id)->with(['item', 'requester', 'resultRevision'])->latest('id')->first();
 
-        return [
-            'unavailableReason' => $research->reason($item),
-            'cited' => $item->sources->map(static fn (ContentResearchSource $s): array => ContentResearchPresenter::source($s, $s->getRelationValue('pivot')?->getAttribute('note')))->values()->all(),
-            'runs' => $runs->map(static fn (ContentResearchRun $run): array => ContentResearchPresenter::run($run, $sources))->all(),
-            'internal' => $context->for($item),
-            'suggestedQuery' => trim($item->topic ?: $item->title),
-        ];
+        return $run === null ? null : ContentAiPresenter::run($run);
+    }
+
+    /**
+     * Who archived the item, when, and why, from its latest `content.archived` audit entry (the reason is optional).
+     *
+     * @return array{at: string, actor: string, reason: string|null}|null
+     */
+    private function archiveEvidence(AuditTrail $trail, ContentItem $item): ?array
+    {
+        $entry = $trail->forContentItem($item->public_id)->where('action', 'content.archived')->latest('id')->first();
+
+        return $entry === null ? null : ['at' => $entry->created_at->toIso8601ZuluString(), 'actor' => $entry->actor_label, 'reason' => $entry->reason];
     }
 
     /** @param  Closure(): RedirectResponse  $action */

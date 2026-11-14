@@ -1,12 +1,11 @@
 import { expect } from '@playwright/test';
-import { expectNoAxeViolations, login, test, USERS } from './support';
+import { expectNoAxeViolations, login, openContent, openDetailSurface, test, USERS } from './support';
 
 test('research a post on the web, cite a result, and add a manual source', async ({ page }) => {
     await login(page, USERS.admin);
-    await page.goto('/content/calendar?view=list&search=Domain');
-    await page.getByRole('link', { name: 'Domain, hosting, dan SSL dalam satu menit' }).click();
-    await page.getByTestId('more-settings').click();
-    const panel = page.getByTestId('research-panel');
+    await openContent(page, 'Domain, hosting, dan SSL dalam satu menit');
+    const sheet = await openDetailSurface(page, 'Riset & sumber');
+    const panel = sheet.getByTestId('research-panel');
     await expect(panel).toContainText('knowledge berlaku');
 
     await panel.getByLabel('Kata kunci riset').fill('domain hosting umkm');

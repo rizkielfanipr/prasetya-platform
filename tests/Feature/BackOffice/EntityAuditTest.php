@@ -19,7 +19,9 @@ function audit(string $action, string $entityType, ?string $entityId, ?User $act
 /** @return list<string> */
 function actionsOn(string $uri): array
 {
-    $props = test()->get($uri)->assertOk()->viewData('page')['props'];
+    $response = test()->get($uri)->assertOk();
+    // A content item's audit is its Aktivitas sheet, loaded as JSON (ADR-0013); every other place is an Inertia page.
+    $props = str_contains((string) $response->headers->get('Content-Type'), 'json') ? ['activity' => $response->json('entries')] : $response->viewData('page')['props'];
     $rows = $props['logs']['data'] ?? $props['activity'];
 
     return collect($rows)->map(fn (array $row): string => $row['action'] ?? $row['data']['action'] ?? '')->filter()->values()->all();
@@ -117,7 +119,7 @@ it('finds every kind of audit the platform writes in at least one documented pla
     $brandAudit = array_map(fn (string $action): array => [$action, 'content_brand', $brand->public_id], ['content.brand_rules_updated', 'content.pillar_created', 'content.pillar_updated', 'content.campaign_created', 'content.campaign_updated', 'content.fact_added', 'content.fact_retired']);
 
     $placed = [
-        "/content/items/{$item->public_id}" => $content,
+        "/content/items/{$item->public_id}/activity" => $content,
         "/content/brands/{$brand->public_id}?tab=activity" => $brandAudit,
         "/transactions/{$order->public_id}" => [['order.note_added', 'order', $order->public_id], ['payment.paid', 'payment', $payment->public_id], ['payment.gateway_checked', 'payment', $payment->public_id]],
         "/users/{$sari->public_id}" => [['user.created', 'user', $sari->public_id], ['user.updated', 'user', $sari->public_id], ['user.activated', 'user', $sari->public_id], ['user.deactivated', 'user', $sari->public_id], ['user.password_reset', 'user', $sari->public_id]],

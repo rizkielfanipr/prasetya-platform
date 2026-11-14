@@ -16,6 +16,6 @@ defineEmits<{ retry: [] }>();
         <TriangleAlert class="size-8 text-danger" aria-hidden="true" />
         <p class="text-base font-semibold">{{ title }}</p>
         <p class="max-w-md text-muted-foreground">{{ description }}</p>
-        <Button v-if="retryable" variant="outline" class="mt-2" @click="$emit('retry')">{{ copy.retry }}</Button>
+        <Button v-if="retryable" variant="outline" class="mt-2 h-11" @click="$emit('retry')">{{ copy.retry }}</Button>
     </div>
 </template>

@@ -20,7 +20,7 @@ const latest = computed(() => props.insights[0] ?? null);
                 <template v-if="latest">Dibaca {{ formatDateTime(latest.measuredAt) }} oleh {{ latest.recordedBy }}.</template>
                 <template v-else>Belum ada insight. Catat setelah 1–2 hari, saat angkanya mulai stabil.</template>
             </p>
-            <Button size="sm" class="gap-1.5" @click="open = true"><Plus class="size-4" aria-hidden="true" />Catat insight</Button>
+            <Button class="h-11 gap-1.5" @click="open = true"><Plus class="size-4" aria-hidden="true" />Catat insight</Button>
         </div>
         <dl v-if="latest" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
             <div class="rounded-lg border p-3">
