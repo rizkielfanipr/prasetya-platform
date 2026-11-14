@@ -126,6 +126,7 @@ Navigation order: Dashboard, Transaksi, Event Pembayaran, Rekonsiliasi, Audit Lo
   - the user table on Pengaturan is removed, and the gateway and application panels stay;
   - the profile form edits the name only, and the username is shown read-only;
   - the password form is unchanged.
+  - Superseded by [ADR-0015](decisions/0015-account-password-page.md) (2026-11-14): the profile form is removed, names change only in **Pengguna**, and the own-password form moves to **Ganti Kata Sandi** (`/account/password`) in the account menu.
 
 ### Command line and seeders
 

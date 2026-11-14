@@ -99,7 +99,7 @@ it('filters system activity by date and validates its filters', function (): voi
 
 it('never shows a secret in system activity', function (): void {
     $admin = admin();
-    $this->actingAs($admin)->put('/settings/password', ['current_password' => 'password-for-tests-1', 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1'])->assertSessionHasNoErrors();
+    $this->actingAs($admin)->put('/account/password', ['current_password' => 'password-for-tests-1', 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1'])->assertSessionHasNoErrors();
 
     $content = $this->get('/settings/activity')->assertOk()->getContent();
 

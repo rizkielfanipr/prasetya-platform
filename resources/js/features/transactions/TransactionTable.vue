@@ -3,7 +3,7 @@ import BrandBadge from '@/components/shared/BrandBadge.vue';
 import DataTable, { type DataTableColumn } from '@/components/shared/DataTable.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import PaymentRoute from '@/components/shared/PaymentRoute.vue';
-import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge.vue';
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import { formatCurrency, formatDate, formatDateTime, formatInvoice, formatTime } from '@/lib/format';
 import { paymentMethodLabel } from '@/lib/payment-methods';
 import { orderStatuses } from '@/lib/status';
@@ -15,13 +15,14 @@ import { computed } from 'vue';
 const props = withDefaults(
     defineProps<{
         rows: TransactionRow[];
-        variant?: 'compact' | 'full';
+        /** False where the list is a fixed preview (Dashboard): the headers then do not offer sorting. */
+        sortable?: boolean;
         loading?: boolean;
         failed?: boolean;
         sort?: string | null;
         direction?: 'asc' | 'desc' | null;
     }>(),
-    { variant: 'full', loading: false, failed: false, sort: null, direction: null },
+    { sortable: true, loading: false, failed: false, sort: null, direction: null },
 );
 
 defineEmits<{ sort: [key: string]; retry: [] }>();
@@ -32,27 +33,15 @@ const prefetchDetail = (id: string): void => {
     router.prefetch(routes.transaction(id), { method: 'get' }, PREFETCH);
 };
 
-const columns = computed<DataTableColumn[]>(() =>
-    props.variant === 'compact'
-        ? [
-              { key: 'invoice', label: 'Invoice' },
-              { key: 'brand', label: 'Brand' },
-              { key: 'customer', label: 'Pelanggan' },
-              { key: 'package', label: 'Paket' },
-              { key: 'amount', label: 'Jumlah', align: 'right' },
-              { key: 'paymentStatus', label: 'Status' },
-              { key: 'created', label: 'Tanggal' },
-          ]
-        : [
-              // The brand rides under the invoice: one column less, and the name stays visible at laptop widths.
-              { key: 'invoice_number', label: 'Invoice', sortable: true },
-              { key: 'customer', label: 'Pelanggan' },
-              { key: 'total_amount', label: 'Jumlah', align: 'right', sortable: true },
-              { key: 'route', label: 'Pembayaran' },
-              { key: 'orderStatus', label: 'Pesanan' },
-              { key: 'created_at', label: 'Dibuat', sortable: true },
-          ],
-);
+// The brand rides under the invoice: one column less, and the name stays visible at laptop widths.
+const columns = computed<DataTableColumn[]>(() => [
+    { key: 'invoice_number', label: 'Invoice', sortable: props.sortable },
+    { key: 'customer', label: 'Pelanggan' },
+    { key: 'total_amount', label: 'Jumlah', align: 'right', sortable: props.sortable },
+    { key: 'route', label: 'Pembayaran' },
+    { key: 'orderStatus', label: 'Pesanan' },
+    { key: 'created_at', label: 'Dibuat', sortable: props.sortable },
+]);
 </script>
 
 <template>
@@ -65,20 +54,11 @@ const columns = computed<DataTableColumn[]>(() =>
         :failed="failed"
         :sort="sort"
         :direction="direction"
-        :stack-on-mobile="variant === 'full'"
-        :class="{ 'transaction-table': variant === 'full' }"
+        stack-on-mobile
+        class="transaction-table"
         @sort="$emit('sort', $event)"
         @retry="$emit('retry')"
     >
-        <template #cell-invoice="{ row }">
-            <Link
-                :href="routes.transaction(row.id)"
-                prefetch
-                :cache-for="PREFETCH.cacheFor"
-                class="font-mono font-semibold whitespace-nowrap hover:underline"
-                >{{ formatInvoice(row.invoice) }}</Link
-            >
-        </template>
         <template #cell-invoice_number="{ row }">
             <Link
                 :href="routes.transaction(row.id)"
@@ -90,24 +70,15 @@ const columns = computed<DataTableColumn[]>(() =>
             >
             <span class="mt-1.5 block"><BrandBadge :brand="row.brand" /></span>
         </template>
-        <template #cell-brand="{ row }"><BrandBadge :brand="row.brand" /></template>
         <template #cell-customer="{ row }">
             <span class="block max-w-60 truncate font-semibold text-foreground">{{ row.customerName }}</span>
-            <span v-if="variant === 'full'" class="block max-w-60 truncate text-xs text-muted-foreground">
-                {{ row.packageName ?? 'Tanpa paket'
-                }}<template v-if="row.paymentMethod"
-                    ><span class="mx-1.5" aria-hidden="true">·</span><span class="sr-only">, </span>{{ paymentMethodLabel(row.paymentMethod) }}</template
-                >
+            <span class="block max-w-60 truncate text-xs text-muted-foreground">
+                {{ row.packageName ?? 'Tanpa paket' }}<template v-if="row.paymentMethod"><SeparatorDot />{{ paymentMethodLabel(row.paymentMethod) }}</template>
             </span>
         </template>
-        <template #cell-package="{ row }"
-            ><span class="whitespace-nowrap">{{ row.packageName ?? '—' }}</span></template
-        >
-        <template #cell-amount="{ row }">{{ formatCurrency(row.amount) }}</template>
         <template #cell-total_amount="{ row }"
             ><span class="text-sm font-semibold whitespace-nowrap">{{ formatCurrency(row.amount) }}</span></template
         >
-        <template #cell-paymentStatus="{ row }"><PaymentStatusBadge :status="row.paymentStatus" /></template>
         <template #cell-route="{ row }">
             <PaymentRoute :status="row.paymentStatus" />
             <span v-if="row.lastPaymentUpdate" class="mt-0.5 block text-xs whitespace-nowrap text-muted-foreground tabular">
@@ -122,9 +93,6 @@ const columns = computed<DataTableColumn[]>(() =>
                 >{{ orderStatuses[row.orderStatus].label }}</span
             >
         </template>
-        <template #cell-created="{ row }"
-            ><span class="whitespace-nowrap">{{ formatDate(row.createdAt) }}</span></template
-        >
         <template #cell-created_at="{ row }">
             <span class="block font-semibold whitespace-nowrap tabular">{{ formatDate(row.createdAt) }}</span>
             <span class="block text-xs whitespace-nowrap text-muted-foreground tabular">{{ formatTime(row.createdAt) }}</span>

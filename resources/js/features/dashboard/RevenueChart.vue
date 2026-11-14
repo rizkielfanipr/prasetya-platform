@@ -3,9 +3,12 @@ import { formatCurrency, formatDay } from '@/lib/format';
 import { brands } from '@/lib/brands';
 import type { Brand, RevenuePoint } from '@/types/backoffice';
 import { CategoryScale, Chart, type ChartDataset, Filler, Legend, LinearScale, LineController, LineElement, PointElement, Tooltip } from 'chart.js';
+import { ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
+// Axis ticks and tooltips speak the board's type (DESIGN.md), not Chart.js's default sans.
+Chart.defaults.font.family = "'Overpass Variable', ui-sans-serif, system-ui, sans-serif";
 
 const props = defineProps<{ points: RevenuePoint[]; brand: Brand | null }>();
 
@@ -62,10 +65,8 @@ function render(): void {
             animation: prefersReducedMotion() ? false : { duration: 200 },
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { usePointStyle: true, color: token('--foreground'), font: { family: 'Plus Jakarta Sans Variable', size: 12 } },
-                },
+                // The legend lives in the panel header (RevenuePanel), so the plot keeps its height.
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: token('--foreground'),
                     callbacks: { label: (item) => `${item.dataset.label ?? ''}: ${formatCurrency(item.parsed.y)}` },
@@ -95,7 +96,7 @@ onBeforeUnmount(() => chart?.destroy());
 
 <template>
     <div>
-        <div class="h-72 w-full">
+        <div class="h-60 w-full xl:h-40">
             <canvas
                 ref="canvas"
                 role="img"
@@ -103,14 +104,19 @@ onBeforeUnmount(() => chart?.destroy());
                 data-testid="revenue-canvas"
             />
         </div>
-        <details class="mt-3">
-            <summary class="text-sm font-semibold text-primary-text">Lihat data grafik sebagai tabel</summary>
+        <details class="group mt-1">
+            <summary
+                class="inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 text-[13px] font-bold text-primary-text [&::-webkit-details-marker]:hidden"
+            >
+                <ChevronRightIcon class="size-4 stroke-2 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" />Lihat
+                data grafik sebagai tabel
+            </summary>
             <div class="mt-2 max-h-64 overflow-auto rounded-md border" tabindex="0" role="region" aria-label="Data grafik pendapatan">
                 <table class="w-full text-[13px]">
                     <caption class="sr-only">
                         Pendapatan harian per brand
                     </caption>
-                    <thead class="sticky top-0 bg-muted">
+                    <thead class="sticky top-0 bg-tint-100">
                         <tr>
                             <th scope="col" class="px-3 py-2 text-left font-semibold">Tanggal</th>
                             <th v-for="code in series" :key="code" scope="col" class="px-3 py-2 text-right font-semibold">{{ brands[code].label }}</th>

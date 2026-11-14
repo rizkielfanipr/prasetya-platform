@@ -11,9 +11,9 @@ const sessionMessage = computed(() => page.props.flash.error);
 </script>
 
 <template>
-    <AuthLayout title="Masuk">
-        <p v-if="status" role="status" class="mb-4 rounded-md bg-success-surface px-3 py-2 text-sm font-medium text-success">{{ status }}</p>
-        <p v-if="sessionMessage" role="alert" class="mb-4 rounded-md bg-warning-surface px-3 py-2 text-sm font-medium text-warning">{{ sessionMessage }}</p>
+    <AuthLayout title="Masuk" heading="Masuk" description="Gunakan username dan kata sandi akun back office Anda.">
+        <p v-if="status" role="status" class="mb-5 rounded-md bg-success-surface px-3 py-2.5 text-sm font-semibold text-success">{{ status }}</p>
+        <p v-if="sessionMessage" role="alert" class="mb-5 rounded-md bg-warning-surface px-3 py-2.5 text-sm font-semibold text-warning">{{ sessionMessage }}</p>
         <LoginForm />
     </AuthLayout>
 </template>

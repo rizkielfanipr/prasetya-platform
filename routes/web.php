@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\BackOffice\AccountController;
 use App\Http\Controllers\BackOffice\AdminNoteController;
 use App\Http\Controllers\BackOffice\Auth\LoginController;
 use App\Http\Controllers\BackOffice\Content\ContentAiController;
@@ -107,8 +108,10 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/activity', SystemActivityController::class)->name('settings.activity');
-    Route::put('settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
-    Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+
+    // The signed-in person's own account: the password only. Names change in Pengguna (ADR-0015).
+    Route::get('account/password', [AccountController::class, 'password'])->name('account.password');
+    Route::put('account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
 });
 
 // Stand-in for Duitku's hosted page. Never registered in production or with the real gateway.

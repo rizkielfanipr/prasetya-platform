@@ -88,7 +88,6 @@
     --sidebar-border: #f0e3d9;
 
     --radius: 10px;
-    --shadow-login: 0 18px 50px -24px rgb(255 81 0 / 0.28);
     --shadow-overlay: 0 12px 32px -12px rgb(27 31 36 / 0.25);
 }
 
@@ -107,6 +106,8 @@
     --color-tint-700: var(--tint-700);
     --color-tint-800: var(--tint-800);
     --color-line-track: var(--line-track);
+    --color-chart-webworks: var(--chart-webworks);
+    --color-chart-satamu: var(--chart-satamu);
     --color-line-current: var(--line-current);
 
     --color-background: var(--background);
@@ -157,7 +158,6 @@
     --radius-md: 8px;
     --radius-lg: 10px;
     --radius-xl: 12px;
-    --shadow-login: var(--shadow-login);
     --shadow-overlay: var(--shadow-overlay);
 }
 

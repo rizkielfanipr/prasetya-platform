@@ -18,7 +18,7 @@ import {
     ChevronDoubleLeftIcon,
     ChevronDoubleRightIcon,
     ChevronDownIcon,
-    Cog6ToothIcon,
+    KeyIcon,
 } from '@heroicons/vue/24/outline';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -81,7 +81,9 @@ const issues = computed(() => page.props.openIssueCount ?? 0);
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem as-child>
-                        <Link :href="routes.settings" class="w-full"><Cog6ToothIcon class="stroke-2" aria-hidden="true" />{{ copy.profile }}</Link>
+                        <Link :href="routes.accountPassword" class="w-full" data-testid="account-password"
+                            ><KeyIcon class="stroke-2" aria-hidden="true" />{{ copy.changePassword }}</Link
+                        >
                     </DropdownMenuItem>
                     <DropdownMenuItem as-child>
                         <Link :href="routes.logout" method="post" as="button" class="w-full" data-testid="logout"
