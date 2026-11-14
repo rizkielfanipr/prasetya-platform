@@ -10,6 +10,7 @@ use App\Http\Controllers\BackOffice\Content\ContentBrandController;
 use App\Http\Controllers\BackOffice\Content\ContentCalendarController;
 use App\Http\Controllers\BackOffice\Content\ContentInsightController;
 use App\Http\Controllers\BackOffice\Content\ContentItemController;
+use App\Http\Controllers\BackOffice\Content\ContentItemEvidenceController;
 use App\Http\Controllers\BackOffice\Content\ContentPostingController;
 use App\Http\Controllers\BackOffice\Content\ContentResearchController;
 use App\Http\Controllers\BackOffice\DashboardController;
@@ -72,6 +73,10 @@ Route::middleware('auth')->group(function (): void {
         ->whereIn('retired', ['submit-review', 'request-revision', 'approve', 'reject'])->name('content.items.retired-review');
     Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
     Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
+    // Evidence sheets of the detail page (ADR-0013): read-only JSON, loaded when a person opens the sheet.
+    Route::get('content/items/{item:public_id}/research', [ContentItemEvidenceController::class, 'research'])->name('content.items.research.show');
+    Route::get('content/items/{item:public_id}/history', [ContentItemEvidenceController::class, 'history'])->name('content.items.history');
+    Route::get('content/items/{item:public_id}/activity', [ContentItemEvidenceController::class, 'activity'])->name('content.items.activity');
 
     // AI copy drafts (ADR-0011, phase 3). Off unless configured; the result is always a draft revision.
     Route::post('content/items/{item:public_id}/generate', [ContentAiController::class, 'generate'])->middleware('throttle:20,1')->name('content.items.generate');

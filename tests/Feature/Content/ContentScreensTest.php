@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Content\Actions\CreateContentItem;
-use App\Domain\Content\Actions\MarkContentReady;
-use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Support\ContentPlan;
 use App\Domain\Orders\Models\Order;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 /* ADR-0011: Kalender, Konten, and the item workspace. */
@@ -108,7 +105,7 @@ it('redirects the retired Konten and Siap posting pages to the Kalender with the
         ->assertInertia(fn (AssertableInertia $page) => $page->component('content/ContentCalendarPage')->where('filters.status', 'READY'));
 });
 
-it('shows an item with its revisions, decisions, and its own audit', function (): void {
+it('shows an item with its active revision, and its revisions and own audit on demand', function (): void {
     $item = readyItem();
     $other = draftItem();
 
@@ -118,11 +115,12 @@ it('shows an item with its revisions, decisions, and its own audit', function ()
         ->where('item.status', 'READY')
         ->where('item.readyRevisionId', fn ($id) => $id !== null)
         ->where('revision.number', 1)
-        ->has('revisions', 1)
+        ->missing('revisions')
         ->has('revision.asset.url')
         ->missing('revision.asset.path'));
 
-    $activity = contentPage("/content/items/{$item->public_id}")['activity'];
+    expect(contentEvidence($item, 'history')['revisions'])->toHaveCount(1);
+    $activity = contentEvidence($item, 'activity')['entries'];
     expect(collect($activity)->pluck('entityId')->unique()->all())->toBe([$item->public_id])
         ->and(collect($activity)->pluck('action')->all())->toBe(['content.marked_ready', 'content.revised', 'content.created'])
         ->and($other->public_id)->not->toBe($item->public_id);
@@ -137,34 +135,6 @@ it('keeps content audit out of system activity', function (): void {
 
     expect($system)->not->toContain('content.created')->not->toContain('content.revised')
         ->and($all)->toContain('content.created');
-});
-
-it('loads an item with a fixed number of queries, however many revisions', function (): void {
-    $writer = admin();
-    $grow = function (ContentItem $item, int $times) use ($writer): void {
-        foreach (range(1, $times) as $n) {
-            app(MarkContentReady::class)($item, revisionId($item), $writer);
-            app(SaveContentRevision::class)($item, revisionId($item), ['caption' => "Caption {$n}"], null, $writer);
-        }
-    };
-    $small = draftItem($writer);
-    $large = draftItem($writer);
-    $grow($small, 1);
-    $grow($large, 5);
-
-    $count = function (string $uri): int {
-        test()->get($uri)->assertOk();
-        $queries = 0;
-        DB::listen(function () use (&$queries): void {
-            $queries++;
-        });
-        test()->get($uri)->assertOk();
-
-        return $queries;
-    };
-    $this->actingAs($writer);
-
-    expect($count("/content/items/{$large->public_id}"))->toBe($count("/content/items/{$small->public_id}"));
 });
 
 it('never puts customer, order, or payment data in content screens', function (): void {

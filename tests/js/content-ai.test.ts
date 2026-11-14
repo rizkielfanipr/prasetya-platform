@@ -1,4 +1,4 @@
-import ContentAiAction from '@/features/content/ContentAiAction.vue';
+import ContentAiAssistant from '@/features/content/detail/ContentAiAssistant.vue';
 import ContentAiRuns from '@/features/content/ContentAiRuns.vue';
 import { formatUsd } from '@/lib/content';
 import type { ContentItem, ContentRevision, GenerationRun, ItemAi } from '@/types/content';
@@ -35,7 +35,7 @@ const run = (overrides: Partial<GenerationRun> = {}): GenerationRun => ({
     finishedAt: '2026-11-08T03:00:02Z',
     ...overrides,
 });
-const mountPanel = (ai: ItemAi, prepare?: () => Promise<string | null>) => mount(ContentAiAction, { props: { item, revision, ai, prepare } });
+const mountPanel = (ai: ItemAi, prepare?: () => Promise<string | null>) => mount(ContentAiAssistant, { props: { item, revision, ai, prepare } });
 const aiButton = (wrapper: ReturnType<typeof mountPanel>) => {
     const button = wrapper.findAll('button').find((b) => b.text().includes('dengan AI') || b.text().includes('AI sedang menulis'));
     if (!button) throw new Error('AI button not found');
@@ -56,9 +56,9 @@ describe('formatUsd', () => {
     });
 });
 
-describe('ContentAiAction', () => {
+describe('ContentAiAssistant', () => {
     it('keeps the button visible but disabled, with the reason', () => {
-        const wrapper = mountPanel({ unavailableReason: 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.', runs: [] });
+        const wrapper = mountPanel({ unavailableReason: 'AI belum dikonfigurasi. Konten tetap dapat ditulis manual.', current: null });
 
         const button = aiButton(wrapper);
         expect(button.attributes('disabled')).toBeDefined();
@@ -67,13 +67,15 @@ describe('ContentAiAction', () => {
     });
 
     it('says Buat dengan AI for an empty caption and Buat ulang once there is one', () => {
-        expect(aiButton(mountPanel({ unavailableReason: null, runs: [] })).text()).toBe('Buat dengan AI');
-        const withCaption = mount(ContentAiAction, { props: { item, revision: { ...revision, caption: 'Ada' }, ai: { unavailableReason: null, runs: [] } } });
+        expect(aiButton(mountPanel({ unavailableReason: null, current: null })).text()).toBe('Buat dengan AI');
+        const withCaption = mount(ContentAiAssistant, {
+            props: { item, revision: { ...revision, caption: 'Ada' }, ai: { unavailableReason: null, current: null } },
+        });
         expect(aiButton(withCaption).text()).toBe('Buat ulang dengan AI');
     });
 
     it('asks for every copy part of the current revision by default', async () => {
-        const wrapper = mountPanel({ unavailableReason: null, runs: [] });
+        const wrapper = mountPanel({ unavailableReason: null, current: null });
 
         await aiButton(wrapper).trigger('click');
         await flushPromises();
@@ -86,7 +88,7 @@ describe('ContentAiAction', () => {
     });
 
     it('saves unsaved edits first and drafts from the revision the save answers, or not at all when it fails', async () => {
-        const saved = mountPanel({ unavailableReason: null, runs: [] }, () => Promise.resolve('01REVISION000000000000000B'));
+        const saved = mountPanel({ unavailableReason: null, current: null }, () => Promise.resolve('01REVISION000000000000000B'));
         await aiButton(saved).trigger('click');
         await flushPromises();
         expect(inertia.post).toHaveBeenCalledWith(
@@ -96,27 +98,49 @@ describe('ContentAiAction', () => {
         );
 
         vi.clearAllMocks();
-        const failed = mountPanel({ unavailableReason: null, runs: [] }, () => Promise.resolve(null));
+        const failed = mountPanel({ unavailableReason: null, current: null }, () => Promise.resolve(null));
         await aiButton(failed).trigger('click');
         await flushPromises();
         expect(inertia.post).not.toHaveBeenCalled();
     });
 
     it('refreshes while a run is active, says so on the button, and stops when it finishes', async () => {
-        const wrapper = mountPanel({ unavailableReason: 'AI sedang membuat draft untuk konten ini.', runs: [run({ status: 'RUNNING' })] });
+        const wrapper = mountPanel({ unavailableReason: 'AI sedang membuat draft untuk konten ini.', current: run({ status: 'RUNNING' }) });
 
         expect(aiButton(wrapper).text()).toBe('AI sedang menulis…');
         vi.advanceTimersByTime(3000);
         expect(inertia.reload).toHaveBeenCalledTimes(1);
+        expect(inertia.reload).toHaveBeenCalledWith({ only: ['ai', 'item', 'revision', 'findings', 'actions'] });
+        expect(wrapper.get('[aria-live="polite"]').text()).toBe('AI sedang menulis draft.');
 
-        await wrapper.setProps({ ai: { unavailableReason: null, runs: [run()] } });
+        await wrapper.setProps({ ai: { unavailableReason: null, current: run() } });
         vi.advanceTimersByTime(9000);
         expect(inertia.reload).toHaveBeenCalledTimes(1);
         expect(wrapper.get('[aria-live="polite"]').text()).toBe('Draft dibuat');
     });
 
+    it('states the latest outcome in words, without provider, model, or tokens', () => {
+        const done = mountPanel({ unavailableReason: null, current: run() });
+        expect(done.get('[data-testid="ai-outcome"]').text()).toContain('Draft AI terakhir menjadi revisi 2');
+        expect(done.text()).not.toMatch(/deepseek|token|copy-v1|\$/);
+
+        const failed = mountPanel({ unavailableReason: null, current: run({ status: 'FAILED', errorMessage: 'Provider AI sedang bermasalah (503).' }) });
+        expect(failed.get('[data-testid="ai-outcome"]').text()).toBe('Percobaan AI terakhir gagal: Provider AI sedang bermasalah (503).');
+    });
+
+    it('keeps Opsi AI closed until asked, and says AI only makes a Draft', async () => {
+        const wrapper = mount(ContentAiAssistant, { props: { item, revision, ai: { unavailableReason: null, current: null } }, attachTo: document.body });
+        const options = wrapper.findAll('button').find((b) => b.text().includes('Opsi AI'));
+
+        expect(options?.attributes('aria-expanded')).toBe('false');
+        expect(wrapper.get('#ai-options').isVisible()).toBe(false);
+        await options?.trigger('click');
+        expect(wrapper.get('#ai-options').isVisible()).toBe(true);
+        expect(wrapper.get('#ai-options').text()).toContain('AI hanya membuat Draft');
+    });
+
     it("sends the creator's instruction with the chosen copy parts from Opsi AI", async () => {
-        const wrapper = mountPanel({ unavailableReason: null, runs: [] });
+        const wrapper = mountPanel({ unavailableReason: null, current: null });
 
         const options = wrapper.findAll('button').find((b) => b.text().includes('Opsi AI'));
         await options?.trigger('click');

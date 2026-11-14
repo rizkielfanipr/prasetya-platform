@@ -1,12 +1,10 @@
-import ContentEditor from '@/features/content/ContentEditor.vue';
 import ContentReminders from '@/features/content/ContentReminders.vue';
 import ContentRevisionHistory from '@/features/content/ContentRevisionHistory.vue';
 import ContentStatusFilter from '@/features/content/ContentStatusFilter.vue';
-import ContentStatusPanel from '@/features/content/ContentStatusPanel.vue';
 import ContentWeekView from '@/features/content/ContentWeekView.vue';
 import CopyButton from '@/features/content/CopyButton.vue';
 import { contentStatuses, formatWeekday, hashtagCount, revisionChanges, toLocalInput } from '@/lib/content';
-import type { ContentActions, ContentItem, ContentRevision, ContentRow, ContentStatus, ContentWeek } from '@/types/content';
+import type { ContentRevision, ContentRow, ContentWeek } from '@/types/content';
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -60,17 +58,6 @@ const row = (overrides: Partial<ContentRow> = {}): ContentRow => ({
     updatedAt: '2026-11-07T03:00:00Z',
     ...overrides,
 });
-
-const item = (status: ContentStatus): ContentItem => ({
-    ...row({ status }),
-    createdAt: '2026-11-07T02:00:00Z',
-    createdBy: 'Penulis',
-    readyRevisionId: null,
-    approvedRevisionId: null,
-    publication: null,
-});
-
-const allowed: ContentActions = { edit: null, editDetails: null, markReady: null, returnToDraft: null, archive: null, markPublished: null };
 
 describe('content helpers', () => {
     it('writes datetime-local values in business time', () => {
@@ -128,100 +115,6 @@ describe('ContentWeekView', () => {
         expect(wrapper.get('[data-day="2026-11-10"]').text()).toContain('Hari ini');
         expect(wrapper.get('[data-day="2026-11-11"]').text()).toContain('Belum ada konten');
         expect(wrapper.get('[data-day="2026-11-09"]').text()).toContain('10:00 WIB');
-    });
-});
-
-describe('ContentStatusPanel', () => {
-    it('keeps an unavailable action visible, disabled, and explained', () => {
-        const reason = 'Lengkapi caption sebelum menandai siap posting.';
-        const wrapper = mount(ContentStatusPanel, {
-            props: { item: item('DRAFT'), revision: revision({ submittedAt: null }), actions: { ...allowed, markReady: reason } },
-        });
-
-        const ready = wrapper.findAll('button').find((button) => button.text() === 'Tandai siap posting');
-        expect(ready?.attributes('disabled')).toBeDefined();
-        expect(ready?.attributes('aria-describedby')).toBe('reason-markReady');
-        expect(wrapper.get('#reason-markReady').text()).toBe(reason);
-        expect(wrapper.findAll('button').map((button) => button.text())).toEqual(['Tandai siap posting', 'Arsipkan']);
-    });
-
-    it('offers returning to Draft or archiving once Ready, with no approval step', () => {
-        const wrapper = mount(ContentStatusPanel, { props: { item: item('READY'), revision: revision(), actions: allowed } });
-
-        expect(wrapper.findAll('button').map((button) => button.text())).toEqual(['Kembali ke Draft', 'Arsipkan']);
-        expect(wrapper.get('[data-testid="status-summary"]').text()).toContain('Revisi 1 siap diposting');
-        expect(wrapper.text()).not.toMatch(/setuju|tinjau/i);
-    });
-
-    it('offers no action once published or archived', () => {
-        for (const status of ['PUBLISHED', 'ARCHIVED'] as const) {
-            const wrapper = mount(ContentStatusPanel, { props: { item: item(status), revision: revision(), actions: allowed } });
-            expect(wrapper.findAll('button')).toHaveLength(0);
-        }
-    });
-});
-
-describe('ContentEditor', () => {
-    const editorProps = (status: ContentStatus, blockedReason: string | null, rev: ContentRevision = revision()) => ({
-        item: item(status),
-        revision: rev,
-        blockedReason,
-        limits: { maxHashtags: 30, captionMax: 2200 },
-        findings: [],
-        brandRulesVersion: 1,
-        ai: { unavailableReason: null, runs: [] },
-        actions: allowed,
-    });
-
-    it('shows read-only content with the reason when editing is unavailable', () => {
-        const reason = 'Konten sudah diposting dan tidak dapat diubah.';
-        const wrapper = mount(ContentEditor, { props: editorProps('PUBLISHED', reason) });
-
-        expect(wrapper.get('[data-testid="edit-blocked"]').text()).toBe(reason);
-        expect(wrapper.get('#content-caption').attributes('readonly')).toBeDefined();
-        expect(wrapper.find('#content-image').exists()).toBe(false);
-        expect(wrapper.findAll('button').some((button) => button.text() === 'Simpan konten')).toBe(false);
-    });
-
-    it('puts brief, AI, caption with hashtags, image, findings, and Siap posting first, and the rest behind Pengaturan tambahan', () => {
-        const wrapper = mount(ContentEditor, { props: editorProps('READY', null) });
-        const html = wrapper.html();
-        const at = (needle: string) => html.indexOf(needle);
-
-        expect(at('id="content-brief"')).toBeLessThan(at('data-testid="ai-panel"'));
-        expect(at('data-testid="ai-panel"')).toBeLessThan(at('id="content-caption"'));
-        expect(at('id="content-caption"')).toBeLessThan(at('id="content-hashtags"'));
-        expect(at('id="content-hashtags"')).toBeLessThan(at('data-testid="rule-findings"'));
-        expect(at('data-testid="rule-findings"')).toBeLessThan(at('data-testid="status-summary"'));
-        expect(wrapper.get('[data-testid="caption-area"]').text()).toContain('Caption dan hashtag');
-        expect(wrapper.text()).toContain('mengembalikannya ke Draft');
-        expect(wrapper.get('#content-caption').attributes('aria-describedby')).toContain('content-caption-count');
-        expect(wrapper.get('#content-hashtags-count').text()).toBe('2/30 hashtag');
-
-        const more = wrapper.get('[data-testid="more-settings"]');
-        expect(more.attributes('aria-expanded')).toBe('false');
-        expect(wrapper.get('#content-more').isVisible()).toBe(false);
-        expect(wrapper.get('#content-more').text()).toContain('Alt text *');
-    });
-
-    it('opens Pengaturan tambahan when alt text is all a complete draft lacks', () => {
-        const wrapper = mount(ContentEditor, { props: editorProps('DRAFT', null, revision({ altText: null, submittedAt: null })) });
-
-        expect(wrapper.get('[data-testid="more-settings"]').attributes('aria-expanded')).toBe('true');
-    });
-
-    it('holds Siap posting back while there are unsaved changes', async () => {
-        const wrapper = mount(ContentEditor, { props: editorProps('DRAFT', null, revision({ submittedAt: null })) });
-
-        await wrapper.get('#content-caption').setValue('Caption baru');
-
-        expect(wrapper.get('#reason-markReady').text()).toBe('Simpan perubahan dulu sebelum menandai siap posting.');
-        expect(
-            wrapper
-                .findAll('button')
-                .find((button) => button.text() === 'Tandai siap posting')
-                ?.attributes('disabled'),
-        ).toBeDefined();
     });
 });
 

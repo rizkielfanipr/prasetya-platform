@@ -29,7 +29,10 @@ export const routes = {
     contentArchive: (id: string) => `/content/items/${id}/archive`,
     contentPublication: (id: string) => `/content/items/${id}/publication`,
     contentGenerate: (id: string) => `/content/items/${id}/generate`,
+    /** GET loads the research sheet as JSON; POST starts a web search. */
     contentResearch: (id: string) => `/content/items/${id}/research`,
+    contentItemHistory: (id: string) => `/content/items/${id}/history`,
+    contentItemActivity: (id: string) => `/content/items/${id}/activity`,
     contentSources: (id: string) => `/content/items/${id}/sources`,
     contentSource: (id: string, source: string) => `/content/items/${id}/sources/${source}`,
     contentGenerationFeedback: (id: string) => `/content/generation-runs/${id}/feedback`,

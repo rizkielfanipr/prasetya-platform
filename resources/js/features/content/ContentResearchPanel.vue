@@ -8,39 +8,22 @@ import { routes } from '@/lib/routes';
 import type { ContentItem, ItemResearch } from '@/types/content';
 import { Link, router } from '@inertiajs/vue3';
 import { Plus, Search } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import ManualSourceDialog from './ManualSourceDialog.vue';
 import ResearchSourceCard from './ResearchSourceCard.vue';
 
 /**
  * Research for one post (ADR-0011, phase 4): internal context first, then the sources it cites, web searches, and
- * manual sources. While a search runs the panel refreshes itself.
+ * manual sources. Riset & sumber loads and refreshes it (ADR-0013); `editable` is false outside Draft, which leaves the
+ * evidence readable and hides every change. The server still refuses changes it does not allow.
  */
-const props = defineProps<{ item: ContentItem; research: ItemResearch }>();
+const props = defineProps<{ item: ContentItem; research: ItemResearch; editable: boolean }>();
 
-const POLL_MS = 3000;
 const query = ref(props.research.suggestedQuery);
 const busy = ref(false);
 const manualOpen = ref(false);
-const editable = computed(() => props.item.status !== 'PUBLISHED' && props.item.status !== 'ARCHIVED');
 const citedIds = computed(() => new Set(props.research.cited.map((source) => source.id)));
-const active = computed(() => props.research.runs.some((run) => run.status === 'QUEUED' || run.status === 'RUNNING'));
 const internal = computed(() => props.research.internal);
-
-let timer: number | null = null;
-const stop = () => {
-    if (timer !== null) window.clearInterval(timer);
-    timer = null;
-};
-watch(
-    active,
-    (running) => {
-        stop();
-        if (running) timer = window.setInterval(() => router.reload({ only: ['research', 'activity'] }), POLL_MS);
-    },
-    { immediate: true },
-);
-onBeforeUnmount(stop);
 
 const options = { preserveScroll: true, onStart: () => (busy.value = true), onFinish: () => (busy.value = false) };
 function search(): void {
@@ -82,7 +65,7 @@ function uncite(sourceId: string): void {
         <section aria-labelledby="cited-heading" class="space-y-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 id="cited-heading" class="text-sm font-semibold">Sumber yang dipakai ({{ research.cited.length }})</h3>
-                <Button v-if="editable" variant="outline" size="sm" class="gap-1.5" @click="manualOpen = true"
+                <Button v-if="editable" variant="outline" class="h-11 gap-1.5" @click="manualOpen = true"
                     ><Plus class="size-4" aria-hidden="true" />Tambah sumber manual</Button
                 >
             </div>
@@ -92,7 +75,13 @@ function uncite(sourceId: string): void {
             <ul v-else class="divide-y rounded-lg border" data-testid="cited-sources">
                 <li v-for="source in research.cited" :key="source.id" class="flex flex-wrap items-start gap-3 p-3">
                     <ResearchSourceCard :source="source" />
-                    <Button v-if="editable" variant="ghost" size="sm" :disabled="busy" :aria-label="`Lepas sumber ${source.title}`" @click="uncite(source.id)"
+                    <Button
+                        v-if="editable"
+                        variant="ghost"
+                        class="h-11"
+                        :disabled="busy"
+                        :aria-label="`Lepas sumber ${source.title}`"
+                        @click="uncite(source.id)"
                         >Lepas</Button
                     >
                 </li>
@@ -101,23 +90,26 @@ function uncite(sourceId: string): void {
 
         <section aria-labelledby="web-heading" class="space-y-3">
             <h3 id="web-heading" class="text-sm font-semibold">Riset web</h3>
-            <form class="flex flex-wrap items-start gap-2" aria-label="Cari di web" @submit.prevent="search">
+            <p v-if="!editable && research.runs.length === 0" class="text-sm text-muted-foreground">Tidak ada riset web untuk konten ini.</p>
+            <form v-if="editable" class="flex flex-wrap items-start gap-2" aria-label="Cari di web" @submit.prevent="search">
                 <div class="min-w-60 flex-1">
                     <label for="research-query" class="sr-only">Kata kunci riset</label>
                     <Input
                         id="research-query"
                         v-model="query"
-                        class="h-10"
+                        class="h-11"
                         maxlength="300"
                         :disabled="research.unavailableReason !== null"
                         :aria-describedby="research.unavailableReason ? 'research-unavailable' : undefined"
                     />
                 </div>
-                <Button type="submit" class="gap-1.5" :disabled="research.unavailableReason !== null || busy || query.trim().length < 3"
+                <Button type="submit" class="h-11 gap-1.5" :disabled="research.unavailableReason !== null || busy || query.trim().length < 3"
                     ><Search class="size-4" aria-hidden="true" />Cari di web</Button
                 >
             </form>
-            <p v-if="research.unavailableReason" id="research-unavailable" class="text-xs text-muted-foreground">{{ research.unavailableReason }}</p>
+            <p v-if="editable && research.unavailableReason" id="research-unavailable" class="text-xs text-muted-foreground">
+                {{ research.unavailableReason }}
+            </p>
 
             <article v-for="run in research.runs" :key="run.id" class="space-y-2 rounded-lg border p-3" :data-testid="`research-run-${run.status}`">
                 <p class="flex flex-wrap items-center gap-2 text-sm">
@@ -138,7 +130,7 @@ function uncite(sourceId: string): void {
                         <Button
                             v-if="editable"
                             variant="outline"
-                            size="sm"
+                            class="h-11"
                             :disabled="busy || citedIds.has(source.id)"
                             :aria-label="citedIds.has(source.id) ? `${source.title} sudah dipakai` : `Pakai sumber ${source.title}`"
                             @click="cite(source.id)"

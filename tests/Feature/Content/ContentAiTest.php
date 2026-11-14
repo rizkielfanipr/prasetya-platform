@@ -330,10 +330,12 @@ it('marks AI revisions in the history and shows the item\'s runs', function (): 
     generate($item);
 
     $props = contentPage("/content/items/{$item->public_id}");
+    $history = contentEvidence($item, 'history');
     expect($props['revision']['generatedBy'])->toMatchArray(['model' => 'deepseek-test', 'promptVersion' => 'copy-v4'])
-        ->and($props['revisions'][1]['generatedBy'])->toBeNull()
-        ->and($props['ai']['runs'][0])->toMatchArray(['status' => 'SUCCEEDED', 'resultRevisionNumber' => 2])
-        ->and(json_encode($props))->not->toContain(AI_KEY);
+        ->and($props['ai']['current'])->toMatchArray(['status' => 'SUCCEEDED', 'resultRevisionNumber' => 2])
+        ->and($history['revisions'][1]['generatedBy'])->toBeNull()
+        ->and($history['runs'][0])->toMatchArray(['status' => 'SUCCEEDED', 'resultRevisionNumber' => 2])
+        ->and(json_encode($props).json_encode($history))->not->toContain(AI_KEY);
 });
 
 it('validates the generate request', function (array $payload, string $field): void {

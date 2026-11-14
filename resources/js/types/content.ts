@@ -1,3 +1,5 @@
+import type { AuditEntry } from '@/types/backoffice';
+
 /** Mirrors App\Http\Presenters\ContentPresenter (ADR-0011). Content only: never customer, order, or payment data. */
 /** ADR-0012: one operator drafts, marks Ready, and records the post. */
 export type ContentStatus = 'DRAFT' | 'READY' | 'PUBLISHED' | 'ARCHIVED';
@@ -47,6 +49,8 @@ export interface ContentPublication {
 }
 
 export interface ContentItem extends ContentRow {
+    /** Whole business days past the planned day while a Ready post waits; null otherwise. */
+    daysLate: number | null;
     createdAt: string;
     createdBy: string;
     /** The revision marked Ready, while the item is Ready. */
@@ -265,10 +269,34 @@ export interface GenerationRun {
     finishedAt: string | null;
 }
 
+/** A Draft's AI context (ADR-0013): availability and the latest run only. The run history is evidence, loaded on demand. */
 export interface ItemAi {
     /** Why AI copy cannot be requested now, or null. */
     unavailableReason: string | null;
+    current: GenerationRun | null;
+}
+
+/** The secondary surfaces of the detail page (ADR-0013), each opened by name. */
+export type DetailSurface = 'plan' | 'creative' | 'research' | 'history' | 'activity' | 'returnToDraft' | 'archive';
+
+/** GET /content/items/{id}/history: every revision, newest first, with the Ready and legacy approval markers and AI runs. */
+export interface ItemHistory {
+    revisions: ContentRevision[];
+    readyRevisionId: string | null;
+    approvedRevisionId: string | null;
     runs: GenerationRun[];
+}
+
+/** GET /content/items/{id}/activity: the item's own audit, newest first, at most 100 entries. */
+export interface ItemActivity {
+    entries: AuditEntry[];
+}
+
+/** Who archived an item, when, and the optional reason, from its `content.archived` audit entry. */
+export interface ArchiveEvidence {
+    at: string;
+    actor: string;
+    reason: string | null;
 }
 
 export interface AiStatus {
@@ -327,6 +355,7 @@ export interface ResearchRun {
     sources: ResearchSource[];
 }
 
+/** GET /content/items/{id}/research. */
 export interface ItemResearch {
     unavailableReason: string | null;
     cited: ResearchSource[];

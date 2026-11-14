@@ -39,7 +39,7 @@ it('keeps legacy review decisions, with the parts they named, readable in the re
         'note' => 'Ringkas caption', 'actor_user_id' => admin()->id,
     ]);
 
-    $decisions = contentPage("/content/items/{$item->public_id}")['revisions'][0]['decisions'];
+    $decisions = contentEvidence($item, 'history')['revisions'][0]['decisions'];
 
     expect($decisions)->toHaveCount(1)
         ->and($decisions[0])->toMatchArray(['decision' => 'REVISION_REQUESTED', 'areas' => ['caption', 'image'], 'note' => 'Ringkas caption']);

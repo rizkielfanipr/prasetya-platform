@@ -10,6 +10,7 @@ import type {
     ContentRevision,
     ContentStatus,
     CopyField,
+    DetailSurface,
     GenerationStatus,
     PostingStep,
     ResearchStatus,
@@ -201,8 +202,8 @@ export const brandListRules = [
 export type ContentField = keyof ContentFields;
 
 /**
- * The editable fields with their server limits (SaveContentRevisionRequest). `main` fields make up the editor (ADR-0012,
- * phase 3); `advanced` ones sit under Pengaturan tambahan, which opens by itself when one of them has an error.
+ * The editable fields with their server limits (SaveContentRevisionRequest), grouped by where the Draft workspace shows
+ * them (ADR-0013): `compose` and `media` are always visible because Ready needs them; `creative` sits in Detail kreatif.
  */
 export const contentFields: readonly {
     key: ContentField;
@@ -212,29 +213,38 @@ export const contentFields: readonly {
     max: number;
     rows: number;
     required: boolean;
-    group: 'main' | 'advanced';
+    group: 'compose' | 'media' | 'creative';
 }[] = [
     {
         key: 'brief',
         name: 'brief',
         label: 'Brief',
-        hint: 'Ide, pesan utama, dan isi gambar. AI menulis dari sini.',
+        hint: 'Instruksi kerja: ide, pesan utama, dan isi gambar. AI menulis dari sini.',
         max: 5000,
-        rows: 4,
+        rows: 3,
         required: false,
-        group: 'main',
+        group: 'compose',
     },
-    { key: 'caption', name: 'caption', label: 'Caption', hint: 'Teks posting Instagram.', max: 2200, rows: 6, required: true, group: 'main' },
-    { key: 'hashtags', name: 'hashtags', label: 'Hashtag', hint: 'Pisahkan dengan spasi, maksimal 30.', max: 1000, rows: 2, required: false, group: 'main' },
+    { key: 'caption', name: 'caption', label: 'Caption', hint: '', max: 2200, rows: 5, required: true, group: 'compose' },
+    {
+        key: 'hashtags',
+        name: 'hashtags',
+        label: 'Hashtag',
+        hint: 'Pisahkan dengan spasi, maksimal 30. Disimpan terpisah dari caption.',
+        max: 1000,
+        rows: 2,
+        required: false,
+        group: 'compose',
+    },
     {
         key: 'altText',
         name: 'alt_text',
         label: 'Alt text',
-        hint: 'Deskripsi gambar untuk pembaca layar. Wajib sebelum ditandai siap posting; AI dapat menuliskannya.',
+        hint: 'Jelaskan isi gambar untuk pembaca layar. Wajib sebelum siap posting; AI dapat menuliskannya.',
         max: 1000,
-        rows: 2,
+        rows: 3,
         required: true,
-        group: 'advanced',
+        group: 'media',
     },
     {
         key: 'objective',
@@ -244,20 +254,36 @@ export const contentFields: readonly {
         max: 1000,
         rows: 2,
         required: false,
-        group: 'advanced',
+        group: 'creative',
     },
-    { key: 'audience', name: 'audience', label: 'Audiens', hint: 'Untuk siapa posting ini.', max: 1000, rows: 2, required: false, group: 'advanced' },
+    { key: 'audience', name: 'audience', label: 'Audiens', hint: 'Untuk siapa posting ini.', max: 1000, rows: 2, required: false, group: 'creative' },
     {
         key: 'visualDirection',
         name: 'visual_direction',
         label: 'Arahan visual',
         hint: 'Warna, tata letak, dan gaya gambar.',
         max: 3000,
-        rows: 3,
+        rows: 4,
         required: false,
-        group: 'advanced',
+        group: 'creative',
     },
 ];
+
+/** A content field by its request name; the Draft workspace and its error summary label fields the same way. */
+export function contentField(name: string): (typeof contentFields)[number] | undefined {
+    return contentFields.find((field) => field.name === name);
+}
+
+/** The detail page's secondary surfaces (ADR-0013), named in the header menu and in their sheets and dialogs. */
+export const detailSurfaceLabels: Record<DetailSurface, string> = {
+    plan: 'Ubah rencana',
+    creative: 'Detail kreatif',
+    research: 'Riset & sumber',
+    history: 'Riwayat versi',
+    activity: 'Aktivitas',
+    returnToDraft: 'Kembali ke Draft',
+    archive: 'Arsipkan',
+};
 
 export const imageRequirements = 'JPEG, PNG, atau WebP · rasio 4:5 · minimal 1080×1350 piksel · maksimal 8 MB';
 

@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { login, test } from './support';
+import { login, openContent, test } from './support';
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -19,8 +19,10 @@ const pages = [
 ];
 
 for (const [name, width, height] of [
+    ['small mobile', 320, 568],
     ['mobile', 360, 740],
     ['tablet', 768, 1024],
+    ['laptop', 1280, 900],
     ['desktop', 1440, 900],
 ] as const) {
     test(`no page overflows horizontally on ${name}`, async ({ page }) => {
@@ -33,11 +35,17 @@ for (const [name, width, height] of [
             await expectNoHorizontalOverflow(page);
         }
 
-        // A seeded content item, with its image, editor, and history.
-        await page.goto('/content/calendar?view=list&search=Cerita');
-        await page.getByRole('link', { name: 'Cerita klien: toko roti go online' }).click();
-        await page.waitForLoadState('networkidle');
-        await expectNoHorizontalOverflow(page);
+        // One seeded content item per status workspace (ADR-0013).
+        for (const [title, archived] of [
+            ['Cerita klien: toko roti go online', false],
+            ['3 tanda website Anda perlu diperbarui', false],
+            ['Kenapa website lambat merugikan bisnis', false],
+            ['Promo lama yang dibatalkan', true],
+        ] as const) {
+            await openContent(page, title, archived);
+            await page.waitForLoadState('networkidle');
+            await expectNoHorizontalOverflow(page);
+        }
     });
 }
 

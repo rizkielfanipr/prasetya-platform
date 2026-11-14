@@ -20,6 +20,9 @@ use App\Support\BusinessTime;
  */
 final class ContentPresenter
 {
+    /** What revision() reads from a revision's relations; eager-load these to keep the query count flat. */
+    public const array REVISION_RELATIONS = ['asset', 'author', 'submitter', 'brandProfile', 'generationRun', 'decisions.actor'];
+
     /** @return array{code: string, name: string} */
     public static function brand(ContentBrand $brand): array
     {
@@ -51,11 +54,18 @@ final class ContentPresenter
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Needs creator and publication loaded, and revisions with at least id and public_id (ids only is enough).
+     *
+     * @return array<string, mixed>
+     */
     public static function item(ContentItem $item): array
     {
+        $queue = app(PostingQueue::class);
+
         return [
             ...self::row($item),
+            'daysLate' => $queue->dueState($item) === 'overdue' ? $queue->daysLate($item) : null,
             'createdAt' => $item->created_at->toIso8601ZuluString(),
             'createdBy' => $item->creator->name,
             'readyRevisionId' => $item->ready_revision_id === null ? null : $item->revisions->firstWhere('id', $item->ready_revision_id)?->public_id,

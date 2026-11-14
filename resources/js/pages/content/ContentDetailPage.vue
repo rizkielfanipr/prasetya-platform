@@ -1,152 +1,122 @@
 <script setup lang="ts">
 import AppLayout from '@/components/layout/AppLayout.vue';
-import PanelCard from '@/components/layout/PanelCard.vue';
-import AuditTimeline from '@/components/shared/AuditTimeline.vue';
-import ContentAiRuns from '@/features/content/ContentAiRuns.vue';
-import ContentDetailsDialog from '@/features/content/ContentDetailsDialog.vue';
-import ContentInsightPanel from '@/features/content/ContentInsightPanel.vue';
-import ContentEditor from '@/features/content/ContentEditor.vue';
-import ContentPostingPackage from '@/features/content/ContentPostingPackage.vue';
-import ContentResearchPanel from '@/features/content/ContentResearchPanel.vue';
-import ContentRevisionHistory from '@/features/content/ContentRevisionHistory.vue';
-import ContentStatusBadge from '@/features/content/ContentStatusBadge.vue';
+import ArchivedContentWorkspace from '@/features/content/detail/ArchivedContentWorkspace.vue';
+import ContentActivitySheet from '@/features/content/detail/ContentActivitySheet.vue';
+import ContentDetailHeader from '@/features/content/detail/ContentDetailHeader.vue';
+import ContentHistorySheet from '@/features/content/detail/ContentHistorySheet.vue';
+import ContentLifecycleDialogs from '@/features/content/detail/ContentLifecycleDialogs.vue';
+import ContentPlanDialog from '@/features/content/detail/ContentPlanDialog.vue';
+import ContentResearchSheet from '@/features/content/detail/ContentResearchSheet.vue';
+import DraftContentWorkspace from '@/features/content/detail/DraftContentWorkspace.vue';
+import PublishedContentWorkspace from '@/features/content/detail/PublishedContentWorkspace.vue';
+import ReadyPostingWorkspace from '@/features/content/detail/ReadyPostingWorkspace.vue';
 import { formatDateTime } from '@/lib/format';
-import { routes } from '@/lib/routes';
-import type { AuditEntry } from '@/types/backoffice';
 import type {
+    ArchiveEvidence,
     ContentActions,
     ContentItem,
     ContentLimits,
     ContentRevision,
+    DetailSurface,
     InsightSnapshot,
     ItemAi,
-    ItemResearch,
     PlanOptions,
     RuleFinding,
 } from '@/types/content';
-import { Link } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 /**
- * One post's workspace (ADR-0012, phase 3): schedule and status, the posting package when it is Ready, and the editor.
- * Plan details, research, AI runs, revision history, and the item's own audit sit under Pengaturan tambahan.
+ * One post's workspace, chosen by the server's status (ADR-0013) on one canonical URL: Draft to make it, Ready to post
+ * it, Published for its evidence and insight, Archived read-only. Props a status does not need arrive as null. Plan,
+ * Detail kreatif, research, history, and activity open by name from Lainnya and load their evidence when opened.
  */
 const props = defineProps<{
     item: ContentItem;
     revision: ContentRevision;
-    revisions: ContentRevision[];
     actions: ContentActions;
-    activity: AuditEntry[];
-    limits: ContentLimits;
-    findings: RuleFinding[];
+    limits: ContentLimits | null;
+    findings: RuleFinding[] | null;
     brandRulesVersion: number | null;
-    planOptions: PlanOptions;
-    ai: ItemAi;
-    research: ItemResearch;
+    planOptions: PlanOptions | null;
+    ai: ItemAi | null;
+    postedRevision: ContentRevision | null;
     insights: InsightSnapshot[] | null;
+    archive: ArchiveEvidence | null;
 }>();
 
-const postable = computed(() => props.item.status === 'READY' || props.item.status === 'PUBLISHED');
-const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item.plannedDay}`);
+const surface = ref<DetailSurface | null>(null);
+const surfaceModel = (name: DetailSurface) =>
+    computed({
+        get: () => surface.value === name,
+        set: (open: boolean) => {
+            if (open) surface.value = name;
+            else if (surface.value === name) surface.value = null;
+        },
+    });
+const planOpen = surfaceModel('plan');
+const creativeOpen = surfaceModel('creative');
+const researchOpen = surfaceModel('research');
+const historyOpen = surfaceModel('history');
+const activityOpen = surfaceModel('activity');
+const returning = surfaceModel('returnToDraft');
+const archiving = surfaceModel('archive');
+
+// "Edit konten" on Ready shows the editor until the save returns the item to Draft, or the person goes back.
+const editingReady = ref(false);
+watch(
+    () => props.item.status,
+    () => {
+        editingReady.value = false;
+        surface.value = null;
+    },
+);
+
+const description = computed(() => `${props.item.brand.name} · ${formatDateTime(props.item.plannedAt)}`);
+const editing = computed(() => props.item.status === 'DRAFT' || (props.item.status === 'READY' && editingReady.value));
 </script>
 
 <template>
-    <AppLayout :title="item.title" :description="`${item.brand.name} · rencana ${formatDateTime(item.plannedAt)}`">
-        <Link :href="calendarHref" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-text hover:underline">
-            <ArrowLeft class="size-4" aria-hidden="true" />Kembali ke kalender
-        </Link>
+    <AppLayout :title="item.title" :description="description">
+        <!-- One reading width for every status, so the header lines up with the workspace below it. -->
+        <div class="max-w-[72rem] space-y-4 md:space-y-5 lg:space-y-6">
+            <ContentDetailHeader :item="item" :actions="actions" :editing="editingReady" @open="(name) => (surface = name)" />
 
-        <PanelCard title="Jadwal dan status">
-            <template #actions><ContentDetailsDialog :item="item" :options="planOptions" :blocked-reason="actions.editDetails" /></template>
-            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Status</dt>
-                    <dd class="mt-1"><ContentStatusBadge :status="item.status" /></dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Rencana posting</dt>
-                    <dd class="mt-1">{{ formatDateTime(item.plannedAt) }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Campaign</dt>
-                    <dd class="mt-1">{{ item.campaign?.name ?? 'Tanpa campaign' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Revisi aktif</dt>
-                    <dd class="mt-1">{{ revision.number }}</dd>
-                </div>
-            </dl>
-        </PanelCard>
-
-        <PanelCard v-if="insights" id="insight" title="Insight" description="Angka dari Insight Instagram, dicatat manual.">
-            <ContentInsightPanel :item-id="item.id" :insights="insights" />
-        </PanelCard>
-
-        <PanelCard v-if="postable" title="Paket posting" description="Posting manual di Instagram dari revisi yang siap posting, lalu catat di sini.">
-            <ContentPostingPackage :item="item" :revision="revision" :actions="actions" />
-        </PanelCard>
-
-        <PanelCard :title="`Konten · revisi ${revision.number}`">
-            <ContentEditor
+            <DraftContentWorkspace
+                v-if="editing && limits && findings"
+                v-model:creative-open="creativeOpen"
                 :item="item"
                 :revision="revision"
-                :blocked-reason="actions.edit"
+                :actions="actions"
                 :limits="limits"
                 :findings="findings"
                 :brand-rules-version="brandRulesVersion"
                 :ai="ai"
+                :editing-ready="item.status === 'READY'"
+                @cancel-edit="editingReady = false"
+            />
+            <ReadyPostingWorkspace
+                v-else-if="item.status === 'READY'"
+                :item="item"
+                :revision="revision"
                 :actions="actions"
-            >
-                <template #more>
-                    <section aria-labelledby="more-plan" class="space-y-2">
-                        <h3 id="more-plan" class="text-sm font-semibold">Rencana</h3>
-                        <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                                <dt class="text-xs font-semibold text-muted-foreground">Judul kerja</dt>
-                                <dd class="mt-1 break-words">{{ item.title }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-semibold text-muted-foreground">Pilar</dt>
-                                <dd class="mt-1">{{ item.pillar?.name ?? 'Tanpa pilar' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-semibold text-muted-foreground">Topik</dt>
-                                <dd class="mt-1">{{ item.topic ?? '—' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-semibold text-muted-foreground">Brand · dibuat</dt>
-                                <dd class="mt-1">{{ item.brand.name }} · {{ item.createdBy }}, {{ formatDateTime(item.createdAt) }}</dd>
-                            </div>
-                        </dl>
-                        <p class="text-xs text-muted-foreground">Ubah lewat <span class="font-semibold">Ubah rencana</span> di atas.</p>
-                    </section>
-                    <section aria-labelledby="more-research" class="space-y-2">
-                        <h3 id="more-research" class="text-sm font-semibold">Riset &amp; sumber</h3>
-                        <p class="text-xs text-muted-foreground">Data internal dulu, lalu sumber dari web. Sumber adalah bahan, bukan fakta bisnis.</p>
-                        <ContentResearchPanel :item="item" :research="research" />
-                    </section>
-                    <section aria-labelledby="more-ai" class="space-y-2">
-                        <h3 id="more-ai" class="text-sm font-semibold">Riwayat draft AI</h3>
-                        <ContentAiRuns :runs="ai.runs" />
-                    </section>
-                    <div class="grid gap-6 lg:grid-cols-2">
-                        <section aria-labelledby="more-revisions" class="space-y-2">
-                            <h3 id="more-revisions" class="text-sm font-semibold">Riwayat revisi</h3>
-                            <ContentRevisionHistory
-                                :revisions="revisions"
-                                :ready-revision-id="item.readyRevisionId"
-                                :approved-revision-id="item.approvedRevisionId"
-                            />
-                        </section>
-                        <section aria-labelledby="more-activity" class="space-y-2">
-                            <h3 id="more-activity" class="text-sm font-semibold">Aktivitas</h3>
-                            <p class="text-xs text-muted-foreground">Audit konten ini, terbaru di atas (maksimal 100 catatan).</p>
-                            <AuditTimeline :entries="activity" />
-                        </section>
-                    </div>
-                </template>
-            </ContentEditor>
-        </PanelCard>
+                :findings="findings ?? []"
+                :brand-rules-version="brandRulesVersion"
+                @edit="editingReady = true"
+            />
+            <PublishedContentWorkspace
+                v-else-if="item.status === 'PUBLISHED' && item.publication && postedRevision"
+                :item="item"
+                :publication="item.publication"
+                :posted-revision="postedRevision"
+                :insights="insights ?? []"
+            />
+            <ArchivedContentWorkspace v-else :item="item" :revision="revision" :archive="archive" @open="(name) => (surface = name)" />
+
+            <ContentPlanDialog v-if="planOptions" v-model:open="planOpen" :item="item" :options="planOptions" />
+            <ContentLifecycleDialogs v-model:returning="returning" v-model:archiving="archiving" :item="item" :revision="revision" />
+            <ContentResearchSheet v-model:open="researchOpen" :item="item" />
+            <ContentHistorySheet v-model:open="historyOpen" :item="item" />
+            <ContentActivitySheet v-model:open="activityOpen" :item="item" />
+        </div>
     </AppLayout>
 </template>
