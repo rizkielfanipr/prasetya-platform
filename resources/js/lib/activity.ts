@@ -55,7 +55,7 @@ export function describeActivity(entry: TransactionActivityEntry): ActivityDescr
             const status = lookup(webhookStatuses, d.status);
 
             return {
-                title: `Webhook ${status?.label.toLowerCase() ?? String(d.status)}`,
+                title: `Webhook: ${status?.label ?? String(d.status)}`,
                 detail: join(
                     text(d.invoice),
                     text(d.rejection) ? (rejectionLabels[String(d.rejection)] ?? String(d.rejection)) : null,

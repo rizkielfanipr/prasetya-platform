@@ -15,10 +15,10 @@ const value = computed({
 </script>
 
 <template>
-    <div class="flex min-w-40 flex-1 flex-col gap-1.5 sm:flex-none">
-        <label :id="`${id}-label`" class="text-xs font-semibold text-muted-foreground">{{ label }}</label>
+    <div class="flex min-w-36 flex-1 flex-col gap-1.5 sm:flex-none">
+        <label :id="`${id}-label`" class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">{{ label }}</label>
         <Select v-model="value">
-            <SelectTrigger :id="id" :aria-labelledby="`${id}-label ${id}`" class="h-11 w-full bg-card">
+            <SelectTrigger :id="id" :aria-labelledby="`${id}-label ${id}`" class="h-11 w-full bg-card font-semibold data-[size=default]:h-11">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>

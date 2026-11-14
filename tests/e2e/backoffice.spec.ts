@@ -53,10 +53,12 @@ test('sorts and paginates on the server', async ({ page }) => {
     await expect(page.getByText('Halaman 2 dari')).toBeVisible();
 });
 
-test('global search goes to filtered transactions', async ({ page }) => {
-    await page.locator('#global-search').fill('Ahmad');
-    await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/\/transactions\?search=Ahmad/);
+// The header carries navigation and account only (ADR-0014); search lives on Transaksi, one station away.
+test('transaction search is one navigation step from any page', async ({ page }) => {
+    await page.getByRole('navigation', { name: 'Navigasi utama' }).getByRole('link', { name: 'Transaksi' }).click();
+    await page.locator('#transaction-search').fill('Ahmad');
+    await expect(page).toHaveURL(/\/transactions\?.*search=Ahmad/);
+    await expect(page.locator('#global-search')).toHaveCount(0);
 });
 
 test('open transaction detail: payment and order status are separate', async ({ page }) => {
@@ -73,7 +75,7 @@ test('open transaction detail: payment and order status are separate', async ({ 
         .getByText(/^Kejadian/)
         .first()
         .click();
-    await expect(page.getByText(/Status berubah: Menunggu → Berhasil/).first()).toBeVisible();
+    await expect(page.getByText(/Status berubah: Pending → Paid/).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Riwayat webhook' })).toBeVisible();
 
     await page.getByRole('tab', { name: 'Aktivitas' }).click();
@@ -91,7 +93,7 @@ test('inspect payment events with sanitised diagnostics', async ({ page }) => {
     await expect(page.getByRole('table', { name: 'Event pembayaran dari gateway' })).toBeVisible();
 
     await page.locator('#filter-status').click();
-    await page.getByRole('option', { name: 'Ditolak' }).click();
+    await page.getByRole('option', { name: 'Rejected' }).click();
     await expect(page).toHaveURL(/status=REJECTED/);
     await expect(page.getByText('Tanda tangan tidak valid').first()).toBeVisible();
 

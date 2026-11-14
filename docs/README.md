@@ -6,7 +6,9 @@ This directory is the engineering source of truth for Prasetya Platform. Product
 
 | Document | Purpose | Status |
 |---|---|---|
-| [`design.md`](design.md) | Design system, component contracts, accessibility, and frontend quality baseline | Approved for implementation |
+| [`design.md`](design.md) | Design system, component contracts, accessibility, and frontend quality baseline | Approved for implementation; visual sections to be replaced by the redesign (ADR-0014) |
+| [`../PRODUCT.md`](../PRODUCT.md) | Product context for design work: users, purpose, constraints, brand commitments (read by Impeccable) | Confirmed by the owner (2026-11-14) |
+| [`../DESIGN.md`](../DESIGN.md) | Visual system of the redesign (ADR-0014): tokens, type, shell, components, rules; recorded from the `/transactions` pilot | Pilot built, awaiting owner review |
 | [`architecture.md`](architecture.md) | System context, module boundaries, data ownership, and engineering constraints | Proposed |
 | [`implementation-plan.md`](implementation-plan.md) | Delivery milestones, dependencies, exit criteria, quality gates, and risks | Draft for approval |
 | [`satamu-payment-activation-plan.md`](satamu-payment-activation-plan.md) | Satamu catalogue, shared Duitku integration, tests, rollout, and rollback | Draft for approval |

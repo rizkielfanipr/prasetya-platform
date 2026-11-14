@@ -32,6 +32,13 @@ export function formatDateTime(iso: string | null | undefined): string {
     return iso ? `${dateTime.format(new Date(iso)).replace('.', ':')} WIB` : EMPTY;
 }
 
+const time = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit', timeZone: BUSINESS_TIMEZONE });
+
+/** 10:42 WIB, the time of day in business time. */
+export function formatTime(iso: string | null | undefined): string {
+    return iso ? `${time.format(new Date(iso)).replace('.', ':')} WIB` : EMPTY;
+}
+
 /** A calendar day from the server (YYYY-MM-DD); already in business time, so it must not shift. */
 export function formatDay(day: string): string {
     return shortDay.format(new Date(`${day}T00:00:00Z`));
