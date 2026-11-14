@@ -69,9 +69,9 @@ test('an issue without a transaction says so instead of linking nowhere', async 
 test('Event Pembayaran finds rejected, duplicate, and processed events', async ({ page }) => {
     await page.goto('/transactions?view=events');
     for (const [status, label] of [
-        ['REJECTED', 'Ditolak'],
-        ['DUPLICATE', 'Duplikat'],
-        ['PROCESSED', 'Diproses'],
+        ['REJECTED', 'Rejected'],
+        ['DUPLICATE', 'Duplicate'],
+        ['PROCESSED', 'Processed'],
     ] as const) {
         await page.getByLabel('Pemrosesan').click();
         await page.getByRole('option', { name: label, exact: true }).click();

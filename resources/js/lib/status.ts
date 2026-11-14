@@ -1,12 +1,25 @@
 import type { OrderStatus, PaymentStatus, ReconciliationGroup, WebhookStatus } from '@/types/backoffice';
-import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, RefreshCw, ShieldAlert, ShieldCheck, TriangleAlert, XCircle } from '@lucide/vue';
+import {
+    ArrowPathIcon,
+    CheckCircleIcon,
+    ClockIcon,
+    ExclamationTriangleIcon,
+    MinusCircleIcon,
+    NoSymbolIcon,
+    ShieldCheckIcon,
+    ShieldExclamationIcon,
+    XCircleIcon,
+} from '@heroicons/vue/24/outline';
+import type { Component } from 'vue';
 
 export type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 export interface StatusDefinition {
+    /** Status labels are English (ADR-0014); everything around them stays Indonesian. */
     label: string;
     tone: StatusTone;
-    icon: LucideIcon;
+    /** Heroicons on migrated screens; Content Studio still passes Lucide icons until it moves (ADR-0014). */
+    icon: Component;
 }
 
 export const toneClasses: Record<StatusTone, string> = {
@@ -18,30 +31,33 @@ export const toneClasses: Record<StatusTone, string> = {
 };
 
 export const paymentStatuses: Record<PaymentStatus, StatusDefinition> = {
-    CREATED: { label: 'Dibuat', tone: 'neutral', icon: Circle },
-    PENDING: { label: 'Menunggu', tone: 'warning', icon: Clock },
-    PAID: { label: 'Berhasil', tone: 'success', icon: CheckCircle2 },
-    FAILED: { label: 'Gagal', tone: 'danger', icon: XCircle },
-    EXPIRED: { label: 'Kedaluwarsa', tone: 'danger', icon: XCircle },
-    CANCELLED: { label: 'Dibatalkan', tone: 'neutral', icon: Ban },
+    CREATED: { label: 'Created', tone: 'neutral', icon: MinusCircleIcon },
+    PENDING: { label: 'Pending', tone: 'warning', icon: ClockIcon },
+    PAID: { label: 'Paid', tone: 'success', icon: CheckCircleIcon },
+    FAILED: { label: 'Failed', tone: 'danger', icon: XCircleIcon },
+    EXPIRED: { label: 'Expired', tone: 'danger', icon: XCircleIcon },
+    CANCELLED: { label: 'Cancelled', tone: 'neutral', icon: NoSymbolIcon },
 };
 
+/** Shown where a transaction has no payment attempt yet; it is the absence of a status, worded like one. */
+export const noPaymentLabel = 'No Payment';
+
 export const orderStatuses: Record<OrderStatus, StatusDefinition> = {
-    DRAFT: { label: 'Draf', tone: 'neutral', icon: Circle },
-    PENDING_PAYMENT: { label: 'Menunggu bayar', tone: 'warning', icon: Clock },
-    CONFIRMED: { label: 'Terkonfirmasi', tone: 'success', icon: CheckCircle2 },
-    CANCELLED: { label: 'Dibatalkan', tone: 'neutral', icon: Ban },
-    EXPIRED: { label: 'Kedaluwarsa', tone: 'danger', icon: XCircle },
+    DRAFT: { label: 'Draft', tone: 'neutral', icon: MinusCircleIcon },
+    PENDING_PAYMENT: { label: 'Pending Payment', tone: 'warning', icon: ClockIcon },
+    CONFIRMED: { label: 'Confirmed', tone: 'success', icon: CheckCircleIcon },
+    CANCELLED: { label: 'Cancelled', tone: 'neutral', icon: NoSymbolIcon },
+    EXPIRED: { label: 'Expired', tone: 'danger', icon: XCircleIcon },
 };
 
 export const webhookStatuses: Record<WebhookStatus, StatusDefinition> = {
-    RECEIVED: { label: 'Diterima', tone: 'info', icon: RefreshCw },
-    VERIFIED: { label: 'Terverifikasi', tone: 'info', icon: ShieldCheck },
-    PROCESSED: { label: 'Diproses', tone: 'success', icon: CheckCircle2 },
-    IGNORED: { label: 'Diabaikan', tone: 'neutral', icon: Circle },
-    DUPLICATE: { label: 'Duplikat', tone: 'info', icon: RefreshCw },
-    REJECTED: { label: 'Ditolak', tone: 'danger', icon: ShieldAlert },
-    FAILED: { label: 'Gagal diproses', tone: 'danger', icon: TriangleAlert },
+    RECEIVED: { label: 'Received', tone: 'info', icon: ArrowPathIcon },
+    VERIFIED: { label: 'Verified', tone: 'info', icon: ShieldCheckIcon },
+    PROCESSED: { label: 'Processed', tone: 'success', icon: CheckCircleIcon },
+    IGNORED: { label: 'Ignored', tone: 'neutral', icon: MinusCircleIcon },
+    DUPLICATE: { label: 'Duplicate', tone: 'info', icon: ArrowPathIcon },
+    REJECTED: { label: 'Rejected', tone: 'danger', icon: ShieldExclamationIcon },
+    FAILED: { label: 'Failed', tone: 'danger', icon: ExclamationTriangleIcon },
 };
 
 export const rejectionLabels: Record<string, string> = {
@@ -128,8 +144,8 @@ export const auditActionLabels: Record<string, string> = {
 
 /** Back-office user status (Pengguna). */
 export const userStatuses: Record<'active' | 'inactive', StatusDefinition> = {
-    active: { label: 'Aktif', tone: 'success', icon: CheckCircle2 },
-    inactive: { label: 'Nonaktif', tone: 'neutral', icon: Ban },
+    active: { label: 'Aktif', tone: 'success', icon: CheckCircleIcon },
+    inactive: { label: 'Nonaktif', tone: 'neutral', icon: NoSymbolIcon },
 };
 
 export const reconciliationGroups: Record<ReconciliationGroup, { label: string; description: string }> = {

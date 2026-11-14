@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelCard from '@/components/layout/PanelCard.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import TablePagination from '@/components/shared/TablePagination.vue';
 import { Button } from '@/components/ui/button';
@@ -55,7 +54,7 @@ const clearFilters = (): void =>
         @change="apply"
         @search="applyDebounced({ search: $event, page: null })"
     />
-    <PanelCard flush>
+    <section aria-label="Hasil transaksi">
         <TransactionTable
             :rows="transactions.data"
             :loading="loading"
@@ -73,5 +72,5 @@ const clearFilters = (): void =>
             </template>
         </TransactionTable>
         <TablePagination :meta="transactions.meta" :disabled="loading" @change="apply({ page: String($event) })" />
-    </PanelCard>
+    </section>
 </template>

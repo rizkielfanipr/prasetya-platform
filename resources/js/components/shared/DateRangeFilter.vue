@@ -10,7 +10,9 @@ const emit = defineEmits<{ change: [range: { date_from: string | null; date_to: 
     <fieldset class="flex flex-wrap gap-3">
         <legend class="sr-only">Rentang tanggal</legend>
         <div class="flex flex-1 flex-col gap-1.5 sm:flex-none">
-            <label :for="`${idPrefix ?? 'date'}-from`" class="text-xs font-semibold text-muted-foreground">{{ copy.dateFrom }}</label>
+            <label :for="`${idPrefix ?? 'date'}-from`" class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">{{
+                copy.dateFrom
+            }}</label>
             <Input
                 :id="`${idPrefix ?? 'date'}-from`"
                 type="date"
@@ -21,7 +23,9 @@ const emit = defineEmits<{ change: [range: { date_from: string | null; date_to: 
             />
         </div>
         <div class="flex flex-1 flex-col gap-1.5 sm:flex-none">
-            <label :for="`${idPrefix ?? 'date'}-to`" class="text-xs font-semibold text-muted-foreground">{{ copy.dateTo }}</label>
+            <label :for="`${idPrefix ?? 'date'}-to`" class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">{{
+                copy.dateTo
+            }}</label>
             <Input
                 :id="`${idPrefix ?? 'date'}-to`"
                 type="date"

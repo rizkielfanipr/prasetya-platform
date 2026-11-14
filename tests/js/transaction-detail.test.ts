@@ -18,7 +18,7 @@ const entry = (source: TransactionActivityEntry['source'], data: TransactionActi
 describe('describeActivity', () => {
     it('words each source from its sanitised fields', () => {
         expect(describeActivity(entry('order_status', { from: 'PENDING_PAYMENT', to: 'CONFIRMED', via: 'GATEWAY_NOTIFICATION', reason: null }))).toEqual({
-            title: 'Pesanan: Menunggu bayar → Terkonfirmasi',
+            title: 'Pesanan: Pending Payment → Confirmed',
             detail: 'Notifikasi gateway',
             tone: 'success',
         });
@@ -34,7 +34,7 @@ describe('describeActivity', () => {
                     failureCode: null,
                 }),
             ).title,
-        ).toBe('Percobaan 2: Status berubah: Menunggu → Berhasil');
+        ).toBe('Percobaan 2: Status berubah: Pending → Paid');
         expect(
             describeActivity(
                 entry('webhook', {
@@ -47,7 +47,7 @@ describe('describeActivity', () => {
                 }),
             ),
         ).toMatchObject({
-            title: 'Webhook ditolak',
+            title: 'Webhook: Rejected',
             detail: 'PW-1 · Jumlah tidak cocok · Kanal: SP',
             tone: 'danger',
         });
@@ -64,7 +64,7 @@ describe('describeActivity', () => {
             describeActivity(
                 entry('webhook', { invoice: null, status: 'NEW_STATUS', rejection: null, signatureValid: null, isDuplicate: false, channel: null }),
             ).title,
-        ).toBe('Webhook NEW_STATUS');
+        ).toBe('Webhook: NEW_STATUS');
     });
 });
 

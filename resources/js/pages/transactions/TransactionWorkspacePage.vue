@@ -46,20 +46,24 @@ const baseQuery = computed(() => ({ view: props.view }));
 
 <template>
     <AppLayout title="Transaksi" description="Pesanan, isu yang perlu ditinjau, dan event pembayaran dari kedua brand">
-        <nav aria-label="Tampilan transaksi" class="flex max-w-full gap-1 overflow-x-auto border-b">
+        <!-- On narrow phones the strip scrolls; the fade at its edge says there is more. -->
+        <nav
+            aria-label="Tampilan transaksi"
+            class="flex max-w-full gap-6 overflow-x-auto border-b border-border max-sm:[mask-image:linear-gradient(to_right,black_82%,transparent)] max-sm:pr-10"
+        >
             <Link
                 v-for="item in workspaceViews"
                 :key="item.value"
                 :href="`${routes.transactions}?view=${item.value}`"
-                class="-mb-px inline-flex h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm whitespace-nowrap transition-colors hover:text-foreground focus-visible:rounded-t-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none"
-                :class="item.value === view ? 'border-primary-strong font-semibold text-foreground' : 'border-transparent font-medium text-muted-foreground'"
+                class="-mb-px inline-flex h-11 shrink-0 items-center gap-2 border-b-[3px] text-sm font-bold whitespace-nowrap transition-colors hover:text-foreground focus-visible:rounded-t-md motion-reduce:transition-none"
+                :class="item.value === view ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:border-tint-300'"
                 :aria-current="item.value === view ? 'page' : undefined"
                 :data-testid="`workspace-${item.value}`"
             >
                 {{ item.label }}
                 <span
                     v-if="item.value === 'attention' && openIssues > 0"
-                    class="rounded-full bg-warning-surface px-2 py-0.5 text-[11px] font-bold text-warning tabular"
+                    class="rounded-md bg-warning-surface px-1.5 text-[11px] leading-5 font-extrabold text-warning tabular"
                     :aria-label="`${openIssues} isu perlu ditinjau`"
                     >{{ formatNumber(openIssues) }}</span
                 >

@@ -1,0 +1,829 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T15:00:00+07:00",
+  "title": "Design System: Prasetya Platform",
+  "extensions": {
+    "colorMeta": {
+      "line-orange": {
+        "role": "primary",
+        "displayName": "Line Orange",
+        "canonical": "#ff5100",
+        "cssVar": "--tint-600 / --primary / --ring / --line-current",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "line-orange-deep": {
+        "role": "primary",
+        "displayName": "Deep Line Orange",
+        "canonical": "#c93f00",
+        "cssVar": "--primary-strong / --tint-700",
+        "tonalRamp": [
+          "#9a3000",
+          "#ad3600",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#fff3ea"
+        ]
+      },
+      "line-orange-deep-hover": {
+        "role": "primary",
+        "displayName": "Deep Line Orange Hover",
+        "canonical": "#ad3600",
+        "cssVar": "--primary-strong-hover",
+        "tonalRamp": [
+          "#9a3000",
+          "#ad3600",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#fff3ea"
+        ]
+      },
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Accent Text",
+        "canonical": "#b83a00",
+        "cssVar": "--primary-text",
+        "tonalRamp": [
+          "#9a3000",
+          "#b83a00",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#fff3ea"
+        ]
+      },
+      "tint-50": {
+        "role": "neutral",
+        "displayName": "Tint 50 (filter field, row hover)",
+        "canonical": "#fffaf6",
+        "cssVar": "--tint-50 / --muted",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fffaf6"
+        ]
+      },
+      "tint-100": {
+        "role": "neutral",
+        "displayName": "Tint 100 (header band, active row)",
+        "canonical": "#fff3ea",
+        "cssVar": "--tint-100 / --secondary / --accent / --sidebar-active",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "tint-200": {
+        "role": "neutral",
+        "displayName": "Tint 200 (chips, selection)",
+        "canonical": "#ffe6d5",
+        "cssVar": "--tint-200",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "tint-300": {
+        "role": "neutral",
+        "displayName": "Tint 300 (station rings)",
+        "canonical": "#ffd2b8",
+        "cssVar": "--tint-300 / --line-track",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "tint-400": {
+        "role": "neutral",
+        "displayName": "Tint 400 (route track)",
+        "canonical": "#ffb48f",
+        "cssVar": "--tint-400",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "tint-500": {
+        "role": "neutral",
+        "displayName": "Tint 500 (route station ring)",
+        "canonical": "#ff8a57",
+        "cssVar": "--tint-500",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "tint-800": {
+        "role": "neutral",
+        "displayName": "Tint 800 (text on tint-200)",
+        "canonical": "#9a3000",
+        "cssVar": "--tint-800",
+        "tonalRamp": [
+          "#9a3000",
+          "#c93f00",
+          "#ff5100",
+          "#ff8a57",
+          "#ffb48f",
+          "#ffd2b8",
+          "#ffe6d5",
+          "#fff3ea"
+        ]
+      },
+      "enamel-white": {
+        "role": "neutral",
+        "displayName": "Enamel White",
+        "canonical": "#ffffff",
+        "cssVar": "--background / --card / --sidebar",
+        "tonalRamp": [
+          "#1b1f24",
+          "#3a4048",
+          "#5f6670",
+          "#8a9099",
+          "#b5bac1",
+          "#d8dbdf",
+          "#eceef0",
+          "#ffffff"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1b1f24",
+        "cssVar": "--foreground",
+        "tonalRamp": [
+          "#1b1f24",
+          "#3a4048",
+          "#5f6670",
+          "#8a9099",
+          "#b5bac1",
+          "#d8dbdf",
+          "#eceef0",
+          "#f7f8f9"
+        ]
+      },
+      "sign-ink": {
+        "role": "neutral",
+        "displayName": "Sign Ink",
+        "canonical": "#3a4048",
+        "cssVar": "--sidebar-foreground",
+        "tonalRamp": [
+          "#1b1f24",
+          "#3a4048",
+          "#5f6670",
+          "#8a9099",
+          "#b5bac1",
+          "#d8dbdf",
+          "#eceef0",
+          "#f7f8f9"
+        ]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#5f6670",
+        "cssVar": "--muted-foreground / --sidebar-muted",
+        "tonalRamp": [
+          "#1b1f24",
+          "#3a4048",
+          "#5f6670",
+          "#8a9099",
+          "#b5bac1",
+          "#d8dbdf",
+          "#eceef0",
+          "#f7f8f9"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#f0e3d9",
+        "cssVar": "--border / --sidebar-border",
+        "tonalRamp": [
+          "#5c4a3d",
+          "#7a6556",
+          "#8f7f73",
+          "#b3a397",
+          "#d4c5ba",
+          "#e6d7cc",
+          "#f0e3d9",
+          "#faf5f1"
+        ]
+      },
+      "input-border": {
+        "role": "neutral",
+        "displayName": "Input Border (sidebar hairline)",
+        "canonical": "#f0e3d9",
+        "cssVar": "--input / --input-strong",
+        "tonalRamp": [
+          "#5c4a3d",
+          "#7a6556",
+          "#8f7f73",
+          "#b3a397",
+          "#d4c5ba",
+          "#e6d7cc",
+          "#f0e3d9",
+          "#faf5f1"
+        ],
+        "note": "Owner exception to the 3:1 boundary rule (1.26:1 on white); see PRODUCT.md."
+      },
+      "satamu-coral": {
+        "role": "secondary",
+        "displayName": "Satamu Coral",
+        "canonical": "#ff6542",
+        "cssVar": "--satamu",
+        "tonalRamp": [
+          "#7a2410",
+          "#b3341a",
+          "#e04e2c",
+          "#ff6542",
+          "#ff8f75",
+          "#ffb7a6",
+          "#ffd9cf",
+          "#ffece7"
+        ]
+      },
+      "satamu-text": {
+        "role": "secondary",
+        "displayName": "Satamu Text",
+        "canonical": "#b3341a",
+        "cssVar": "--satamu-text",
+        "tonalRamp": [
+          "#7a2410",
+          "#b3341a",
+          "#e04e2c",
+          "#ff6542",
+          "#ff8f75",
+          "#ffb7a6",
+          "#ffd9cf",
+          "#ffece7"
+        ]
+      },
+      "satamu-surface": {
+        "role": "secondary",
+        "displayName": "Satamu Surface",
+        "canonical": "#ffece7",
+        "cssVar": "--satamu-surface",
+        "tonalRamp": [
+          "#7a2410",
+          "#b3341a",
+          "#e04e2c",
+          "#ff6542",
+          "#ff8f75",
+          "#ffb7a6",
+          "#ffd9cf",
+          "#ffece7"
+        ]
+      },
+      "chart-satamu": {
+        "role": "secondary",
+        "displayName": "Satamu Series",
+        "canonical": "#ff8f75",
+        "cssVar": "--chart-satamu",
+        "tonalRamp": [
+          "#7a2410",
+          "#b3341a",
+          "#e04e2c",
+          "#ff6542",
+          "#ff8f75",
+          "#ffb7a6",
+          "#ffd9cf",
+          "#ffece7"
+        ]
+      },
+      "chart-grid": {
+        "role": "neutral",
+        "displayName": "Chart Grid",
+        "canonical": "#f1ebe5",
+        "cssVar": "--chart-grid",
+        "tonalRamp": [
+          "#5c4a3d",
+          "#7a6556",
+          "#8f7f73",
+          "#b3a397",
+          "#d4c5ba",
+          "#e6d7cc",
+          "#f1ebe5",
+          "#faf5f1"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Signal Green",
+        "canonical": "#15803d",
+        "cssVar": "--success",
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#16a34a",
+          "#4ade80",
+          "#86efac",
+          "#bbf7d0",
+          "#dcfce7"
+        ]
+      },
+      "success-surface": {
+        "role": "tertiary",
+        "displayName": "Signal Green Surface",
+        "canonical": "#dcfce7",
+        "cssVar": "--success-surface",
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#16a34a",
+          "#4ade80",
+          "#86efac",
+          "#bbf7d0",
+          "#dcfce7"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Signal Amber",
+        "canonical": "#b45309",
+        "cssVar": "--warning",
+        "tonalRamp": [
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fcd34d",
+          "#fde68a",
+          "#fef3c7"
+        ]
+      },
+      "warning-surface": {
+        "role": "tertiary",
+        "displayName": "Signal Amber Surface",
+        "canonical": "#fef3c7",
+        "cssVar": "--warning-surface",
+        "tonalRamp": [
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fcd34d",
+          "#fde68a",
+          "#fef3c7"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Signal Red",
+        "canonical": "#b91c1c",
+        "cssVar": "--danger / --destructive",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#f87171",
+          "#fca5a5",
+          "#fecaca",
+          "#fee2e2"
+        ]
+      },
+      "danger-surface": {
+        "role": "tertiary",
+        "displayName": "Signal Red Surface",
+        "canonical": "#fee2e2",
+        "cssVar": "--danger-surface",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#f87171",
+          "#fca5a5",
+          "#fecaca",
+          "#fee2e2"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Signal Blue",
+        "canonical": "#1d4ed8",
+        "cssVar": "--info",
+        "tonalRamp": [
+          "#1e3a8a",
+          "#1e40af",
+          "#1d4ed8",
+          "#2563eb",
+          "#60a5fa",
+          "#93c5fd",
+          "#bfdbfe",
+          "#dbeafe"
+        ]
+      },
+      "info-surface": {
+        "role": "tertiary",
+        "displayName": "Signal Blue Surface",
+        "canonical": "#dbeafe",
+        "cssVar": "--info-surface",
+        "tonalRamp": [
+          "#1e3a8a",
+          "#1e40af",
+          "#1d4ed8",
+          "#2563eb",
+          "#60a5fa",
+          "#93c5fd",
+          "#bfdbfe",
+          "#dbeafe"
+        ]
+      },
+      "neutral": {
+        "role": "tertiary",
+        "displayName": "Signal Grey",
+        "canonical": "#525252",
+        "cssVar": "--neutral",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#525252",
+          "#737373",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e5e5e5",
+          "#f1efed"
+        ]
+      },
+      "neutral-surface": {
+        "role": "tertiary",
+        "displayName": "Signal Grey Surface",
+        "canonical": "#f1efed",
+        "cssVar": "--neutral-surface",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#525252",
+          "#737373",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e5e5e5",
+          "#f1efed"
+        ]
+      }
+    },
+    "contrast": [
+      {
+        "pair": "ink on enamel-white",
+        "ratio": 16.56
+      },
+      {
+        "pair": "sign-ink on enamel-white",
+        "ratio": 10.46
+      },
+      {
+        "pair": "sign-ink on tint-100",
+        "ratio": 9.6
+      },
+      {
+        "pair": "muted-ink on enamel-white",
+        "ratio": 5.8
+      },
+      {
+        "pair": "muted-ink on tint-50",
+        "ratio": 5.59
+      },
+      {
+        "pair": "muted-ink on tint-100",
+        "ratio": 5.32
+      },
+      {
+        "pair": "white on line-orange-deep",
+        "ratio": 5.01
+      },
+      {
+        "pair": "accent-text on enamel-white",
+        "ratio": 5.76
+      },
+      {
+        "pair": "accent-text on tint-50",
+        "ratio": 5.56
+      },
+      {
+        "pair": "tint-800 on tint-200",
+        "ratio": 6.27
+      },
+      {
+        "pair": "satamu-text on enamel-white",
+        "ratio": 6.14
+      },
+      {
+        "pair": "input-border on enamel-white (boundary)",
+        "ratio": 3.85
+      },
+      {
+        "pair": "white on line-orange (icon only, non-text)",
+        "ratio": 3.27
+      },
+      {
+        "pair": "satamu-coral on enamel-white (decorative outline, name beside)",
+        "ratio": 2.92
+      },
+      {
+        "pair": "warning on enamel-white",
+        "ratio": 5.02
+      },
+      {
+        "pair": "warning on warning-surface",
+        "ratio": 4.51
+      },
+      {
+        "pair": "success on enamel-white",
+        "ratio": 5.02
+      },
+      {
+        "pair": "danger on enamel-white",
+        "ratio": 6.47
+      },
+      {
+        "pair": "info on enamel-white",
+        "ratio": 6.7
+      },
+      {
+        "pair": "neutral on enamel-white",
+        "ratio": 7.81
+      }
+    ],
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "The page title in content, one per page; the only large text."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base text, subtitles, inputs, tabs (700), nav labels (600, 800 active)."
+      },
+      "body-data": {
+        "displayName": "Body Data",
+        "purpose": "Table cells, the status word beside the route (700), order status, pagination."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Secondary lines in a row: package and method, update time, created time."
+      },
+      "label-caps": {
+        "displayName": "Label Caps",
+        "purpose": "Uppercase table header labels and filter field labels."
+      },
+      "identifier": {
+        "displayName": "Identifier",
+        "purpose": "Overpass Mono for machine-issued strings: invoice numbers, usernames, model ids; the WW/ST line codes at 11px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 12px 32px -12px rgb(27 31 36 / 0.25)",
+        "purpose": "Dialogs, sheets, menus, popovers, and the focused skip link. The only shadow in the system."
+      }
+    ],
+    "focus": [
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid #ff5100; outline-offset: 2px",
+        "purpose": "Links and buttons."
+      },
+      {
+        "name": "field-focus",
+        "value": "border-color: #ff5100; box-shadow: 0 0 0 2px #ff5100",
+        "purpose": "Inputs and select triggers (a ring, not elevation)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "colour-transition",
+        "value": "150ms",
+        "purpose": "Hover and active colour changes on nav, rows, tabs, chips."
+      },
+      {
+        "name": "sidebar-width",
+        "value": "200ms ease-out",
+        "purpose": "Sidebar collapse and expand, and the matching content padding."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "All animation and transition collapse under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "content-max",
+        "value": "1440px"
+      },
+      {
+        "name": "table-stack (container)",
+        "value": "60rem"
+      },
+      {
+        "name": "table-stack-narrow (container)",
+        "value": "34rem"
+      }
+    ],
+    "shell": {
+      "sidebar": "248px",
+      "sidebarCollapsed": "76px",
+      "drawer": "288px",
+      "header": "56px",
+      "gutters": "16px / 24px (md) / 32px (lg)"
+    }
+  },
+  "components": [
+    {
+      "name": "Payment Route",
+      "kind": "custom",
+      "refersTo": "payment-route",
+      "description": "Signature: Created, Pending, Paid on one line with a marker at the current stop only; terminus for ended lines; the word is the status.",
+      "html": "<div class=\"ds-route-list\"><span class=\"ds-route\"><svg viewBox=\"0 0 68 14\" width=\"68\" height=\"14\" aria-hidden=\"true\"><line x1=\"6\" y1=\"7\" x2=\"62\" y2=\"7\" stroke=\"#ffb48f\" stroke-width=\"3\" stroke-linecap=\"round\"/><circle cx=\"6\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"62\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"34\" cy=\"7\" r=\"7\" fill=\"#fff3ea\"/><circle cx=\"34\" cy=\"7\" r=\"4.25\" fill=\"#fff\" stroke=\"#b45309\" stroke-width=\"2.5\"/></svg><span class=\"ds-route-word ds-warn\">Pending</span></span><span class=\"ds-route\"><svg viewBox=\"0 0 68 14\" width=\"68\" height=\"14\" aria-hidden=\"true\"><line x1=\"6\" y1=\"7\" x2=\"62\" y2=\"7\" stroke=\"#ffb48f\" stroke-width=\"3\" stroke-linecap=\"round\"/><circle cx=\"6\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"34\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"62\" cy=\"7\" r=\"7\" fill=\"#fff3ea\"/><circle cx=\"62\" cy=\"7\" r=\"5\" fill=\"#15803d\"/></svg><span class=\"ds-route-word ds-ok\">Paid</span></span><span class=\"ds-route\"><svg viewBox=\"0 0 68 14\" width=\"68\" height=\"14\" aria-hidden=\"true\"><line x1=\"6\" y1=\"7\" x2=\"62\" y2=\"7\" stroke=\"#ffb48f\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-dasharray=\"3 4\"/><circle cx=\"6\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"34\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><g stroke=\"#b91c1c\" stroke-width=\"2.5\" stroke-linecap=\"round\"><line x1=\"58\" y1=\"3\" x2=\"66\" y2=\"11\"/><line x1=\"66\" y1=\"3\" x2=\"58\" y2=\"11\"/></g></svg><span class=\"ds-route-word ds-bad\">Expired</span></span><span class=\"ds-route\"><svg viewBox=\"0 0 68 14\" width=\"68\" height=\"14\" aria-hidden=\"true\"><line x1=\"6\" y1=\"7\" x2=\"62\" y2=\"7\" stroke=\"#ffb48f\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-dasharray=\"3 4\"/><circle cx=\"6\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"34\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/><circle cx=\"62\" cy=\"7\" r=\"3.5\" fill=\"#fff\" stroke=\"#ff8a57\" stroke-width=\"2\"/></svg><span class=\"ds-route-word ds-none\">No Payment</span></span></div>",
+      "css": ".ds-route-list { display: flex; flex-direction: column; gap: 14px; font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; } .ds-route { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; } .ds-route svg { overflow: visible; flex-shrink: 0; } .ds-route-word { font-size: 13px; font-weight: 700; } .ds-warn { color: var(--warning, #b45309); } .ds-ok { color: var(--success, #15803d); } .ds-bad { color: var(--danger, #b91c1c); } .ds-none { color: var(--muted-foreground, #5f6670); }"
+    },
+    {
+      "name": "Station Navigation",
+      "kind": "nav",
+      "refersTo": "nav-station",
+      "description": "Sidebar items as separate ringed stations, no connecting track; the active station is filled orange.",
+      "html": "<ul class=\"ds-stations\"><li><a href=\"#\" class=\"ds-station\"><span class=\"ds-station-dot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z\"/></svg></span>Dashboard</a></li><li><a href=\"#\" class=\"ds-station ds-station--active\" aria-current=\"page\"><span class=\"ds-station-dot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z\"/></svg></span>Transaksi<span class=\"ds-count\">32</span></a></li><li><a href=\"#\" class=\"ds-station\"><span class=\"ds-station-dot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z\"/></svg></span>Pengguna</a></li></ul>",
+      "css": ".ds-stations { position: relative; list-style: none; margin: 0; padding: 0; width: 248px; background: var(--sidebar, #fff); font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; } .ds-stations li + li { margin-top: 4px; } .ds-station { position: relative; display: flex; align-items: center; gap: 12px; height: 44px; margin-right: 12px; padding: 0 12px 0 20px; border-radius: 0 10px 10px 0; font-size: 14px; font-weight: 600; color: var(--sidebar-foreground, #3a4048); text-decoration: none; transition: background-color 150ms, color 150ms; } .ds-station-dot { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 9999px; border: 2px solid var(--line-track, #ffd2b8); background: var(--sidebar, #fff); color: var(--sidebar-muted, #5f6670); box-sizing: border-box; transition: border-color 150ms, color 150ms; } .ds-station:hover { background: var(--tint-50, #fffaf6); color: var(--foreground, #1b1f24); } .ds-station:hover .ds-station-dot { border-color: var(--tint-400, #ffb48f); color: var(--foreground, #1b1f24); } .ds-station:focus-visible { outline: 2px solid var(--ring, #ff5100); outline-offset: 2px; } .ds-station--active { background: var(--sidebar-active, #fff3ea); font-weight: 800; color: var(--foreground, #1b1f24); } .ds-station--active .ds-station-dot, .ds-station--active:hover .ds-station-dot { border-color: var(--primary, #ff5100); background: var(--primary, #ff5100); color: #fff; } .ds-count { margin-left: auto; padding: 0 6px; border-radius: 6px; font-size: 11px; line-height: 20px; font-weight: 800; background: var(--warning-surface, #fef3c7); color: var(--warning, #b45309); font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Workspace Tabs",
+      "kind": "nav",
+      "refersTo": "tabs",
+      "description": "Text tabs on a hairline; the current tab carries the orange underline.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Tampilan\"><a href=\"#\" class=\"ds-tab ds-tab--current\" aria-current=\"page\">Semua</a><a href=\"#\" class=\"ds-tab\">Perlu Ditinjau <span class=\"ds-tab-count\">32</span></a><a href=\"#\" class=\"ds-tab\">Event Pembayaran</a></nav>",
+      "css": ".ds-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border, #f0e3d9); font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; } .ds-tab { display: inline-flex; align-items: center; gap: 8px; height: 44px; margin-bottom: -1px; border-bottom: 3px solid transparent; font-size: 14px; font-weight: 700; color: var(--muted-foreground, #5f6670); text-decoration: none; transition: color 150ms, border-color 150ms; } .ds-tab:hover { color: var(--foreground, #1b1f24); border-bottom-color: var(--tint-300, #ffd2b8); } .ds-tab:focus-visible { outline: 2px solid var(--ring, #ff5100); outline-offset: 2px; border-radius: 6px 6px 0 0; } .ds-tab--current, .ds-tab--current:hover { color: var(--foreground, #1b1f24); border-bottom-color: var(--primary, #ff5100); } .ds-tab-count { padding: 0 6px; border-radius: 6px; font-size: 11px; line-height: 20px; font-weight: 800; background: var(--warning-surface, #fef3c7); color: var(--warning, #b45309); }"
+    },
+    {
+      "name": "Filter Field",
+      "kind": "input",
+      "refersTo": "filter-field",
+      "description": "Search, selects, and Filter Lain on one flat tint-50 field; caps labels above 44px controls.",
+      "html": "<section class=\"ds-filter\" aria-label=\"Filter\"><div class=\"ds-filter-row\"><div class=\"ds-field ds-field--grow\"><label class=\"ds-label\" for=\"ds-q\">Cari</label><span class=\"ds-search\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z\"/></svg><input id=\"ds-q\" class=\"ds-input\" type=\"search\" placeholder=\"Cari invoice atau pelanggan\"></span></div><div class=\"ds-field\"><span class=\"ds-label\">Brand</span><button type=\"button\" class=\"ds-select\">Semua<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"m19.5 8.25-7.5 7.5-7.5-7.5\"/></svg></button></div><button type=\"button\" class=\"ds-btn-outline\">Filter Lain</button></div><div class=\"ds-chips\"><button type=\"button\" class=\"ds-chip\">Pembayaran: Paid ×</button><button type=\"button\" class=\"ds-reset\">Reset Filter</button></div></section>",
+      "css": ".ds-filter { background: var(--tint-50, #fffaf6); border-radius: 12px; padding: 16px; font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; color: var(--foreground, #1b1f24); } .ds-filter-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; } .ds-field { display: flex; flex-direction: column; gap: 6px; min-width: 144px; } .ds-field--grow { flex: 1; min-width: 224px; } .ds-label { font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted-foreground, #5f6670); } .ds-search { position: relative; display: block; } .ds-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted-foreground, #5f6670); pointer-events: none; } .ds-input { width: 100%; height: 44px; padding: 0 12px 0 36px; border: 1px solid var(--input, #f0e3d9); border-radius: 8px; background: var(--card, #fff); font: inherit; font-size: 14px; color: inherit; outline: none; } .ds-input::placeholder { color: var(--muted-foreground, #5f6670); } .ds-input:focus-visible, .ds-select:focus-visible { border-color: var(--ring, #ff5100); box-shadow: 0 0 0 2px var(--ring, #ff5100); } .ds-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 44px; padding: 0 12px; border: 1px solid var(--input, #f0e3d9); border-radius: 8px; background: var(--card, #fff); font: inherit; font-size: 14px; font-weight: 600; color: inherit; outline: none; } .ds-select svg { color: var(--muted-foreground, #5f6670); } .ds-btn-outline { height: 44px; padding: 0 16px; border: 1px solid var(--input, #f0e3d9); border-radius: 8px; background: var(--card, #fff); font: inherit; font-size: 14px; font-weight: 700; color: inherit; transition: background-color 150ms; } .ds-btn-outline:hover { background: var(--tint-100, #fff3ea); } .ds-btn-outline:focus-visible, .ds-chip:focus-visible, .ds-reset:focus-visible { outline: 2px solid var(--ring, #ff5100); outline-offset: 2px; } .ds-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; } .ds-chip { min-height: 32px; padding: 4px 8px 4px 12px; border: 0; border-radius: 8px; background: var(--tint-200, #ffe6d5); font: inherit; font-size: 12px; font-weight: 700; color: inherit; transition: background-color 150ms; } .ds-chip:hover { background: var(--tint-300, #ffd2b8); } .ds-reset { min-height: 32px; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 700; color: var(--primary-text, #b83a00); text-underline-offset: 2px; } .ds-reset:hover { text-decoration: underline; }"
+    },
+    {
+      "name": "Transaction Table",
+      "kind": "card",
+      "refersTo": "table-header",
+      "description": "Tint header band with caps labels, 60px rows, hover tint-50; the invoice is the row anchor with the brand bullet under it.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Invoice</th><th>Pelanggan</th><th class=\"ds-r\">Jumlah</th><th>Pesanan</th></tr></thead><tbody><tr><td><a href=\"#\" class=\"ds-invoice\">PW-202611-000005</a><span class=\"ds-brand\"><span class=\"ds-bullet ds-bullet--ww\" aria-hidden=\"true\">WW</span>Webworks</span></td><td><span class=\"ds-strong\">Rizky Pratama</span><span class=\"ds-sub\">Landing Starter</span></td><td class=\"ds-r ds-strong\">Rp499.000</td><td class=\"ds-order\">Pending Payment</td></tr><tr><td><a href=\"#\" class=\"ds-invoice\">SAT-202611-000006</a><span class=\"ds-brand\"><span class=\"ds-bullet ds-bullet--st\" aria-hidden=\"true\">ST</span>Satamu</span></td><td><span class=\"ds-strong\">PT Maju Bersama</span><span class=\"ds-sub\">Istimewa</span></td><td class=\"ds-r ds-strong\">Rp149.000</td><td class=\"ds-order ds-order--failed\">Expired</td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; font-size: 13px; color: var(--foreground, #1b1f24); } .ds-table th { height: 40px; padding: 0 16px; background: var(--tint-100, #fff3ea); text-align: left; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--sidebar-foreground, #3a4048); } .ds-table th:first-child { border-radius: 10px 0 0 10px; } .ds-table th:last-child { border-radius: 0 10px 10px 0; } .ds-table td { height: 60px; padding: 0 16px; border-bottom: 1px solid var(--border, #f0e3d9); transition: background-color 150ms; } .ds-table tbody tr:hover td { background: var(--tint-50, #fffaf6); } .ds-r { text-align: right; font-variant-numeric: tabular-nums; } .ds-strong { display: block; font-weight: 600; } .ds-sub { display: block; font-size: 12px; color: var(--muted-foreground, #5f6670); } .ds-invoice { font-family: 'Overpass Mono', ui-monospace, monospace; font-size: 14px; font-weight: 600; color: var(--foreground, #1b1f24); text-decoration: underline; text-decoration-color: var(--tint-300, #ffd2b8); text-decoration-thickness: 2px; text-underline-offset: 4px; transition: text-decoration-color 150ms; } .ds-invoice:hover, .ds-invoice:focus-visible { text-decoration-color: var(--tint-600, #ff5100); } .ds-invoice:focus-visible { outline: 2px solid var(--ring, #ff5100); outline-offset: 2px; } .ds-brand { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-weight: 700; } .ds-bullet { display: inline-flex; align-items: center; justify-content: center; height: 22px; min-width: 28px; padding: 0 4px; box-sizing: border-box; border-radius: 6px; font-family: 'Overpass Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; } .ds-bullet--ww { background: var(--tint-700, #c93f00); border: 1.5px solid var(--tint-700, #c93f00); color: #fff; } .ds-bullet--st { background: var(--card, #fff); border: 1.5px solid var(--satamu, #ff6542); color: var(--satamu-text, #b3341a); } .ds-order { font-weight: 600; color: var(--sidebar-foreground, #3a4048); } .ds-order--failed { color: var(--danger, #b91c1c); }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Deep line orange fill with white text; the one next action on a screen.",
+      "html": "<button type=\"button\" class=\"ds-btn-primary\">Simpan Perubahan</button>",
+      "css": ".ds-btn-primary { height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--primary-strong, #c93f00); color: #fff; font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 700; transition: background-color 150ms; } .ds-btn-primary:hover { background: var(--primary-strong-hover, #ad3600); } .ds-btn-primary:focus-visible { outline: 2px solid var(--ring, #ff5100); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge-success",
+      "description": "Where a status stands alone: tone surface, tone text, English word, Heroicon.",
+      "html": "<div class=\"ds-badges\"><span class=\"ds-badge ds-badge--ok\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"14\" height=\"14\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z\"/></svg>Paid</span><span class=\"ds-badge ds-badge--warn\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"14\" height=\"14\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z\"/></svg>Pending</span><span class=\"ds-badge ds-badge--bad\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"14\" height=\"14\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z\"/></svg>Failed</span><span class=\"ds-badge ds-badge--info\">Verified</span></div>",
+      "css": ".ds-badges { display: flex; flex-wrap: wrap; gap: 8px; font-family: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif; } .ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; } .ds-badge--ok { background: var(--success-surface, #dcfce7); color: var(--success, #15803d); } .ds-badge--warn { background: var(--warning-surface, #fef3c7); color: var(--warning, #b45309); } .ds-badge--bad { background: var(--danger-surface, #fee2e2); color: var(--danger, #b91c1c); } .ds-badge--info { background: var(--info-surface, #dbeafe); color: var(--info, #1d4ed8); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Rambu Jalur Commuter",
+    "overview": "A white enamel signboard from a commuter-line station. Orange `#FF5100` is the line colour: it marks where you are and nothing else. Every payment travels one line, Created, Pending, Paid, and each row shows only the stop the gateway's evidence has reached. The sidebar borrows the station marker, not the line: each screen is a ringed station, and the one you are on is filled orange.\n\nThe board is calm and legible at laptop distance. Regions are separated by flat tint fields drawn from one white-to-orange ramp, never by cards or shadow. Type is one highway-signage grotesk at three working sizes; rank comes from weight and capital letters, not from size. Status is always a word; colour helps scanning but never carries meaning alone.\n\nDensity sits between an admin template and a dashboard: 60 px rows, 44 px controls, a 24 px title. The board refuses the category default of a grey table of pills inside a shadowed card.",
+    "keyCharacteristics": [
+      "One live colour: orange marks the current station, current tab, focus, and unread state.",
+      "One surface ramp: every non-white surface is a step of the tint ramp.",
+      "Flat: no shadow except on overlays.",
+      "Signage type: Overpass, ranked by weight and caps; Overpass Mono for machine identifiers.",
+      "The payment route: a drawn line whose single marker sits at the current stop, with the status word beside it."
+    ],
+    "rules": [
+      {
+        "name": "The One Live Colour Rule",
+        "body": "`line-orange` marks live state and nothing else: active station, current tab, focus, unread. It is never a surface, never a decoration, never text.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Ramp Rule",
+        "body": "Every non-white surface is a step of the tint ramp. A grey or new tint for a surface is a defect.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Only Rule",
+        "body": "Green, amber, red, and blue appear only on statuses, errors, and warnings, always with a word beside them. In the transaction table only the payment route carries status colour; the order status beside it reads in `sign-ink`, red only when it failed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Derived Token Rule",
+        "body": "Orange or coral used as text, or under white text, uses its derived token (`line-orange-deep`, `accent-text`, `satamu-text`), never the identity value (ADR-0003). Contrast is computed, not guessed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Three Sizes Rule",
+        "body": "Working text sits at 24, 14/13, and 11–12 px. A new level of importance gets a heavier weight or caps, not a bigger size.",
+        "section": "typography"
+      },
+      {
+        "name": "The Machine Voice Rule",
+        "body": "Overpass Mono marks strings a machine issued (invoice, username, model id, line code). Never for prose, labels, or amounts.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Board Rule",
+        "body": "Cards, tables, inputs, and buttons have no shadow. If a region needs separating, give it a tint step.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep `line-orange` (`#FF5100`) for live state: the active station, the current tab, focus, unread.",
+      "**Do** take every surface from the tint ramp and keep ink for text (`ink`, `sign-ink`, `muted-ink`).",
+      "**Do** use the derived tokens for orange or coral under or as text (ADR-0003), and compute contrast for every new pair (AA: 4.5:1 text, 3:1 boundaries).",
+      "**Do** show every status as an English word (Paid, Pending, Failed, …), with colour as support; keep all other copy Indonesian, short labels in Title Case.",
+      "**Do** put the page title (24 px, 800) and subtitle in the content, and keep the header to navigation and account controls.",
+      "**Do** make every input, select, and button 44 px tall with a thin `input-border` stroke and no shadow.",
+      "**Do** draw a payment as the route: one marker at the current stop, a terminus for ended lines, the word beside it.",
+      "**Do** use Heroicons 24 outline at stroke 2 on migrated screens.",
+      "**Do** separate regions with tint fields and hairlines."
+    ],
+    "donts": [
+      "**Don't** rely on the OS dark mode: there is no dark theme, and `dark:` utilities never apply.",
+      "**Don't** use `line-orange` as text, under white text, as a surface, or as decoration (white on it is only 3.27:1).",
+      "**Don't** draw earlier stations of the route as passed; the row knows only the current status.",
+      "**Don't** colour order status in the transaction table except red when it failed; the route carries the colour.",
+      "**Don't** put shadows on cards, tables, inputs, or buttons; shadow is for overlays only.",
+      "**Don't** wrap regions in bordered, shadowed cards.",
+      "**Don't** tell the two brands apart by orange shade; they differ by form (solid plate, outline plate) and always show their names.",
+      "**Don't** recolour or redraw the Webworks or Satamu logos.",
+      "**Don't** add a fourth working type size or an oversized title; rank with weight and caps.",
+      "**Don't** use Overpass Mono for prose, labels, or amounts.",
+      "**Don't** introduce a second icon family on a migrated screen."
+    ]
+  }
+}

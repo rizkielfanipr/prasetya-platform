@@ -1,7 +1,7 @@
 import BrandBadge from '@/components/shared/BrandBadge.vue';
 import OrderStatusBadge from '@/components/shared/OrderStatusBadge.vue';
 import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge.vue';
-import { orderStatuses, paymentStatuses } from '@/lib/status';
+import { noPaymentLabel, orderStatuses, paymentStatuses } from '@/lib/status';
 import type { OrderStatus, PaymentStatus } from '@/types/backoffice';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
@@ -25,13 +25,21 @@ describe('status badges', () => {
     });
 
     it('states when no payment exists yet', () => {
-        expect(mount(PaymentStatusBadge, { props: { status: null } }).text()).toBe('Belum dibayar');
+        expect(mount(PaymentStatusBadge, { props: { status: null } }).text()).toBe(noPaymentLabel);
     });
 
-    it('labels brands with semantic tokens', () => {
+    it('shows a brand as its line bullet plus its name', () => {
         const wrapper = mount(BrandBadge, { props: { brand: 'SATAMU' } });
+        const bullet = wrapper.find('[aria-hidden="true"]');
 
-        expect(wrapper.text()).toBe('Satamu');
-        expect(wrapper.classes()).toContain('text-satamu-text');
+        expect(bullet.text()).toBe('ST');
+        expect(bullet.classes()).toContain('border-satamu');
+        expect(wrapper.text()).toContain('Satamu');
+    });
+
+    it('keeps the brand name for screen readers when compact', () => {
+        const wrapper = mount(BrandBadge, { props: { brand: 'WEBWORKS', compact: true } });
+
+        expect(wrapper.find('.sr-only').text()).toBe('Webworks');
     });
 });

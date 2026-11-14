@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { paymentStatuses } from '@/lib/status';
+import { noPaymentLabel, paymentStatuses } from '@/lib/status';
 import type { PaymentStatus } from '@/types/backoffice';
 import StatusBadge from './StatusBadge.vue';
 
@@ -8,5 +8,5 @@ defineProps<{ status: PaymentStatus | null }>();
 
 <template>
     <StatusBadge v-if="status" :status="paymentStatuses[status]" />
-    <span v-else class="text-xs font-medium text-muted-foreground">Belum dibayar</span>
+    <span v-else class="text-xs font-semibold text-muted-foreground">{{ noPaymentLabel }}</span>
 </template>

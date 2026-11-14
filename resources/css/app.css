@@ -1,35 +1,64 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@fontsource-variable/raleway/wght.css';
-@import '@fontsource-variable/plus-jakarta-sans/wght.css';
+@import '@fontsource-variable/overpass/wght.css';
+@import '@fontsource/overpass-mono/500.css';
+@import '@fontsource/overpass-mono/600.css';
 
 @source '../views';
 @source '../js';
 
-/* Semantic tokens from docs/design.md. The *-strong, *-text, and chart-* tokens: see ADR-0003. */
+/*
+ * The back office has one light theme (DESIGN.md). Tailwind's dark: variant would otherwise follow the OS setting
+ * and turn the shadcn inputs' dark:bg-input/30 into a grey fill; it now applies only under a .dark class, never set.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Rambu Jalur Commuter (ADR-0014, DESIGN.md): a white signboard where orange is the line colour.
+ * Surfaces come only from the tint ramp; orange itself is reserved for live state (current station,
+ * active nav, primary action, focus). The *-strong, *-text, and chart-* tokens: see ADR-0003.
+ */
 :root {
-    --background: #fffaf4;
-    --foreground: #0f172a;
+    --tint-50: #fffaf6;
+    --tint-100: #fff3ea;
+    --tint-200: #ffe6d5;
+    --tint-300: #ffd2b8;
+    --tint-400: #ffb48f;
+    --tint-500: #ff8a57;
+    --tint-600: #ff5100;
+    --tint-700: #c93f00;
+    --tint-800: #9a3000;
+
+    --background: #ffffff;
+    --foreground: #1b1f24;
     --card: #ffffff;
-    --card-foreground: #0f172a;
+    --card-foreground: #1b1f24;
     --popover: #ffffff;
-    --popover-foreground: #0f172a;
-    --primary: #ff5100;
+    --popover-foreground: #1b1f24;
+    --primary: var(--tint-600);
     --primary-foreground: #ffffff;
-    --primary-strong: #c93f00;
+    --primary-strong: var(--tint-700);
     --primary-strong-hover: #ad3600;
     --primary-text: #b83a00;
-    --secondary: #fff1e8;
-    --secondary-foreground: #0f172a;
-    --muted: #f6f3f0;
-    --muted-foreground: #646464;
-    --accent: #fff1e8;
-    --accent-foreground: #0f172a;
+    --secondary: var(--tint-100);
+    --secondary-foreground: #1b1f24;
+    --muted: var(--tint-50);
+    --muted-foreground: #5f6670;
+    --accent: var(--tint-100);
+    --accent-foreground: #1b1f24;
     --destructive: #b91c1c;
-    --border: #eaded5;
-    --input: #ded6d0;
-    --input-strong: #8a817a;
-    --ring: #ff5100;
+    --border: #f0e3d9;
+    /*
+     * Field strokes match the sidebar's hairline (owner, 2026-11-14), a conscious exception to the 3:1 boundary
+     * rule recorded in PRODUCT.md and DESIGN.md. Checkboxes keep --input-strong: an unchecked box has no other cue.
+     */
+    --input: var(--border);
+    --input-strong: #c47f55;
+    --ring: var(--tint-600);
+
+    /* Station ring colour (sidebar stations) and the current-stop colour; the drawn route uses tint-400/500. */
+    --line-track: var(--tint-300);
+    --line-current: var(--tint-600);
 
     --webworks: #ff5100;
     --webworks-text: #b83a00;
@@ -52,20 +81,33 @@
     --neutral: #525252;
     --neutral-surface: #f1efed;
 
-    --sidebar: #0f172a;
-    --sidebar-foreground: #e2e8f0;
-    --sidebar-muted: #a7b3c4;
-    --sidebar-active: #1e293b;
-    --sidebar-border: #24324a;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #3a4048;
+    --sidebar-muted: #5f6670;
+    --sidebar-active: var(--tint-100);
+    --sidebar-border: #f0e3d9;
 
-    --radius: 12px;
+    --radius: 10px;
     --shadow-login: 0 18px 50px -24px rgb(255 81 0 / 0.28);
-    --shadow-overlay: 0 12px 32px -12px rgb(15 23 42 / 0.25);
+    --shadow-overlay: 0 12px 32px -12px rgb(27 31 36 / 0.25);
 }
 
 @theme inline {
-    --font-sans: 'Plus Jakarta Sans Variable', sans-serif;
-    --font-heading: 'Raleway Variable', sans-serif;
+    --font-sans: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Overpass Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Overpass Mono', ui-monospace, monospace;
+
+    --color-tint-50: var(--tint-50);
+    --color-tint-100: var(--tint-100);
+    --color-tint-200: var(--tint-200);
+    --color-tint-300: var(--tint-300);
+    --color-tint-400: var(--tint-400);
+    --color-tint-500: var(--tint-500);
+    --color-tint-600: var(--tint-600);
+    --color-tint-700: var(--tint-700);
+    --color-tint-800: var(--tint-800);
+    --color-line-track: var(--line-track);
+    --color-line-current: var(--line-current);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -111,10 +153,10 @@
     --color-sidebar-active: var(--sidebar-active);
     --color-sidebar-border: var(--sidebar-border);
 
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
     --shadow-login: var(--shadow-login);
     --shadow-overlay: var(--shadow-overlay);
 }
@@ -125,11 +167,24 @@
     }
 
     html {
+        color-scheme: light;
         -webkit-text-size-adjust: 100%;
+        scrollbar-color: var(--tint-300) transparent;
+        accent-color: var(--tint-700);
     }
 
     body {
         @apply bg-background font-sans text-sm text-foreground antialiased;
+        caret-color: var(--tint-700);
+    }
+
+    ::selection {
+        background: var(--tint-200);
+        color: var(--foreground);
+    }
+
+    a {
+        text-underline-offset: 3px;
     }
 
     h1,
@@ -144,11 +199,6 @@
     [role='button']:focus-visible {
         outline: 2px solid var(--ring);
         outline-offset: 2px;
-    }
-
-    .bg-sidebar a:focus-visible,
-    .bg-sidebar button:focus-visible {
-        outline-color: var(--secondary);
     }
 
     button:not(:disabled),

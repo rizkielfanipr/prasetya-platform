@@ -79,7 +79,7 @@ describe('timelines', () => {
     it('describes a payment transition in words', () => {
         const wrapper = mount(PaymentTimeline, { props: { events: [event] } });
 
-        expect(wrapper.text()).toContain('Status berubah: Menunggu → Berhasil');
+        expect(wrapper.text()).toContain('Status berubah: Pending → Paid');
         expect(wrapper.text()).toContain('Notifikasi gateway');
         expect(wrapper.text()).toContain('Kanal: QRIS');
     });

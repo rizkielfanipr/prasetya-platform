@@ -62,3 +62,4 @@ How will the decision be verified in implementation and operation?
 | [0011](0011-content-studio-authority-boundary.md) | Content Studio, with AI providers and Hermes as untrusted draft producers | Proposed |
 | [0012](0012-simplified-content-studio-workflow.md) | Simplify Content Studio to a creator-owned workflow without formal approval | Accepted, implementation in progress |
 | [0013](0013-status-driven-content-detail-workspace.md) | Make the content detail workspace status-driven | Accepted, implemented (awaiting review) |
+| [0014](0014-back-office-redesign.md) | Redesign the back office on the Prasetya Webworks identity | Proposed |
