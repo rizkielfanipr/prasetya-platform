@@ -16,12 +16,12 @@ function submit(): void {
 </script>
 
 <template>
-    <form class="space-y-4" novalidate @submit.prevent="submit">
+    <form class="space-y-5" novalidate @submit.prevent="submit">
         <FormField id="username" v-slot="{ describedBy, invalid }" label="Username" :error="form.errors.username">
             <Input
                 id="username"
                 v-model="form.username"
-                class="h-12"
+                class="h-11"
                 autocomplete="username"
                 autocapitalize="none"
                 spellcheck="false"
@@ -47,9 +47,9 @@ function submit(): void {
                 <Label for="remember" class="font-normal">Ingat saya</Label>
             </div>
             <!-- No email reset (ADR-0009): another user sets a new password in Pengguna. -->
-            <p class="text-sm text-muted-foreground">Lupa kata sandi? Hubungi admin lain.</p>
+            <p class="text-[13px] text-muted-foreground">Lupa kata sandi? Hubungi admin lain.</p>
         </div>
-        <Button type="submit" class="h-12 w-full rounded-md text-base font-semibold" :disabled="form.processing" :aria-busy="form.processing">
+        <Button type="submit" class="h-11 w-full text-sm font-bold" :disabled="form.processing" :aria-busy="form.processing">
             {{ form.processing ? 'Memeriksa…' : 'Masuk' }}
         </Button>
     </form>

@@ -47,6 +47,33 @@
         ],
         "createdAt": "2026-11-14T08:51:53.408Z",
         "reason": "agent: spent decision-round sketch written before DESIGN.md existed; not shipped"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/dash-route.html"
+        ],
+        "createdAt": "2026-11-14T15:28:37.555Z",
+        "reason": "agent: decision sketch loads Overpass from Google Fonts; DESIGN.md names the same face as 'Overpass Variable'"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/dash-lines.html"
+        ],
+        "createdAt": "2026-11-14T15:28:37.570Z",
+        "reason": "agent: decision sketch loads Overpass from Google Fonts; DESIGN.md names the same face as 'Overpass Variable'"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/dash-arrivals.html"
+        ],
+        "createdAt": "2026-11-14T15:28:37.585Z",
+        "reason": "agent: decision sketch loads Overpass from Google Fonts; DESIGN.md names the same face as 'Overpass Variable'"
       }
     ]
   }

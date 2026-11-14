@@ -63,3 +63,4 @@ How will the decision be verified in implementation and operation?
 | [0012](0012-simplified-content-studio-workflow.md) | Simplify Content Studio to a creator-owned workflow without formal approval | Accepted, implementation in progress |
 | [0013](0013-status-driven-content-detail-workspace.md) | Make the content detail workspace status-driven | Accepted, implemented (awaiting review) |
 | [0014](0014-back-office-redesign.md) | Redesign the back office on the Prasetya Webworks identity | Proposed |
+| [0015](0015-account-password-page.md) | A personal account page for the password; names change only in Pengguna | Accepted |

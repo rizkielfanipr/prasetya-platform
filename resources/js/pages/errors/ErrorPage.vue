@@ -32,9 +32,7 @@ const content = computed(() => {
             </EmptyState>
         </PanelCard>
     </AppLayout>
-    <AuthLayout v-else :title="content.title">
-        <EmptyState :title="content.title" :description="content.body" :icon="content.icon">
-            <Button as-child variant="outline"><Link :href="routes.login">Ke halaman masuk</Link></Button>
-        </EmptyState>
+    <AuthLayout v-else :title="content.title" :heading="content.title" :description="content.body">
+        <Button as-child class="h-11 w-full text-sm font-bold sm:w-auto"><Link :href="routes.login">Ke halaman masuk</Link></Button>
     </AuthLayout>
 </template>

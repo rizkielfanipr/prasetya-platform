@@ -50,7 +50,6 @@ export const routes = {
     contentFacts: (brand: string) => `/content/brands/${brand}/facts`,
     contentFactRetire: (brand: string, id: string) => `/content/brands/${brand}/facts/${id}/retire`,
     settings: '/settings',
-    settingsProfile: '/settings/profile',
-    settingsPassword: '/settings/password',
+    accountPassword: '/account/password',
     settingsActivity: '/settings/activity',
 } as const;

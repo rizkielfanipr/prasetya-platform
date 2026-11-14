@@ -4,15 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\BackOffice;
 
-use App\Domain\Audit\Actions\RecordAudit;
-use App\Domain\Auth\Models\User;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Integrations\Duitku\DuitkuConfig;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Queue\Failed\CountableFailedJobProvider;
 use Illuminate\Queue\Failed\FailedJobProviderInterface;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,34 +33,5 @@ final class SettingsController
                 ],
             ],
         ]);
-    }
-
-    public function updateProfile(Request $request, RecordAudit $audit): RedirectResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-        // Name only: the username never changes and the email is hidden (ADR-0009).
-        $validated = $request->validate(['name' => ['required', 'string', 'max:255']]);
-
-        $user->update(['name' => $validated['name']]);
-        $audit('user.profile_updated', 'user', $user->public_id, $user);
-
-        return back()->with('success', 'Profil diperbarui.');
-    }
-
-    public function updatePassword(Request $request, RecordAudit $audit): RedirectResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-        $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
-
-        $user->update(['password' => $validated['password']]);
-        $request->session()->regenerate();
-        $audit('user.password_changed', 'user', $user->public_id, $user);
-
-        return back()->with('success', 'Kata sandi diperbarui.');
     }
 }

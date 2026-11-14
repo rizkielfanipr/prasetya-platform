@@ -308,12 +308,29 @@ A drawn line of three stations, Created, Pending, Paid (68 × 14 px), with the s
 - **No payment:** a dashed empty line with "No Payment" in `muted-ink`.
 - **Accessibility:** the drawing is `aria-hidden`; the word is the status.
 
+### Payment Route, Page Scale (Dashboard head)
+The same signature drawn across the page as the Dashboard's head, on a `tint-50` field with no border.
+- **Stations:** the main line runs Pending → Paid in reading order (solid), so revenue is answered at its end; Paid is a filled `success` dot on a `tint-100` halo. Failed/Expired is a dashed spur that leaves the Pending → Paid line and ends at a `danger` ×: the × always ends a line and never starts one, and no segment joins Paid to it. There is no Created station: the summary has no Created count, and the route does not invent one.
+- **Each station:** the status word in its status colour plus the figure, 24 px / 800 (`Pending 8`, `Paid Rp16.872.000`); one 13 px `muted-ink` line of plain-words context; and a link to the transactions it counts (Failed and Expired get one link each, because the list filters a single status). No caps label above the station.
+- **Active orders and Perlu Ditinjau:** the count (with its change from 1440 px) and the chip (`warning` on `warning-surface`), marked "(semua brand)" when a brand filter is on because the issue count is global. From `lg` they sit at the right of the scope row; below `lg` they close the route band under a `tint-200` rule.
+- **Layout:** from `lg` the rail runs across the top (Pending, spur column, Paid) and the terminus hangs below it on a dashed drop; below `lg` the rail runs down from Pending to Paid and the terminus is indented between them on a dashed elbow. Lines are 4 px with round caps in `tint-400`. Links keep a 44 px hit area through padding with negative margin, so they add no height. Figures stay with their words (`whitespace-nowrap`), and a separator dot always ends a segment rather than starting a line.
+
+### Dashboard
+Scope bar first (Brand segmented control, Periode select with "Rentang khusus…" revealing the date fields; active orders and Perlu Ditinjau at its right from `lg`), then the page-scale route, then Pendapatan Harian (2/3) beside Dua Brand (1/3), then Transaksi Terbaru (the Transaksi table without sortable headers, plus its own status filter). Regions below the route are separated by a hairline top rule, not boxes; section headings are 14 px / 800. Dua Brand shows both brands always, each with its share bar in `chart-webworks` / `chart-satamu`. The chart's legend sits in the Pendapatan Harian header (circle for Webworks, diamond for Satamu, as the series markers). At 1280 × 800 the route, the full chart, both brands, and the Transaksi Terbaru heading fit the first viewport. A typed "·" separator is drawn as a 3 px dot (`SeparatorDot`), because Overpass's middle dot sits off-centre.
+
 ### Navigation (stations)
 - **Style:** each item is a station: a 32 px circle with a 2 px `tint-300` ring and a 16 px Heroicon. The stations stand apart; no track joins them (owner, 2026-11-14), so the line belongs to the payment route alone. Rows are 44 px with a 10 px right radius.
 - **Hover:** `tint-50` row, ring deepens to `tint-400`, icon to `ink`.
 - **Active:** `tint-100` row, station filled `line-orange` with a white icon, label in 800 `ink`, `aria-current="page"`.
 - **Counts:** a `tint-200` chip with `tint-800` text, or `warning` on `warning-surface` for issues needing review; collapsed, it rides on the station's corner.
 - **Collapsed:** stations only, labels move to `title` and screen-reader text. The footer lists the brand logos for light backgrounds, copied unchanged from the brand sites.
+
+### Signed-out Screens (AuthLayout)
+Used by Masuk and by error pages shown to guests. The signboard is split in two, with no card and no shadow (the old orange `shadow-login` glow is retired).
+- **Tint field** (`tint-50`): the platform mark and wordmark at the top, one plain sentence of what the back office is in the middle, and "Dikelola untuk:" with both brand logos (light-background files) at the bottom. On desktop it takes about 5/12 of the width (at least 360 px).
+- **Work area** (white): one task, centred in a 400 px column. A 24 px / 800 `h1` (Masuk, or the error title), a 14 px `muted-ink` description, then the form or a single primary action.
+- **Below `lg`:** the tint field collapses to a top band holding only the mark and wordmark; the logos move to a footer under a hairline.
+- **Form:** fields follow Inputs / Fields (44 px, hairline stroke); labels stay 14 px semibold sentence labels, because form labels are not the caps filter labels. The primary button is full width and 44 px. Field errors sit under the field in `danger`, announced with `role="alert"`; a session or status message sits above the form on its status surface.
 
 ### Tabs
 Text tabs on a hairline baseline, 44 px tall, 14 px bold. Current: `ink` with a 3 px `line-orange` underline; others `muted-ink`, hover adds a `tint-300` underline. Counts use the chip above.

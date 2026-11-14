@@ -5,8 +5,22 @@ test.beforeEach(async ({ page }) => {
     await login(page);
 });
 
+// ADR-0015: the own password lives on its own page, reached from the account menu; Pengaturan has no profile form.
+test('the account menu opens Ganti Kata Sandi, and Pengaturan holds no personal forms', async ({ page }) => {
+    await page.getByTestId('user-menu').click();
+    await page.getByTestId('account-password').click();
+    await expect(page).toHaveURL(/\/account\/password/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Ganti Kata Sandi' })).toBeVisible();
+    await expect(page.getByLabel('Kata sandi saat ini')).toBeVisible();
+    await expectNoAxeViolations(page);
+
+    await page.goto('/settings');
+    await expect(page.locator('#profile-name')).toHaveCount(0);
+    await expect(page.locator('#current_password')).toHaveCount(0);
+});
+
 test('dashboard shows live metrics and a lazily loaded chart', async ({ page }) => {
-    await expect(page.getByText('Total Pendapatan')).toBeVisible();
+    await expect(page.getByText('Pendapatan Masuk')).toBeVisible();
     await expect(page.getByTestId('metric-value').first()).toContainText('Rp');
     await expect(page.getByTestId('revenue-canvas')).toBeVisible();
     await expect(page.getByTestId('brand-summary-SATAMU')).toContainText('Satamu Invitation');
@@ -16,7 +30,7 @@ test('dashboard shows live metrics and a lazily loaded chart', async ({ page }) 
 });
 
 test('dashboard filters by brand through the URL', async ({ page }) => {
-    await page.getByRole('group', { name: 'Filter brand grafik' }).getByRole('button', { name: 'Satamu' }).click();
+    await page.getByRole('group', { name: 'Filter brand' }).getByRole('button', { name: 'Satamu' }).click();
     await expect(page).toHaveURL(/brand=SATAMU/);
     await expect(page.getByRole('table', { name: 'Daftar transaksi' }).getByText('Webworks')).toHaveCount(0);
 });

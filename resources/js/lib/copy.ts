@@ -37,7 +37,9 @@ export const copy = {
     dateFrom: 'Dari tanggal',
     dateTo: 'Sampai tanggal',
     logout: 'Keluar',
-    profile: 'Profil & pengaturan',
+    changePassword: 'Ganti Kata Sandi',
     managedFor: 'Dikelola untuk:',
+    authHeading: 'Kelola operasional bisnis dari satu tempat.',
+    authBody: 'Pantau pesanan, pembayaran, dan konten dengan lebih mudah.',
     issuesLabel: (count: number) => (count > 0 ? `Rekonsiliasi: ${count} isu perlu ditinjau` : 'Rekonsiliasi: tidak ada isu'),
 } as const;

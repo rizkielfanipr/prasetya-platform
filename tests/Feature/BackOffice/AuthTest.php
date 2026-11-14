@@ -128,20 +128,32 @@ it('has no email password reset', function (string $method, string $uri): void {
     ['POST', '/reset-password'],
 ]);
 
-it('updates the name only, never the username or email, with an audit trail', function (): void {
+it('changes the own password on the account page, with an audit trail (ADR-0015)', function (): void {
     $user = admin();
-    $username = $user->username;
 
-    $this->actingAs($user)->put('/settings/profile', ['name' => 'Baru', 'username' => 'changed', 'email' => 'baru@example.test'])->assertSessionHasNoErrors();
-    $this->put('/settings/password', ['current_password' => 'wrong', 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1'])->assertSessionHasErrors('current_password');
-    $this->put('/settings/password', ['current_password' => TEST_PASSWORD, 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1'])->assertSessionHasNoErrors();
+    $this->actingAs($user)->get('/account/password')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->component('account/AccountPasswordPage'));
+    $this->put('/account/password', ['current_password' => 'wrong', 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1'])->assertSessionHasErrors('current_password');
+    $this->put('/account/password', ['current_password' => TEST_PASSWORD, 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1'])->assertSessionHasNoErrors();
 
-    $user->refresh();
-    expect($user->name)->toBe('Baru')
-        ->and($user->username)->toBe($username)
-        ->and($user->email)->toBeNull()
-        ->and(Hash::check('another-password-1', $user->password))->toBeTrue()
-        ->and(AuditLog::query()->whereIn('action', ['user.profile_updated', 'user.password_changed'])->count())->toBe(2);
+    expect(Hash::check('another-password-1', $user->refresh()->password))->toBeTrue()
+        ->and(AuditLog::query()->where('action', 'user.password_changed')->count())->toBe(1);
+});
+
+it('has no self-service profile or settings password routes (ADR-0015)', function (string $uri, array $data): void {
+    $user = admin();
+    $name = $user->name;
+
+    $this->actingAs($user)->put($uri, $data)->assertNotFound();
+
+    expect($user->refresh()->name)->toBe($name)
+        ->and(AuditLog::query()->where('action', 'user.profile_updated')->exists())->toBeFalse();
+})->with([
+    ['/settings/profile', ['name' => 'Baru']],
+    ['/settings/password', ['current_password' => 'password-for-tests-1', 'password' => 'another-password-1', 'password_confirmation' => 'another-password-1']],
+]);
+
+it('keeps the account page behind auth', function (): void {
+    $this->get('/account/password')->assertRedirect('/login');
 });
 
 it('shares the username, not the email, with the pages', function (): void {
