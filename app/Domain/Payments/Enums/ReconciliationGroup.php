@@ -16,9 +16,13 @@ enum ReconciliationGroup: string
     case PaidInconsistent = 'paid_inconsistent';
     case InvalidTransitions = 'invalid_transitions';
 
-    /** Duplicates are handled safely by design: shown for inspection, not counted as needing action. */
+    /**
+     * ADR-0016: six groups ask a person to decide something. The other three are information, still checked and shown
+     * on the transaction: duplicates are handled safely by design, an order without an attempt is a customer who did
+     * not check out, and an open payment past the threshold is already counted once through its waiting order.
+     */
     public function needsAction(): bool
     {
-        return $this !== self::DuplicateWebhooks;
+        return ! in_array($this, [self::DuplicateWebhooks, self::OrdersWithoutAttempt, self::PendingTooLong], true);
     }
 }

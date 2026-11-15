@@ -5,10 +5,8 @@ export const routes = {
     dashboard: '/dashboard',
     transactions: '/transactions',
     transactionsAttention: '/transactions?view=attention',
-    transactionsEvents: '/transactions?view=events',
     transaction: (id: string) => `/transactions/${id}`,
     transactionNotes: (id: string) => `/transactions/${id}/notes`,
-    paymentEvents: '/payment-events',
     reconciliation: '/reconciliation',
     gatewayCheck: (paymentId: string) => `/reconciliation/payments/${paymentId}/check-status`,
     auditLog: '/audit-log',
@@ -52,4 +50,6 @@ export const routes = {
     settings: '/settings',
     accountPassword: '/account/password',
     settingsActivity: '/settings/activity',
+    /** Pengaturan → Log Gateway (ADR-0016); `search` narrows it to one invoice. */
+    gatewayLog: (search?: string) => (search ? `/settings/gateway-log?${new URLSearchParams({ search }).toString()}` : '/settings/gateway-log'),
 } as const;

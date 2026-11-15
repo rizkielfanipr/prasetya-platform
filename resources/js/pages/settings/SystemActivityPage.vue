@@ -18,7 +18,7 @@ defineProps<{ filters: AuditFilters; logs: Paginated<AuditEntry> }>();
             <ArrowLeft class="size-4" aria-hidden="true" />Kembali ke pengaturan
         </Link>
         <p class="text-sm text-muted-foreground">
-            Aktivitas transaksi ada di detail transaksi (tab Aktivitas), dan aktivitas pengguna di detail pengguna. Pilih lingkup
+            Aktivitas transaksi ada di Riwayat pada detail transaksi, dan aktivitas pengguna di detail pengguna. Pilih lingkup
             <span class="font-semibold">Semua audit</span> untuk mencari di seluruh catatan.
         </p>
         <AuditLogView :filters="filters" :logs="logs" :path="routes.settingsActivity" with-scope />

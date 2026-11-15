@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Workspace;
 
-use App\Domain\Payments\Enums\ReconciliationGroup;
 use App\Domain\Payments\Queries\ReconciliationReport;
 use App\Http\Presenters\ReconciliationPresenter;
 use App\Support\Paginated;
@@ -12,8 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Transaksi → Perlu Ditinjau (formerly Rekonsiliasi). The decisions stay in ReconciliationReport; this only picks the
- * group to show. Without a group it opens the first group that needs action and has issues.
+ * Transaksi → Perlu Ditinjau (ADR-0016): four review queues over the domain's reconciliation groups. The decisions stay
+ * in ReconciliationReport; this only picks the queue to show. Without a queue it opens the first one with items.
+ * A queue of several groups shows each as its own section, paginated separately (`page_<group>`).
  */
 final class AttentionView
 {
@@ -23,31 +23,44 @@ final class AttentionView
     public function props(Request $request): array
     {
         $validated = $request->validate([
-            'group' => ['nullable', Rule::enum(ReconciliationGroup::class)],
+            'queue' => ['nullable', Rule::enum(AttentionQueue::class)],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $counts = $this->report->counts();
-        $group = ReconciliationGroup::tryFrom((string) ($validated['group'] ?? '')) ?? $this->defaultGroup($counts);
+        $groupCounts = $this->report->counts();
+        $queueCounts = [];
+        foreach (AttentionQueue::cases() as $queue) {
+            $queueCounts[$queue->value] = array_sum(array_map(static fn ($group): int => $groupCounts[$group->value] ?? 0, $queue->groups()));
+        }
+
+        $queue = AttentionQueue::tryFrom((string) ($validated['queue'] ?? '')) ?? $this->defaultQueue($queueCounts);
+        $single = count($queue->groups()) === 1;
 
         return [
-            'group' => $group->value,
-            'counts' => $counts,
-            'needsAction' => array_values(array_map(static fn (ReconciliationGroup $g): string => $g->value, array_filter(ReconciliationGroup::cases(), static fn (ReconciliationGroup $g): bool => $g->needsAction()))),
+            'queue' => $queue->value,
+            'queues' => array_values(array_map(static fn (AttentionQueue $q): string => $q->value, array_filter(
+                AttentionQueue::cases(),
+                static fn (AttentionQueue $q): bool => ! $q->hiddenWhenEmpty() || $queueCounts[$q->value] > 0 || $q === $queue,
+            ))),
+            'counts' => $queueCounts,
             'thresholds' => config('platform.reconciliation'),
-            'issues' => Paginated::present($this->report->paginate($group), ReconciliationPresenter::row(...)),
+            'sections' => array_map(fn ($group): array => [
+                'group' => $group->value,
+                'pageName' => $single ? 'page' : "page_{$group->value}",
+                'issues' => Paginated::present($this->report->paginate($group, 15, $single ? 'page' : "page_{$group->value}"), ReconciliationPresenter::row(...)),
+            ], array_values(array_filter($queue->groups(), static fn ($group): bool => $single || ($groupCounts[$group->value] ?? 0) > 0))),
         ];
     }
 
     /** @param array<string, int> $counts */
-    private function defaultGroup(array $counts): ReconciliationGroup
+    private function defaultQueue(array $counts): AttentionQueue
     {
-        foreach (ReconciliationGroup::cases() as $group) {
-            if ($group->needsAction() && ($counts[$group->value] ?? 0) > 0) {
-                return $group;
+        foreach (AttentionQueue::cases() as $queue) {
+            if ($counts[$queue->value] > 0) {
+                return $queue;
             }
         }
 
-        return ReconciliationGroup::OrdersWithoutAttempt;
+        return AttentionQueue::Unmatched;
     }
 }

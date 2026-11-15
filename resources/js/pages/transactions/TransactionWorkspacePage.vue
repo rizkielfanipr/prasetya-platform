@@ -1,40 +1,36 @@
 <script setup lang="ts">
 import AppLayout from '@/components/layout/AppLayout.vue';
 import AttentionView from '@/features/reconciliation/AttentionView.vue';
-import PaymentEventsView from '@/features/payments/PaymentEventsView.vue';
 import AllTransactionsView from '@/features/transactions/views/AllTransactionsView.vue';
 import { formatNumber } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import { workspaceViews } from '@/lib/workspace';
 import type {
+    AttentionQueue,
+    AttentionSection,
     Paginated,
-    PaymentEventFilters,
-    ReconciliationGroup,
-    ReconciliationIssue,
     SharedProps,
     TransactionFilterOptions,
     TransactionFilters,
     TransactionRow,
     TransactionWorkspaceView,
-    WebhookEventRow,
 } from '@/types/backoffice';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 /**
- * Transaksi (ADR-0010): one workspace, three views. The server sends only the active view's props, so each view's
+ * Transaksi (ADR-0010, ADR-0016): one workspace, two views. The server sends only the active view's props, so each view's
  * fields are optional here and read only when that view is active.
  */
 const props = defineProps<
     { view: TransactionWorkspaceView } & Partial<TransactionFilterOptions> & {
-            filters?: TransactionFilters & PaymentEventFilters;
+            filters?: TransactionFilters;
             transactions?: Paginated<TransactionRow>;
-            group?: ReconciliationGroup;
-            counts?: Record<ReconciliationGroup, number>;
-            needsAction?: ReconciliationGroup[];
+            queue?: AttentionQueue;
+            queues?: AttentionQueue[];
+            counts?: Record<AttentionQueue, number>;
             thresholds?: { pending_too_long_minutes: number; no_attempt_after_minutes: number };
-            issues?: Paginated<ReconciliationIssue>;
-            events?: Paginated<WebhookEventRow>;
+            sections?: AttentionSection[];
         }
 >();
 
@@ -45,7 +41,7 @@ const baseQuery = computed(() => ({ view: props.view }));
 </script>
 
 <template>
-    <AppLayout title="Transaksi" description="Pesanan, isu yang perlu ditinjau, dan event pembayaran dari kedua brand">
+    <AppLayout title="Transaksi" description="Pesanan dan pembayaran dari kedua brand, serta isu yang menunggu keputusan Anda">
         <!-- On narrow phones the strip scrolls; the fade at its edge says there is more. -->
         <nav
             aria-label="Tampilan transaksi"
@@ -82,19 +78,12 @@ const baseQuery = computed(() => ({ view: props.view }));
             :base-query="baseQuery"
         />
         <AttentionView
-            v-else-if="view === 'attention' && group && counts && needsAction && thresholds && issues"
-            :group="group"
+            v-else-if="view === 'attention' && queue && queues && counts && thresholds && sections"
+            :queue="queue"
+            :queues="queues"
             :counts="counts"
-            :needs-action="needsAction"
             :thresholds="thresholds"
-            :issues="issues"
-            :path="routes.transactions"
-            :base-query="baseQuery"
-        />
-        <PaymentEventsView
-            v-else-if="view === 'events' && filters && events"
-            :filters="filters"
-            :events="events"
+            :sections="sections"
             :path="routes.transactions"
             :base-query="baseQuery"
         />

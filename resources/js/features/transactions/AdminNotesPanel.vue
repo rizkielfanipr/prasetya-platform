@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import PanelCard from '@/components/layout/PanelCard.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import FormField from '@/components/shared/FormField.vue';
 import { Button } from '@/components/ui/button';
 import { copy } from '@/lib/copy';
@@ -18,26 +17,27 @@ function submit(): void {
 </script>
 
 <template>
-    <PanelCard title="Catatan admin">
-        <form class="mb-4 space-y-3" @submit.prevent="submit">
+    <section aria-labelledby="notes-heading" class="border-t border-border pt-4">
+        <h2 id="notes-heading" class="text-sm font-extrabold">Catatan Admin</h2>
+        <form class="mt-3 space-y-3" @submit.prevent="submit">
             <FormField id="note" v-slot="{ describedBy, invalid }" label="Tambah catatan" :error="form.errors.body">
                 <textarea
                     id="note"
                     v-model="form.body"
                     rows="3"
-                    class="w-full rounded-md border border-input bg-card px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+                    class="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
                     :aria-describedby="describedBy"
                     :aria-invalid="invalid"
                 />
             </FormField>
-            <Button type="submit" :disabled="form.processing || !form.body">{{ form.processing ? copy.saving : copy.save }}</Button>
+            <Button type="submit" class="h-11" :disabled="form.processing || !form.body">{{ form.processing ? copy.saving : copy.save }}</Button>
         </form>
-        <EmptyState v-if="notes.length === 0" title="Belum ada catatan" />
-        <ul v-else class="space-y-3">
-            <li v-for="note in notes" :key="note.id" class="rounded-md bg-muted p-3">
-                <p class="whitespace-pre-line">{{ note.body }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">{{ note.author }} · {{ formatDateTime(note.at) }}</p>
+        <p v-if="notes.length === 0" class="mt-4 text-[13px] text-muted-foreground">Belum ada catatan.</p>
+        <ul v-else class="mt-4 space-y-2">
+            <li v-for="note in notes" :key="note.id" class="rounded-md bg-tint-50 px-3 py-2.5">
+                <p class="text-sm whitespace-pre-line">{{ note.body }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">{{ note.author }}<SeparatorDot />{{ formatDateTime(note.at) }}</p>
             </li>
         </ul>
-    </PanelCard>
+    </section>
 </template>

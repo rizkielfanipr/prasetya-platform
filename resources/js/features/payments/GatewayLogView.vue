@@ -11,7 +11,7 @@ import { webhookStatuses } from '@/lib/status';
 import type { Paginated, PaymentEventFilters, WebhookEventRow, WebhookStatus } from '@/types/backoffice';
 import { computed, ref, watch } from 'vue';
 
-/** Transaksi → Event Pembayaran: every webhook delivery, including those for an invoice no order matches. */
+/** Pengaturan → Log Gateway (ADR-0016): every webhook delivery, including those for an invoice no order matches. */
 const props = withDefaults(
     defineProps<{ filters: PaymentEventFilters; events: Paginated<WebhookEventRow>; path: string; baseQuery?: Record<string, string> }>(),
     {

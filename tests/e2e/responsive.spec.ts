@@ -10,7 +10,8 @@ const pages = [
     '/dashboard',
     '/transactions',
     '/transactions?view=attention',
-    '/transactions?view=events',
+    '/transactions?view=attention&queue=system',
+    '/settings/gateway-log',
     '/users',
     '/settings',
     '/settings/activity',
@@ -31,6 +32,14 @@ for (const [name, width, height] of [
 
         for (const path of pages) {
             await page.goto(path);
+            await page.waitForLoadState('networkidle');
+            await expectNoHorizontalOverflow(page);
+        }
+
+        // The single-page transaction detail (ADR-0016), paid and with an open issue.
+        for (const filter of ['payment_status=PAID', 'payment_status=PENDING']) {
+            await page.goto(`/transactions?${filter}`);
+            await page.getByRole('table', { name: 'Daftar transaksi' }).locator('tbody a').first().click();
             await page.waitForLoadState('networkidle');
             await expectNoHorizontalOverflow(page);
         }

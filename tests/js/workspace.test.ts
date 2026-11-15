@@ -1,31 +1,26 @@
 import AttentionView from '@/features/reconciliation/AttentionView.vue';
 import WebhookEventTable from '@/features/payments/WebhookEventTable.vue';
 import { workspaceViews } from '@/lib/workspace';
-import type { ReconciliationGroup, WebhookEventRow } from '@/types/backoffice';
+import type { AttentionQueue, AttentionSection, ReconciliationGroup, WebhookEventRow } from '@/types/backoffice';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
-const groups: ReconciliationGroup[] = [
-    'orders_without_attempt',
-    'orders_without_success',
-    'unmatched_payments',
-    'amount_mismatch',
-    'rejected_webhooks',
-    'duplicate_webhooks',
-    'pending_too_long',
-    'paid_inconsistent',
-    'invalid_transitions',
-];
-const counts = Object.fromEntries(groups.map((group) => [group, 0])) as Record<ReconciliationGroup, number>;
+const empty = { data: [], meta: { currentPage: 1, lastPage: 1, perPage: 15, total: 0, from: null, to: null } };
+const section = (group: ReconciliationGroup, pageName = 'page'): AttentionSection => ({ group, pageName, issues: empty });
 
-function mountAttention(overrides: Partial<Record<ReconciliationGroup, number>> = {}, group: ReconciliationGroup = 'orders_without_attempt') {
+function mountAttention(
+    counts: Partial<Record<AttentionQueue, number>> = {},
+    queue: AttentionQueue = 'unmatched',
+    sections: AttentionSection[] = [section('unmatched_payments')],
+    queues: AttentionQueue[] = ['unmatched', 'amount_mismatch', 'waiting'],
+) {
     return mount(AttentionView, {
         props: {
-            group,
-            counts: { ...counts, ...overrides },
-            needsAction: groups.filter((key) => key !== 'duplicate_webhooks'),
+            queue,
+            queues,
+            counts: { unmatched: 0, amount_mismatch: 0, waiting: 0, system: 0, ...counts },
             thresholds: { pending_too_long_minutes: 120, no_attempt_after_minutes: 30 },
-            issues: { data: [], meta: { currentPage: 1, lastPage: 1, perPage: 15, total: 0, from: null, to: null } },
+            sections,
             path: '/transactions',
             baseQuery: { view: 'attention' },
         },
@@ -33,32 +28,45 @@ function mountAttention(overrides: Partial<Record<ReconciliationGroup, number>> 
 }
 
 describe('workspace views', () => {
-    it('lists Semua, Perlu Ditinjau, and Event Pembayaran in that order', () => {
-        expect(workspaceViews.map((view) => view.value)).toEqual(['all', 'attention', 'events']);
-        expect(workspaceViews.map((view) => view.label)).toEqual(['Semua', 'Perlu Ditinjau', 'Event Pembayaran']);
+    it('lists Semua and Perlu Ditinjau; the webhook log lives in Pengaturan (ADR-0016)', () => {
+        expect(workspaceViews.map((view) => view.value)).toEqual(['all', 'attention']);
+        expect(workspaceViews.map((view) => view.label)).toEqual(['Semua', 'Perlu Ditinjau']);
     });
 });
 
 describe('AttentionView', () => {
-    it('links every one of the nine groups inside the workspace, marking the current one', () => {
-        const wrapper = mountAttention({}, 'pending_too_long');
+    it('links the queues the server lists, marking the current one', () => {
+        const wrapper = mountAttention({}, 'waiting', [section('orders_without_success')]);
         const links = wrapper.findAll('nav a');
 
-        expect(links).toHaveLength(9);
-        expect(links.map((link) => link.attributes('href'))).toContain('/transactions?view=attention&group=unmatched_payments');
-        expect(wrapper.get('[data-testid="group-pending_too_long"]').attributes('aria-current')).toBe('true');
+        expect(links).toHaveLength(3);
+        expect(links.map((link) => link.attributes('href'))).toContain('/transactions?view=attention&queue=amount_mismatch');
+        expect(wrapper.get('[data-testid="queue-waiting"]').attributes('aria-current')).toBe('true');
     });
 
-    it('totals only the groups that need action, and labels duplicates as information', () => {
-        const wrapper = mountAttention({ orders_without_attempt: 2, amount_mismatch: 1, duplicate_webhooks: 5 });
+    it('totals every queue, and points to where the uncounted groups live', () => {
+        const wrapper = mountAttention({ unmatched: 1, amount_mismatch: 1, waiting: 2 });
 
-        expect(wrapper.get('[data-testid="attention-total"]').text()).toContain('3 isu perlu tindakan');
-        expect(wrapper.get('[data-testid="group-duplicate_webhooks"]').text()).toContain('Informasi, tidak dihitung');
+        expect(wrapper.get('[data-testid="attention-total"]').text()).toContain('4 isu menunggu keputusan');
+        expect(wrapper.find('a[href="/transactions?payment_status=NONE"]').exists()).toBe(true);
+        expect(wrapper.find('a[href="/settings/gateway-log?status=DUPLICATE"]').exists()).toBe(true);
     });
 
-    it('explains the threshold of time-based groups', () => {
-        expect(mountAttention({}, 'pending_too_long').text()).toContain('Ambang: 120 menit.');
-        expect(mountAttention({}, 'orders_without_attempt').text()).toContain('Ambang: 30 menit setelah pesanan dibuat.');
+    it('explains the threshold of the waiting queue', () => {
+        expect(mountAttention({}, 'waiting', [section('orders_without_success')]).text()).toContain('Ambang: 120 menit sejak pesanan dibuat.');
+        expect(mountAttention().text()).not.toContain('Ambang');
+    });
+
+    it('shows each group of the system queue as its own section', () => {
+        const wrapper = mountAttention(
+            { system: 2 },
+            'system',
+            [section('paid_inconsistent', 'page_paid_inconsistent'), section('rejected_webhooks', 'page_rejected_webhooks')],
+            ['unmatched', 'amount_mismatch', 'waiting', 'system'],
+        );
+
+        expect(wrapper.find('[data-testid="section-paid_inconsistent"]').text()).toContain('Status pesanan tidak konsisten');
+        expect(wrapper.find('[data-testid="section-rejected_webhooks"]').text()).toContain('Webhook ditolak');
     });
 });
 

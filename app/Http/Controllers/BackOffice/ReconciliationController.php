@@ -9,21 +9,11 @@ use App\Domain\Payments\Enums\WebhookStatus;
 use App\Domain\Payments\Exceptions\GatewayException;
 use App\Domain\Payments\Models\Payment;
 use App\Http\Requests\BackOffice\GatewayCheckRequest;
-use App\Http\Workspace\AttentionView;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Inertia\Inertia;
-use Inertia\Response;
 
 final class ReconciliationController
 {
-    /** The old Rekonsiliasi page, kept during the ADR-0010 transition; its data comes from the workspace view. */
-    public function index(Request $request, AttentionView $attention): Response
-    {
-        return Inertia::render('reconciliation/ReconciliationPage', $attention->props($request));
-    }
-
     public function checkStatus(GatewayCheckRequest $request, Payment $payment, CheckPaymentWithGateway $check): RedirectResponse
     {
         try {

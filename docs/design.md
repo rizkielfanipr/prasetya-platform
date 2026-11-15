@@ -207,7 +207,7 @@ Navigation order after the transaction workspace consolidation ([ADR-0010](decis
 4. Pengguna
 5. Pengaturan
 
-Event Pembayaran and Rekonsiliasi are secondary views under Transaksi. Transaction audit is on transaction detail, user audit is on user detail, and global/system audit is under Pengaturan → Aktivitas Sistem. The legacy GET routes redirect for at least one release cycle.
+Perlu Ditinjau is a secondary view under Transaksi; the webhook log is Pengaturan → Log Gateway ([ADR-0016](decisions/0016-simplified-transaction-workspace.md)). Transaction audit is on transaction detail, user audit is on user detail, and global/system audit is under Pengaturan → Aktivitas Sistem. The legacy GET routes redirect for at least one release cycle.
 
 Every signed-in user sees every item: there is one access level ([ADR-0009](decisions/0009-single-access-users-username-login.md)). Pelanggan and Paket & Layanan return with their CRUD scope.
 
@@ -262,15 +262,15 @@ The complete transaction page may add payment method and Duitku reference. On sm
 
 ### Transaksi workspace
 
-One workspace with three views ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)), at `/transactions?view=all|attention|events`. An unknown `view` falls back to `all`.
+One workspace with two views ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md), [ADR-0016](decisions/0016-simplified-transaction-workspace.md)), at `/transactions?view=all|attention`. An unknown `view` falls back to `all`; `view=events` redirects to the Log Gateway with its filters.
 
 - Secondary navigation under the page title: a row of links, not a nested sidebar. The current view has `aria-current="page"`, a bar, and bold text; the row scrolls sideways on phones without clipping labels.
-- **Semua**: the transaction list with every filter it had (search, brand, payment and order status, method, package, theme, event type and date, date range) and sorting.
-- **Perlu Ditinjau**: the nine reconciliation groups as cards with counts, the total needing action, the selected group's description and threshold, and its issues. Duplicate webhooks are marked *Informasi, tidak dihitung*. Without `group`, the first group that needs action and has issues opens.
-- **Event Pembayaran**: every webhook delivery, with invoice search, processing status, and date range.
+- **Semua**: the transaction list with every filter it had (search, brand, payment and order status, method, package, theme, event type and date, date range) and sorting. The payment filter also offers **No Payment** (`payment_status=NONE`): orders without any attempt, the customers who did not check out.
+- **Perlu Ditinjau** (`&queue=unmatched|amount_mismatch|waiting|system`): four review queues, each a fixed set of reconciliation groups: *Uang tanpa pesanan* (unmatched payments), *Jumlah tidak cocok*, *Menunggu terlalu lama* (orders without success), and *Anomali sistem* (inconsistent paid states, invalid transitions, rejected webhooks), listed only when it has items. The queue's description and threshold sit above its issue table; Anomali sistem shows each non-empty group as its own section with its own pagination (`page_<group>`). A closing line says where the three uncounted groups live. Without `queue`, the first queue with items opens. Old `?group=` links land on the queue holding the group, or on the new home of an informational one.
+- **Pengaturan → Log Gateway** (`/settings/gateway-log`): every webhook delivery, with invoice search, processing status, date range, and sanitised diagnostics.
 - Each view keeps its own filters in the URL; switching view starts that view without the other's filters.
 - Rows whose evidence has no order show the invoice and *Transaksi tidak ditemukan* instead of a link.
-- The sidebar item **Transaksi** and the **Perlu Ditinjau** tab show the number of issues needing action (never duplicates). The header bell opens Perlu Ditinjau.
+- The sidebar item **Transaksi** and the **Perlu Ditinjau** tab show the number of issues needing action: the six queued groups only, never duplicates, orders without an attempt, or a payment already counted through its waiting order. The header bell opens Perlu Ditinjau.
 
 ### User detail and system activity
 
@@ -315,14 +315,14 @@ Manual planning, writing, and posting records for single-image Instagram posts (
 
 ### Transaction detail
 
-Everything needed to investigate and check one transaction ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md)).
+Everything needed to investigate and check one transaction, on one page without tabs ([ADR-0010](decisions/0010-consolidated-transaction-workspace.md), [ADR-0016](decisions/0016-simplified-transaction-workspace.md)). An old `?tab=` value is ignored.
 
-- The four status cards (brand, amount, payment status, order status) stay above the tabs, so payment and order status are always visible and always separate.
-- Three tabs (`Tabs`, keyboard arrows, the active tab marked by a bar and bold text, not colour alone), kept in the URL as `?tab=summary|payments|activity`:
-  - **Ringkasan**: order and package snapshot, brand details, created and expiry times, admin notes, customer.
-  - **Pembayaran**: *Perlu ditinjau* (this transaction's reconciliation issues, each marked *Perlu tindakan* or *Informasi* in words), then each payment attempt (`PaymentAttemptCard`: summary, the last gateway check, **Cek status** while the attempt is not paid, and its events behind a disclosure), then the webhook evidence. The tab shows the number of issues needing action.
-  - **Aktivitas**: one newest-first timeline of order status history, payment events, webhooks, admin notes, and audit, each labelled with its source.
-- **Cek status** opens the same reason dialog as before and returns to the same tab with the outcome as a toast.
+- **Head**: the payment status as the route, the amount, the brand, and one line of facts: the order status in words (red only when it failed), created, and confirmed or the payment deadline. Payment and order status stay separate; a disagreement is reported as an issue.
+- **Issues** right under the head: those needing action on a warning field, information on a tint field, each with **Cek status** where its payment can be checked.
+- **Pembayaran**: each attempt (`PaymentAttemptCard`): the route, amount, method, paid or valid-until time, gateway invoice and reference, failure code, the last gateway check, and **Cek status** while the attempt is not paid. Its events are not repeated here.
+- **Riwayat**: one newest-first timeline of order status history, payment events, webhooks, admin notes, and audit, each labelled with its source. A webhook entry links to the Log Gateway filtered to its invoice for diagnostics; the detail has no separate webhook table.
+- **Pesanan**, **Pelanggan**, and **Catatan Admin** beside them from `xl`; below `xl` everything is one column: payments, order, customer, history, notes.
+- **Cek status** opens the same reason dialog as before and returns to the same page with the outcome as a toast.
 
 ### Pengguna
 

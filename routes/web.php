@@ -15,6 +15,7 @@ use App\Http\Controllers\BackOffice\Content\ContentItemEvidenceController;
 use App\Http\Controllers\BackOffice\Content\ContentPostingController;
 use App\Http\Controllers\BackOffice\Content\ContentResearchController;
 use App\Http\Controllers\BackOffice\DashboardController;
+use App\Http\Controllers\BackOffice\GatewayLogController;
 use App\Http\Controllers\BackOffice\LegacyWorkspaceRedirectController;
 use App\Http\Controllers\BackOffice\ReconciliationController;
 use App\Http\Controllers\BackOffice\SettingsController;
@@ -108,6 +109,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/activity', SystemActivityController::class)->name('settings.activity');
+    Route::get('settings/gateway-log', GatewayLogController::class)->name('settings.gateway-log');
 
     // The signed-in person's own account: the password only. Names change in Pengguna (ADR-0015).
     Route::get('account/password', [AccountController::class, 'password'])->name('account.password');

@@ -13,8 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Transaksi → Event Pembayaran: every webhook delivery, including those for an invoice no order matches. */
-final class PaymentEventsView
+/** Pengaturan → Log Gateway (ADR-0016): every webhook delivery, including those for an invoice no order matches. */
+final class GatewayLogView
 {
     /** @return array<string, mixed> */
     public function props(Request $request): array

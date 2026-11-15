@@ -26,9 +26,9 @@ An unmigrated screen therefore already looks close. What is left on it is its ow
 | Error pages, signed out | any | Migrated | None |
 | Ganti Kata Sandi | `/account/password` | Migrated (new, ADR-0015) | None |
 | Transaksi, Semua | `/transactions` | Migrated (pilot) | None |
-| Transaksi, Perlu Ditinjau | `/transactions?view=attention` | Shell only | Lucide in `IssueTable`; group navigation and issue table composition |
-| Transaksi, Event Pembayaran | `/transactions?view=events` | Shell only | Webhook table composition; diagnostics panel |
-| Detail transaksi | `/transactions/{id}` | Shell only | Lucide; `PanelCard` sections; issues panel; payment attempt cards |
+| Transaksi, Perlu Ditinjau | `/transactions?view=attention` | Migrated (four queues, ADR-0016) | `GatewayCheckDialog` still uses the stock outline button |
+| Pengaturan, Log Gateway | `/settings/gateway-log` (was Transaksi → Event Pembayaran) | Shell only; moved out of Transaksi (ADR-0016) | `PanelCard` around the webhook table; webhook table composition; diagnostics panel |
+| Detail transaksi | `/transactions/{id}` | Migrated (single page, ADR-0016) | Admin note textarea uses the stock `Button` |
 | Dashboard | `/dashboard` | Migrated | None (`MetricCard` stays for Content Studio Insight until it moves) |
 | Pengguna | `/users`, `/users/{id}` | Shell only | Lucide in row actions and create dialog; detail layout |
 | Pengaturan, Aktivitas Sistem | `/settings`, `/settings/activity` | Shell only; profile and password forms moved out (ADR-0015) | Lucide; `PanelCard` admin panels |

@@ -45,9 +45,9 @@ final class ReconciliationReport
     }
 
     /** @return LengthAwarePaginator<int, Model> */
-    public function paginate(ReconciliationGroup $group, int $perPage = 15): LengthAwarePaginator
+    public function paginate(ReconciliationGroup $group, int $perPage = 15, string $pageName = 'page'): LengthAwarePaginator
     {
-        return $this->query($group)->orderByDesc('id')->paginate($perPage)->withQueryString();
+        return $this->query($group)->orderByDesc('id')->paginate($perPage, ['*'], $pageName)->withQueryString();
     }
 
     /**

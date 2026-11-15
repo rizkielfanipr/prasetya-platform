@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia;
 
 it('lets any active user open every current screen', function (string $uri): void {
     $this->actingAs(admin())->get($uri)->assertOk();
-})->with(['/dashboard', '/transactions', '/transactions?view=events', '/transactions?view=attention', '/users', '/settings', '/settings/activity']);
+})->with(['/dashboard', '/transactions', '/transactions?view=attention', '/users', '/settings', '/settings/activity', '/settings/gateway-log']);
 
 it('renders a missing record as a designed page', function (): void {
     $this->actingAs(admin())->get('/transactions/01jzzzzzzzzzzzzzzzzzzzzzzz')
@@ -24,7 +24,7 @@ it('shows evidence and audit to any active user', function (): void {
 
     $this->actingAs(admin())->get("/transactions/{$payment->order->public_id}")
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->has('webhooks')->has('activity')->has('reconciliationIssues'));
+        ->assertInertia(fn (AssertableInertia $page) => $page->missing('webhooks')->has('activity')->has('reconciliationIssues'));
 });
 
 it('shows the gateway and application panels to any active user', function (): void {

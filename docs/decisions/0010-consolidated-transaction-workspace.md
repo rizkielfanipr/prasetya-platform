@@ -1,6 +1,6 @@
 # ADR-0010: Consolidate operational payment screens into the transaction workspace
 
-- Status: Active
+- Status: Active, amended by [ADR-0016](0016-simplified-transaction-workspace.md) (two views, review queues, single-page detail, Log Gateway under Pengaturan)
 - Date: 2026-11-07
 - Decision owners: Prasetya Group
 - Related: [`../transaction-workspace-consolidation-plan.md`](../transaction-workspace-consolidation-plan.md), [ADR-0002](0002-mvp-payment-monitoring-scope.md), [ADR-0009](0009-single-access-users-username-login.md)
