@@ -5,21 +5,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { contentField } from '@/lib/content';
 import { formatNumber } from '@/lib/format';
 import { routes } from '@/lib/routes';
-import type { ContentActions, ContentItem, ContentLimits, ContentRevision, ItemAi, RuleFinding } from '@/types/content';
+import type { ContentActions, ContentItem, ContentLimits, ContentRevision, ItemAi, ResearchSource, RuleFinding } from '@/types/content';
 import { useForm } from '@inertiajs/vue3';
-import { Sparkles, TriangleAlert } from '@lucide/vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { ExclamationTriangleIcon, SparklesIcon } from '@heroicons/vue/24/outline';
+import { computed, ref, watch } from 'vue';
 import BrandCheckSummary from './BrandCheckSummary.vue';
 import ContentAiAssistant from './ContentAiAssistant.vue';
 import ContentMediaEditor from './ContentMediaEditor.vue';
 import ContentReadinessPanel from './ContentReadinessPanel.vue';
-import CreativeDetailsSheet from './CreativeDetailsSheet.vue';
+import ContentReferences from './ContentReferences.vue';
 import InstagramCompositionEditor from './InstagramCompositionEditor.vue';
 
 /**
- * The Draft workspace (ADR-0013): one visible flow from brief to Ready, with no secondary surface needed. It owns the
- * revision form; the parts below edit it through v-model and the readiness rail presents the server's answer. It also
- * serves "Edit konten" on Ready content, where saving makes a new revision and returns the item to Draft.
+ * The Draft workspace (ADR-0013, ADR-0017): one visible flow from brief to Ready, with no secondary surface needed. It
+ * owns the revision form; the parts below edit it through v-model and the readiness rail presents the server's
+ * answer. It also serves "Edit konten" on Ready content, where saving makes a new revision and returns it to Draft.
+ * Objective, audience, and visual direction are no longer edited: the form leaves them out, so the server carries
+ * their stored values into each new revision, and they show read-only under the brief when present.
  */
 const props = defineProps<{
     item: ContentItem;
@@ -30,27 +32,32 @@ const props = defineProps<{
     brandRulesVersion: number | null;
     /** Null outside Draft: AI only writes Drafts. */
     ai: ItemAi | null;
+    /** Null outside Draft: references are edited on a Draft only. */
+    references: ResearchSource[] | null;
     editingReady: boolean;
 }>();
-const creativeOpen = defineModel<boolean>('creativeOpen', { default: false });
 const emit = defineEmits<{ cancelEdit: [] }>();
 
-type FieldName = 'objective' | 'audience' | 'brief' | 'caption' | 'hashtags' | 'alt_text' | 'visual_direction';
+type FieldName = 'brief' | 'caption' | 'hashtags' | 'alt_text';
 const valuesOf = (revision: ContentRevision) => ({
     revision: revision.id,
-    objective: revision.objective ?? '',
-    audience: revision.audience ?? '',
     brief: revision.brief ?? '',
     caption: revision.caption ?? '',
     hashtags: revision.hashtags ?? '',
     alt_text: revision.altText ?? '',
-    visual_direction: revision.visualDirection ?? '',
 });
 const form = useForm({ ...valuesOf(props.revision), image: null as File | null });
 
 const briefField = contentField('brief');
-const order: (FieldName | 'image')[] = ['brief', 'caption', 'hashtags', 'image', 'alt_text', 'objective', 'audience', 'visual_direction'];
-const creativeFields: readonly string[] = ['objective', 'audience', 'visual_direction'];
+const order: (FieldName | 'image')[] = ['brief', 'caption', 'hashtags', 'image', 'alt_text'];
+// Earlier revisions may hold these; they are kept and shown, not edited.
+const legacyCreative = computed(() =>
+    [
+        { label: 'Tujuan', value: props.revision.objective },
+        { label: 'Audiens', value: props.revision.audience },
+        { label: 'Arahan visual', value: props.revision.visualDirection },
+    ].filter((entry): entry is { label: string; value: string } => Boolean(entry.value?.trim())),
+);
 
 const aiActive = computed(() => props.ai?.current?.status === 'QUEUED' || props.ai?.current?.status === 'RUNNING');
 const readonly = computed(() => props.actions.edit !== null || aiActive.value);
@@ -66,20 +73,14 @@ watch(
     },
 );
 
-/** Moves focus to a field by its request name, opening Detail kreatif first when the field lives there. */
-async function focusField(name: string): Promise<void> {
-    if (creativeFields.includes(name)) {
-        creativeOpen.value = true;
-        await nextTick();
-        // The sheet animates in and traps focus on open; wait a frame so the field is focusable.
-        await new Promise((resolve) => window.requestAnimationFrame(resolve));
-    }
+/** Moves focus to a field by its request name. */
+function focusField(name: string): void {
     document.getElementById(name === 'image' ? 'content-image' : `content-${name}`)?.focus();
 }
 
 function focusFirstError(): void {
     const first = order.find((name) => errors.value[name]);
-    if (first) void focusField(first);
+    if (first) focusField(first);
 }
 
 /** Saves the content; true when the server accepted it. */
@@ -118,14 +119,22 @@ function cancelEdit(): void {
 
 <template>
     <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_20rem]" data-testid="draft-workspace">
-        <section aria-labelledby="draft-title" class="min-w-0 space-y-6 rounded-xl border bg-card p-4 sm:p-5" data-testid="content-editor">
+        <section aria-labelledby="draft-title" class="draft-editor min-w-0 space-y-5" data-testid="content-editor">
             <h2 id="draft-title" class="sr-only">{{ editingReady ? 'Edit konten' : 'Buat konten' }}</h2>
-            <p v-if="editingReady" class="flex items-start gap-2 rounded-lg bg-warning-surface p-3 text-sm text-warning" data-testid="ready-edit-note">
-                <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Anda mengedit konten yang sudah siap posting. Menyimpan perubahan membuat
-                revisi baru dan mengembalikan konten ke Draft.
+            <p
+                v-if="editingReady"
+                class="flex items-start gap-2 rounded-xl bg-warning-surface px-4 py-3 text-sm font-semibold text-warning"
+                data-testid="ready-edit-note"
+            >
+                <ExclamationTriangleIcon class="mt-0.5 size-4 shrink-0 stroke-2" aria-hidden="true" />Anda mengedit konten yang sudah siap posting. Menyimpan
+                perubahan membuat revisi baru dan mengembalikan konten ke Draft.
             </p>
-            <p v-else-if="revision.generatedBy" class="flex items-start gap-2 rounded-lg bg-info-surface p-3 text-sm text-info" data-testid="ai-draft-note">
-                <Sparkles class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Draft ini ditulis AI ({{
+            <p
+                v-else-if="revision.generatedBy"
+                class="flex items-start gap-2 rounded-xl bg-tint-50 px-4 py-3 text-sm text-foreground"
+                data-testid="ai-draft-note"
+            >
+                <SparklesIcon class="mt-0.5 size-4 shrink-0 stroke-2 text-primary-text" aria-hidden="true" />Draft ini ditulis AI ({{
                     revision.generatedBy.model ?? revision.generatedBy.provider
                 }}). Periksa fakta dan gaya bahasa sebelum menandai siap posting.
             </p>
@@ -146,10 +155,16 @@ function cancelEdit(): void {
                             :readonly="readonly"
                             :aria-describedby="`${describedBy ?? ''} content-brief-count`.trim()"
                             :aria-invalid="invalid"
-                            :class="readonly ? 'bg-muted' : ''"
+                            :class="readonly ? 'bg-tint-50' : ''"
                         />
                     </template>
                 </FormField>
+                <dl v-if="legacyCreative.length" class="grid gap-2 rounded-xl bg-tint-50 px-4 py-3 text-[13px]" data-testid="legacy-creative">
+                    <div v-for="entry in legacyCreative" :key="entry.label">
+                        <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">{{ entry.label }} (dari revisi lama)</dt>
+                        <dd class="whitespace-pre-line">{{ entry.value }}</dd>
+                    </div>
+                </dl>
                 <ContentAiAssistant v-if="ai" :item="item" :revision="revision" :ai="ai" :prepare="prepareForAi" :dirty="form.isDirty" />
                 <p v-else class="text-xs text-muted-foreground">AI dapat dipakai lagi setelah konten kembali ke Draft.</p>
             </div>
@@ -168,8 +183,9 @@ function cancelEdit(): void {
                 :asset="revision.asset"
                 :readonly="readonly"
                 :errors="{ image: errors.image, alt_text: errors.alt_text }"
-                :visual-direction="revision.visualDirection"
             />
+
+            <ContentReferences v-if="references" :item="item" :references="references" :readonly="readonly" />
 
             <BrandCheckSummary :findings="findings" :version="brandRulesVersion" :stale="form.isDirty" />
         </section>
@@ -190,16 +206,6 @@ function cancelEdit(): void {
             @focus-field="focusField"
         />
 
-        <CreativeDetailsSheet
-            v-model:open="creativeOpen"
-            v-model:objective="form.objective"
-            v-model:audience="form.audience"
-            v-model:visual-direction="form.visual_direction"
-            :readonly="readonly"
-            :saving="form.processing"
-            :errors="{ objective: errors.objective, audience: errors.audience, visual_direction: errors.visual_direction }"
-            @save="save"
-        />
         <ConfirmDialog
             v-model:open="discarding"
             title="Buang perubahan yang belum disimpan?"
@@ -210,3 +216,11 @@ function cancelEdit(): void {
         />
     </div>
 </template>
+
+<style>
+/* Regions of the editor are separated by hairlines, not boxes (DESIGN.md, Flat Board Rule). */
+.draft-editor > * + *:not(p) {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+</style>

@@ -239,8 +239,6 @@ export interface ContentFact {
     retiredReason: string | null;
 }
 
-export type BrandTab = 'rules' | 'pillars' | 'facts' | 'activity';
-
 export type CopyField = 'caption' | 'hashtags' | 'alt_text' | 'visual_direction';
 export type GenerationStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'DISCARDED';
 
@@ -277,7 +275,7 @@ export interface ItemAi {
 }
 
 /** The secondary surfaces of the detail page (ADR-0013), each opened by name. */
-export type DetailSurface = 'plan' | 'creative' | 'research' | 'history' | 'activity' | 'returnToDraft' | 'archive';
+export type DetailSurface = 'plan' | 'history' | 'returnToDraft' | 'archive';
 
 /** GET /content/items/{id}/history: every revision, newest first, with the Ready and legacy approval markers and AI runs. */
 export interface ItemHistory {
@@ -309,7 +307,6 @@ export interface AiStatus {
     maxOutputTokens: number;
     maxAttempts: number;
     timeoutSeconds: number;
-    search: { provider: string; unavailableReason: string | null; maxResults: number; callsThisWeek: number };
     circuitOpenUntil: string | null;
 }
 
@@ -324,7 +321,6 @@ export interface EvaluationRow {
 }
 
 export type SourceTrust = 'OFFICIAL' | 'GENERAL' | 'USER_GENERATED';
-export type ResearchStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
 
 /** Untrusted page metadata: render as plain text only. */
 export interface ResearchSource {
@@ -339,33 +335,6 @@ export interface ResearchSource {
     publishedOn: string | null;
     fetchedAt: string;
     note: string | null;
-}
-
-export interface ResearchRun {
-    id: string;
-    query: string;
-    status: ResearchStatus;
-    provider: string;
-    resultsCount: number;
-    droppedCount: number;
-    costUsd: number;
-    errorMessage: string | null;
-    requestedBy: string;
-    createdAt: string;
-    sources: ResearchSource[];
-}
-
-/** GET /content/items/{id}/research. */
-export interface ItemResearch {
-    unavailableReason: string | null;
-    cited: ResearchSource[];
-    runs: ResearchRun[];
-    internal: {
-        campaigns: { name: string; objective: string | null }[];
-        facts: number;
-        similar: { id: string; title: string; status: ContentStatus; plannedAt: string; score: number }[];
-    };
-    suggestedQuery: string;
 }
 
 export type PostingStep = 'image' | 'caption' | 'alt_text' | 'account';

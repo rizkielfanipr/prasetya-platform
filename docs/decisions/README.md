@@ -65,3 +65,4 @@ How will the decision be verified in implementation and operation?
 | [0014](0014-back-office-redesign.md) | Redesign the back office on the Prasetya Webworks identity | Proposed |
 | [0015](0015-account-password-page.md) | A personal account page for the password; names change only in Pengguna | Accepted |
 | [0016](0016-simplified-transaction-workspace.md) | Simplify the transaction workspace to two views, four review queues, and a single-page detail | Accepted |
+| [0017](0017-simplified-content-studio-surfaces.md) | Simplify Content Studio to a calendar, one brand document, and a lean editor | Accepted |

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import { areaLabels, contentDecisions, contentFields, revisionChanges } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import type { ContentRevision } from '@/types/content';
@@ -36,22 +37,27 @@ const comparison = computed(() => {
                 <span class="absolute top-1.5 -left-[5px] size-2 rounded-full bg-muted-foreground" aria-hidden="true" />
                 <p class="font-semibold">
                     Revisi {{ revision.number }}
-                    <span v-if="revision.id === readyRevisionId" class="ml-1 text-xs font-semibold text-info">· siap posting</span>
-                    <span v-else-if="revision.id === approvedRevisionId" class="ml-1 text-xs font-semibold text-success">· disetujui (alur lama)</span>
+                    <span v-if="revision.id === readyRevisionId" class="ml-1 text-xs font-semibold text-info"><SeparatorDot />siap posting</span>
+                    <span v-else-if="revision.id === approvedRevisionId" class="ml-1 text-xs font-semibold text-success"
+                        ><SeparatorDot />disetujui (alur lama)</span
+                    >
                 </p>
                 <p class="text-xs text-muted-foreground">
                     Ditulis {{ revision.author
-                    }}<template v-if="revision.generatedBy"> dengan AI ({{ revision.generatedBy.model ?? revision.generatedBy.provider }})</template> ·
+                    }}<template v-if="revision.generatedBy"> dengan AI ({{ revision.generatedBy.model ?? revision.generatedBy.provider }})</template
+                    ><SeparatorDot />
                     {{ formatDateTime(revision.createdAt) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    <template v-if="revision.submittedAt">Dikunci oleh {{ revision.submittedBy }} · {{ formatDateTime(revision.submittedAt) }}</template>
+                    <template v-if="revision.submittedAt"
+                        >Dikunci oleh {{ revision.submittedBy }}<SeparatorDot />{{ formatDateTime(revision.submittedAt) }}</template
+                    >
                     <template v-else>Masih draft (dapat diubah)</template>
                 </p>
                 <ul v-if="revision.decisions.length" class="mt-2 space-y-1">
                     <li v-for="(decision, index) in revision.decisions" :key="index" class="text-xs">
                         <span class="font-semibold">{{ contentDecisions[decision.decision].label }}</span
-                        ><template v-if="decision.areas.length"> ({{ areaLabels(decision.areas) }})</template> oleh {{ decision.actor }} ·
+                        ><template v-if="decision.areas.length"> ({{ areaLabels(decision.areas) }})</template> oleh {{ decision.actor }}<SeparatorDot />
                         {{ formatDateTime(decision.at) }}
                         <span v-if="decision.note" class="block break-words text-muted-foreground">“{{ decision.note }}”</span>
                     </li>
@@ -62,13 +68,13 @@ const comparison = computed(() => {
         <section v-if="revisions.length > 1" aria-labelledby="compare-heading" class="space-y-3 border-t pt-4">
             <h3 id="compare-heading" class="text-sm font-semibold">Bandingkan revisi</h3>
             <div class="flex flex-wrap items-end gap-3">
-                <label class="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"
+                <label class="flex flex-col gap-1 text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase"
                     >Dari
                     <select v-model="before" class="h-9 rounded-md border bg-card px-2 text-sm text-foreground">
                         <option v-for="revision in revisions" :key="revision.id" :value="revision.id">Revisi {{ revision.number }}</option>
                     </select>
                 </label>
-                <label class="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"
+                <label class="flex flex-col gap-1 text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase"
                     >Ke
                     <select v-model="after" class="h-9 rounded-md border bg-card px-2 text-sm text-foreground">
                         <option v-for="revision in revisions" :key="revision.id" :value="revision.id">Revisi {{ revision.number }}</option>

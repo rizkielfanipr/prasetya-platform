@@ -20,7 +20,7 @@ withDefaults(defineProps<{ revision: ContentRevision; showAlt?: boolean; stacked
                 class="aspect-[4/5] w-full rounded-lg border object-cover"
                 data-testid="posting-image"
             />
-            <p v-else class="flex aspect-[4/5] w-full items-center justify-center rounded-lg border bg-muted p-4 text-center text-sm text-muted-foreground">
+            <p v-else class="flex aspect-[4/5] w-full items-center justify-center rounded-lg border bg-tint-50 p-4 text-center text-sm text-muted-foreground">
                 Belum ada gambar
             </p>
         </div>
@@ -28,17 +28,17 @@ withDefaults(defineProps<{ revision: ContentRevision; showAlt?: boolean; stacked
             <slot />
             <dl class="space-y-3 text-sm">
                 <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Caption</dt>
+                    <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Caption</dt>
                     <dd class="mt-1 max-w-prose break-words whitespace-pre-line" data-testid="snapshot-caption">
                         {{ revision.caption ?? 'Belum ada caption.' }}
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Hashtag</dt>
+                    <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Hashtag</dt>
                     <dd class="mt-1 max-w-prose break-words">{{ revision.hashtags || 'Tanpa hashtag.' }}</dd>
                 </div>
                 <div v-if="showAlt">
-                    <dt class="text-xs font-semibold text-muted-foreground">Alt text</dt>
+                    <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Alt text</dt>
                     <dd class="mt-1 max-w-prose break-words">{{ revision.altText || 'Belum ada alt text.' }}</dd>
                 </div>
             </dl>

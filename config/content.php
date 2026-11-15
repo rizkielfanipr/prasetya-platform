@@ -39,18 +39,6 @@ return [
         'brand_knowledge' => [
             'max_output_tokens' => (int) env('CONTENT_BRAND_KNOWLEDGE_MAX_OUTPUT_TOKENS', 3000),
         ],
-        /*
-        | Web research (phase 4). provider: none | fake | tavily. The key stays here; agents never see it.
-        | price_per_call: optional USD per search, only to estimate cost in the records.
-        */
-        'search' => [
-            'provider' => env('CONTENT_SEARCH_PROVIDER', 'none'),
-            'api_key' => env('CONTENT_SEARCH_API_KEY'),
-            'price_per_call' => (float) env('CONTENT_SEARCH_PRICE_PER_CALL', 0),
-            'timeout_seconds' => (int) env('CONTENT_SEARCH_TIMEOUT', 20),
-            'max_results' => (int) env('CONTENT_SEARCH_MAX_RESULTS', 5),
-            'country' => env('CONTENT_SEARCH_COUNTRY', 'indonesia'),
-        ],
         // After this many provider failures in a row within the window, new requests wait until it passes.
         'circuit' => ['failures' => 3, 'minutes' => 10],
         // Kept apart from anything payment-related; run with: php artisan queue:work --queue=content-ai

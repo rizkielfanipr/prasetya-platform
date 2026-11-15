@@ -19,6 +19,7 @@ const initial = () => ({
     pillar: props.item.pillar?.id ?? '',
     campaign: props.item.campaign?.id ?? '',
     topic: props.item.topic ?? '',
+    new_pillar: '',
 });
 const form = useForm(initial());
 
@@ -30,13 +31,16 @@ watch(open, (value) => {
 });
 
 function submit(): void {
-    form.transform((data) => ({ ...data, pillar: data.pillar || null, campaign: data.campaign || null, topic: data.topic || null })).put(
-        routes.contentItemDetails(props.item.id),
-        {
-            preserveScroll: true,
-            onSuccess: () => (open.value = false),
-        },
-    );
+    form.transform((data) => ({
+        ...data,
+        pillar: data.pillar || null,
+        new_pillar: data.new_pillar.trim() || null,
+        campaign: data.campaign || null,
+        topic: data.topic || null,
+    })).put(routes.contentItemDetails(props.item.id), {
+        preserveScroll: true,
+        onSuccess: () => (open.value = false),
+    });
 }
 </script>
 
@@ -56,6 +60,8 @@ function submit(): void {
                 v-model:pillar="form.pillar"
                 v-model:campaign="form.campaign"
                 v-model:topic="form.topic"
+                v-model:new-pillar="form.new_pillar"
+                allow-new-pillar
                 id-prefix="content-details"
                 :options="options"
                 :errors="form.errors"

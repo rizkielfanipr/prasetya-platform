@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Actions\SaveBrandKnowledge;
 use App\Domain\Content\Actions\SaveCampaign;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Ai\CopyBudget;
@@ -22,86 +23,38 @@ use App\Domain\Content\Models\ContentPillar;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia;
 
-/* ADR-0011, phase 2: brand rules are versioned, facts are only retired, and every change is audited on the brand. */
+/* ADR-0011 and ADR-0017: one Brand Knowledge document; its Aturan Posting section versions the rules, and every change is audited. */
 
 beforeEach(fn () => contentSetUp());
 
-/** @param array<string, mixed> $overrides */
-function brandGuide(array $overrides = []): string
+/** A Brand Knowledge document whose `## Aturan Posting` section holds the given rules (ADR-0017). */
+function knowledgeWithRules(string $limits = "Caption minimal: 80\nCaption maksimal: 700\nHashtag minimal: 3\nHashtag maksimal: 10\nJarak topik (hari): 21", string $terms = 'termurah'): string
 {
-    $rules = [
-        'audience' => 'Pemilik UMKM',
-        'voice' => 'Ramah dan jelas',
-        'visual_guidance' => '',
-        'forbidden_terms' => ['termurah', ' ', 'termurah'],
-        'forbidden_claims' => [],
-        'allowed_ctas' => [],
-        'required_hashtags' => [],
-        'forbidden_hashtags' => [],
-        'preferred_terms' => [],
-        'approved_examples' => [],
-        'rejected_examples' => [],
-        'caption_min_length' => null,
-        'caption_max_length' => 300,
-        'hashtag_min' => null,
-        'hashtag_max' => null,
-        'topic_repeat_days' => null,
-        ...$overrides,
-    ];
+    return <<<DOC
+    # Prasetya Webworks
+    Kami membantu UMKM membuat website. Paket mulai Rp499.000.
 
-    $list = static fn (string $key): string => implode("\n", $rules[$key]);
-    $number = static fn (string $key): string => $rules[$key] === null ? '' : (string) $rules[$key];
+    ## Aturan Posting
+    Aturan ini dibaca otomatis saat disimpan.
 
-    return <<<GUIDE
-[AUDIENS]
-{$rules['audience']}
+    [BATAS]
+    {$limits}
 
-[GAYA BAHASA]
-{$rules['voice']}
+    [KATA TERLARANG]
+    {$terms}
 
-[ARAHAN VISUAL]
-{$rules['visual_guidance']}
+    [KLAIM TERLARANG]
+    garansi uang kembali
 
-[BATAS]
-Caption minimal: {$number('caption_min_length')}
-Caption maksimal: {$number('caption_max_length')}
-Hashtag minimal: {$number('hashtag_min')}
-Hashtag maksimal: {$number('hashtag_max')}
-Jarak topik (hari): {$number('topic_repeat_days')}
+    [CTA DISETUJUI]
+    Tanya via WhatsApp
 
-[KATA TERLARANG]
-{$list('forbidden_terms')}
+    [HASHTAG WAJIB]
+    #prasetyawebworks
 
-[KLAIM TERLARANG]
-{$list('forbidden_claims')}
-
-[CTA DISETUJUI]
-{$list('allowed_ctas')}
-
-[HASHTAG WAJIB]
-{$list('required_hashtags')}
-
-[HASHTAG TERLARANG]
-{$list('forbidden_hashtags')}
-
-[KATA DIANJURKAN]
-{$list('preferred_terms')}
-
-[CONTOH DISETUJUI]
-{$list('approved_examples')}
-
-[CONTOH DITOLAK]
-{$list('rejected_examples')}
-GUIDE;
-}
-
-/** @return array{guide: string, change_note: string} */
-function rulesPayload(array $overrides = []): array
-{
-    $changeNote = (string) ($overrides['change_note'] ?? 'Aturan awal dari pemilik');
-    unset($overrides['change_note']);
-
-    return ['guide' => brandGuide($overrides), 'change_note' => $changeNote];
+    ## FAQ
+    Pengerjaan dimulai setelah data lengkap.
+    DOC;
 }
 
 function brandUri(string $suffix = ''): string
@@ -183,46 +136,75 @@ it('keeps manual Brand Knowledge available when AI assistance is unavailable or 
         ->and(ContentBrandKnowledgeVersion::query()->count())->toBe(0);
 });
 
-it('saves rules as a new version each time and keeps the old ones', function (): void {
-    $this->actingAs(admin())->put(brandUri('/rules'), rulesPayload())->assertSessionHas('success', 'Aturan brand disimpan sebagai versi 1.');
-    $this->put(brandUri('/rules'), rulesPayload(['caption_max_length' => 500, 'change_note' => 'Caption lebih panjang']))->assertSessionHas('success', 'Aturan brand disimpan sebagai versi 2.');
+it('reads the Aturan Posting section into a new rules version only when the rules change', function (): void {
+    $uri = brandUri('/knowledge');
+    $this->actingAs(admin())->put($uri, ['source_text' => knowledgeWithRules()])->assertSessionHas('success', 'Brand Knowledge disimpan sebagai versi 1.');
 
-    $brand = webworks()->refresh();
-    expect(ContentBrandProfile::query()->count())->toBe(2)
-        ->and($brand->currentProfile?->version)->toBe(2)
-        ->and($brand->currentProfile?->forbidden_terms)->toBe(['termurah'])
-        ->and(ContentBrandProfile::query()->where('version', 1)->value('caption_max_length'))->toBe(300);
+    $profile = webworks()->refresh()->currentProfile;
+    expect($profile?->version)->toBe(1)
+        ->and($profile?->forbidden_terms)->toBe(['termurah'])
+        ->and($profile?->forbidden_claims)->toBe(['garansi uang kembali'])
+        ->and($profile?->allowed_ctas)->toBe(['Tanya via WhatsApp'])
+        ->and($profile?->required_hashtags)->toBe(['#prasetyawebworks'])
+        ->and($profile?->caption_max_length)->toBe(700)
+        ->and($profile?->change_note)->toBe('Dari Brand Knowledge versi 1');
 
-    $audit = AuditLog::query()->where('action', 'content.brand_rules_updated')->latest('id')->first();
-    expect($audit?->entity_id)->toBe($brand->public_id)
-        ->and($audit?->new_state)->toEqual(['version' => 2, 'fields' => ['caption_max_length']])
-        ->and($audit?->reason)->toBe('Caption lebih panjang');
-});
-
-it('refuses a save that changes nothing, missing notes, and contradictory limits', function (): void {
-    $this->actingAs(admin())->put(brandUri('/rules'), rulesPayload());
-
-    $this->put(brandUri('/rules'), rulesPayload(['change_note' => 'Lagi']))->assertSessionHas('error', 'Tidak ada aturan yang berubah.');
-    $this->put(brandUri('/rules'), rulesPayload(['change_note' => '']))->assertSessionHasErrors('change_note');
-    $this->put(brandUri('/rules'), rulesPayload(['hashtag_min' => 10, 'hashtag_max' => 5, 'change_note' => 'x']))->assertSessionHas('error', 'Jumlah hashtag: batas minimal lebih besar dari batas maksimal.');
-    $this->put(brandUri('/rules'), rulesPayload(['forbidden_terms' => array_map(static fn (int $index): string => "kata-{$index}", range(1, 51))]))->assertSessionHasErrors('guide');
-
+    // Prose outside the section changes: a new knowledge version, the same rules version.
+    $this->put($uri, ['source_text' => knowledgeWithRules().' Ditambah.'])->assertSessionHas('success', 'Brand Knowledge disimpan sebagai versi 2.');
     expect(ContentBrandProfile::query()->count())->toBe(1);
+
+    $this->put($uri, ['source_text' => knowledgeWithRules(terms: "termurah\nmurahan")])->assertSessionHas('success');
+    $brand = webworks()->refresh();
+    expect($brand->currentProfile?->version)->toBe(2)
+        ->and($brand->currentProfile?->forbidden_terms)->toBe(['termurah', 'murahan'])
+        ->and(AuditLog::query()->where('action', 'content.brand_rules_updated')->latest('id')->first()?->new_state)->toEqual(['version' => 2, 'fields' => ['forbidden_terms']]);
 });
 
-it('rejects a malformed guide without creating a rules version', function (): void {
+it('keeps the rules in force when the document has no Aturan Posting section', function (): void {
+    brandRules(['forbidden_terms' => ['murah']]);
+
+    $this->actingAs(admin())->put(brandUri('/knowledge'), ['source_text' => "# Brand\nTanpa aturan di dokumen."])->assertSessionHas('success');
+
+    expect(webworks()->refresh()->currentProfile?->forbidden_terms)->toBe(['murah'])
+        ->and(ContentBrandProfile::query()->count())->toBe(1)
+        ->and(contentPage(brandUri())['rules'])->toMatchArray(['version' => 1, 'inDocument' => false]);
+});
+
+it('carries the fields the section does not hold into the new rules version', function (): void {
+    brandRules(['voice' => 'Ramah dan jelas', 'audience' => 'Pemilik UMKM']);
+
+    $this->actingAs(admin())->put(brandUri('/knowledge'), ['source_text' => knowledgeWithRules()])->assertSessionHas('success');
+
+    $profile = webworks()->refresh()->currentProfile;
+    expect($profile?->version)->toBe(2)->and($profile?->voice)->toBe('Ramah dan jelas')->and($profile?->audience)->toBe('Pemilik UMKM');
+});
+
+it('refuses a malformed or contradictory section and saves nothing', function (string $limits, string $message): void {
+    $this->actingAs(admin())->put(brandUri('/knowledge'), ['source_text' => knowledgeWithRules($limits)])->assertSessionHas('error', $message);
+
+    expect(ContentBrandKnowledgeVersion::query()->count())->toBe(0)->and(ContentBrandProfile::query()->count())->toBe(0);
+})->with([
+    'unknown limit' => ['Caption maksimal: banyak', 'Aturan Posting: format [BATAS] tidak valid. Tulis misalnya “Caption maksimal: 700”, dengan label “Caption minimal”, “Caption maksimal”, “Hashtag minimal”, “Hashtag maksimal”, “Jarak topik (hari)”.'],
+    'out of range' => ['Hashtag maksimal: 99', 'Aturan Posting: batas “Hashtag maksimal” harus antara 0 dan 30.'],
+    'contradictory' => ["Hashtag minimal: 10\nHashtag maksimal: 5", 'Jumlah hashtag: batas minimal lebih besar dari batas maksimal.'],
+]);
+
+it('refuses an unknown block in the section', function (): void {
+    $this->actingAs(admin())->put(brandUri('/knowledge'), ['source_text' => str_replace('[CTA DISETUJUI]', '[CTA]', knowledgeWithRules())])
+        ->assertSessionHas('error', fn (string $error): bool => str_starts_with($error, 'Aturan Posting: bagian [CTA] tidak dikenali.'));
+});
+
+it('offers the rules in force as a section that reads back to the same rules', function (): void {
+    $current = brandRules(['forbidden_terms' => ['termurah'], 'forbidden_claims' => ['dijamin laris'], 'caption_max_length' => 700, 'required_hashtags' => ['#prasetyawebworks']]);
     $this->actingAs(admin());
 
-    $this->put(brandUri('/rules'), [
-        'guide' => str_replace("[CONTOH DITOLAK]\n", '', brandGuide()),
-        'change_note' => 'Heading terhapus',
-    ])->assertSessionHasErrors('guide');
-    $this->put(brandUri('/rules'), [
-        'guide' => str_replace('Caption maksimal: 300', 'Caption maksimal: banyak', brandGuide()),
-        'change_note' => 'Batas salah',
-    ])->assertSessionHasErrors('guide');
+    $rules = contentPage(brandUri())['rules'];
+    expect($rules['inDocument'])->toBeFalse()->and($rules['section'])->toStartWith('## Aturan Posting');
 
-    expect(ContentBrandProfile::query()->count())->toBe(0);
+    $this->put(brandUri('/knowledge'), ['source_text' => "# Brand\nIsi.\n\n".$rules['section']])->assertSessionHas('success');
+    // Moving the rules into the document changes nothing about them.
+    expect(webworks()->refresh()->current_profile_id)->toBe($current->id)
+        ->and(contentPage(brandUri())['rules'])->toMatchArray(['version' => 1, 'inDocument' => true]);
 });
 
 it('never edits or deletes a rules version', function (): void {
@@ -286,23 +268,6 @@ it('derives whether a campaign runs from its period in WIB, at the day boundary'
     expect($periods)->toEqual(['Lalu' => 'ended', 'Kini' => 'running', 'Nanti' => 'upcoming']);
 });
 
-it('adds facts with their source and only ever retires them', function (): void {
-    $this->actingAs(admin())->post(brandUri('/facts'), ['category' => 'PRICE', 'statement' => 'Paket Landing Page Rp 1.500.000', 'source' => ''])->assertSessionHasErrors('source');
-    $this->post(brandUri('/facts'), ['category' => 'PRICE', 'statement' => 'Paket Landing Page Rp 1.500.000', 'source' => 'Daftar harga November 2026'])->assertSessionHas('success');
-    $fact = ContentFact::query()->sole();
-
-    expect($fact->category->value)->toBe('PRICE')
-        ->and(fn () => $fact->update(['statement' => 'Rp 1']))->toThrow(LogicException::class)
-        ->and(fn () => $fact->delete())->toThrow(LogicException::class);
-
-    $this->post(brandUri("/facts/{$fact->public_id}/retire"), [])->assertSessionHasErrors('reason');
-    $this->post(brandUri("/facts/{$fact->public_id}/retire"), ['reason' => 'Harga naik'])->assertSessionHas('success');
-    $this->post(brandUri("/facts/{$fact->public_id}/retire"), ['reason' => 'Lagi'])->assertSessionHas('error', 'Fakta ini sudah tidak berlaku.');
-
-    expect($fact->refresh()->retired_reason)->toBe('Harga naik')
-        ->and(AuditLog::query()->where('entity_type', 'content_brand')->pluck('action')->all())->toBe(['content.fact_added', 'content.fact_retired']);
-});
-
 it('scopes pillars, campaigns, and facts to their brand in the URL', function (): void {
     $other = ContentBrand::factory()->create();
     $pillar = ContentPillar::query()->create(['content_brand_id' => $other->id, 'name' => 'Lain', 'target_share' => 10]);
@@ -334,12 +299,25 @@ it('imports the reviewed Prasetya Webworks brand file through the audited action
         ->and(ContentFact::query()->count())->toBe(10)
         ->and(AuditLog::query()->where('entity_type', 'content_brand')->where('actor_user_id', $admin->id)->count())->toBe(1 + 4 + 10);
 
-    // The facts back the site's prices, so a draft quoting them passes the price rule.
+    // Imported facts no longer back a price (ADR-0017): Brand Knowledge does.
     $item = draftItem();
     app(SaveContentRevision::class)($item, revisionId($item), ['caption' => 'Website siap tampil mulai Rp499.000, domain & hosting tahun pertama termasuk. Tanya via WhatsApp.', 'hashtags' => '#prasetyawebworks #websiteumkm #bisnisonline'], null, $admin);
-    expect(findingCodes($item))->not->toContain('unapproved_price');
+    expect(findingCodes($item))->toContain('unapproved_price');
+    app(SaveBrandKnowledge::class)(webworks(), "## Harga\nWebsite mulai Rp499.000.", $admin);
+    expect(findingCodes($item->refresh()))->not->toContain('unapproved_price');
 });
 
 it('refuses an import without an active actor', function (): void {
     $this->artisan('content:import-brand WEBWORKS resources/content-brands/prasetya-webworks.json --actor=nobody')->assertFailed();
+});
+
+it('has no separate rules or facts editor any more (ADR-0017)', function (): void {
+    $this->actingAs(admin())->put(brandUri('/rules'), ['guide' => 'x', 'change_note' => 'x'])->assertNotFound();
+    $this->post(brandUri('/facts'), ['category' => 'PRICE', 'statement' => 'Rp1', 'source' => 'x'])->assertNotFound();
+    $this->post('/content/items/'.draftItem()->public_id.'/research', ['query' => 'website umkm'])->assertNotFound();
+});
+
+it('moves Pengaturan AI to Pengaturan → Model AI', function (): void {
+    $this->actingAs(admin())->get('/content/settings')->assertRedirect('/settings/ai');
+    $this->get('/settings/ai')->assertInertia(fn (AssertableInertia $page) => $page->component('settings/AiModelPage'));
 });

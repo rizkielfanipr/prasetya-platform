@@ -12,13 +12,14 @@ final class UpdateContentDetailsRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ContentDetailsRules::rules();
+        // Pillars are labels (ADR-0017): one can be picked, or named to add it.
+        return [...ContentDetailsRules::rules(), 'new_pillar' => ['nullable', 'string', 'max:80', 'prohibits:pillar']];
     }
 
     /** @return array<string, string> */
     public function messages(): array
     {
-        return ContentDetailsRules::messages();
+        return [...ContentDetailsRules::messages(), 'new_pillar.prohibits' => 'Pilih pilar yang ada atau tulis pilar baru, tidak keduanya.'];
     }
 
     public function plan(): ContentPlan

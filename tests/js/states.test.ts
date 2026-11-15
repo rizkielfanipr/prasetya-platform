@@ -2,10 +2,8 @@ import AuditTimeline from '@/components/shared/AuditTimeline.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import ErrorState from '@/components/shared/ErrorState.vue';
 import LoadingState from '@/components/shared/LoadingState.vue';
-import MetricCard from '@/components/shared/MetricCard.vue';
 import TablePagination from '@/components/shared/TablePagination.vue';
 import type { AuditEntry } from '@/types/backoffice';
-import { Clock } from '@lucide/vue';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
@@ -26,15 +24,6 @@ describe('state components', () => {
         const loading = mount(LoadingState, { props: { rows: 2 } });
         expect(loading.attributes('role')).toBe('status');
         expect(loading.text()).toBe('Memuat data');
-    });
-
-    it('renders a metric with its comparison', () => {
-        const wrapper = mount(MetricCard, {
-            props: { label: 'Menunggu', value: '8', icon: Clock, tone: 'warning', current: 8, previous: 4, comparisonLabel: 'dari 30 hari sebelumnya' },
-        });
-
-        expect(wrapper.text()).toContain('Menunggu');
-        expect(wrapper.text()).toContain('+100%');
     });
 });
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Content\Actions\AddContentFact;
 use App\Domain\Content\Actions\CreateContentItem;
-use App\Domain\Content\Actions\RetireContentFact;
+use App\Domain\Content\Actions\SaveBrandKnowledge;
 use App\Domain\Content\Actions\SaveCampaign;
 use App\Domain\Content\Actions\SaveContentRevision;
 use App\Domain\Content\Actions\UpdateContentDetails;
@@ -58,30 +58,26 @@ it('asks for an approved call to action when the brand has some', function (): v
         ->and(findingCodes(withCaption($item, ['caption' => 'Website rapi. Hubungi kami lewat DM.'])))->toBe([]);
 });
 
-it('accepts prices and percentages only from approved, current facts', function (): void {
+it('accepts prices and percentages only when the current Brand Knowledge states them', function (): void {
     brandRules(['voice' => 'Ramah']);
     $item = draftItem();
-    $fact = app(AddContentFact::class)(webworks(), null, 'Landing page mulai Rp 1.500.000', 'Daftar harga', null, admin());
+    app(SaveBrandKnowledge::class)(webworks(), "## Harga\nLanding page mulai Rp 1.500.000.", admin());
 
     expect(findingCodes(withCaption($item, ['caption' => 'Landing page mulai Rp1.500.000.'])))->toBe([])
         ->and(findingCodes(withCaption($item, ['caption' => 'Landing page mulai Rp 999.000'])))->toBe(['unapproved_price'])
         ->and(findingCodes(withCaption($item, ['caption' => 'Diskon 20% untuk Anda'])))->toBe(['unapproved_number']);
 
-    app(RetireContentFact::class)(webworks(), $fact, 'Harga berubah', admin());
+    // A price changed in the document no longer backs the old one.
+    app(SaveBrandKnowledge::class)(webworks(), "## Harga\nLanding page mulai Rp 1.750.000.", admin());
     expect(findingCodes(withCaption($item, ['caption' => 'Landing page mulai Rp 1.500.000'])))->toBe(['unapproved_price']);
 });
 
-it('does not let an expired fact or another campaign\'s fact back a claim', function (): void {
+it('no longer lets a structured fact back a claim (ADR-0017)', function (): void {
     brandRules(['voice' => 'Ramah']);
-    $campaign = app(SaveCampaign::class)(webworks(), null, 'Desember', null, CarbonImmutable::parse('2026-12-01'), CarbonImmutable::parse('2026-12-31'), CampaignPriority::High, true, admin());
-    app(AddContentFact::class)(webworks(), $campaign, 'Diskon 20% selama Desember', 'Persetujuan pemilik', null, admin());
-    app(AddContentFact::class)(webworks(), null, 'Gratis domain senilai Rp 150.000', 'Daftar harga', CarbonImmutable::parse('2026-11-01'), admin());
+    app(AddContentFact::class)(webworks(), null, 'Diskon 20% dan gratis domain senilai Rp 150.000', 'Daftar harga', null, admin());
 
     $item = withCaption(draftItem(), ['caption' => 'Diskon 20% dan gratis domain Rp 150.000']);
     expect(findingCodes($item))->toBe(['unapproved_number', 'unapproved_price']); // In the order they appear.
-
-    $inCampaign = app(CreateContentItem::class)(webworks(), new ContentPlan('Promo', CarbonImmutable::parse('2026-12-05T03:00:00Z'), campaign: $campaign), admin());
-    expect(findingCodes(withCaption($inCampaign, ['caption' => 'Diskon 20% bulan ini'])))->toBe([]);
 });
 
 it('warns about campaign periods, inactive plans, and repeated topics', function (): void {
@@ -165,4 +161,18 @@ it('shows the week\'s pillar composition against targets and filters by pillar',
         ->and(collect($composition['pillars'])->pluck('count', 'name')->all())->toBe(['Edukasi' => 2, 'Promo' => 0])
         ->and(contentPage("/content/calendar?week=2026-11-09&pillar={$edukasi->public_id}")['items'])->toHaveCount(2)
         ->and(contentPage("/content/calendar?view=list&pillar={$edukasi->public_id}")['list']['meta']['total'])->toBe(2);
+});
+
+it('adds a pillar by name from the plan, reusing one that already has the name (ADR-0017)', function (): void {
+    $item = draftItem();
+    $uri = "/content/items/{$item->public_id}/details";
+
+    $this->actingAs(admin())->put($uri, ['title' => 'Judul', 'planned_at' => '2026-11-12T10:00', 'new_pillar' => 'Di balik layar'])->assertSessionHas('success');
+    $pillar = ContentPillar::query()->sole();
+    expect($item->refresh()->content_pillar_id)->toBe($pillar->id)->and($pillar->target_share)->toBe(0);
+
+    $this->put($uri, ['title' => 'Judul', 'planned_at' => '2026-11-12T10:00', 'new_pillar' => 'di balik LAYAR'])->assertSessionHas('success');
+    expect(ContentPillar::query()->count())->toBe(1);
+
+    $this->put($uri, ['title' => 'Judul', 'planned_at' => '2026-11-12T10:00', 'new_pillar' => 'X', 'pillar' => $pillar->public_id])->assertSessionHasErrors('new_pillar');
 });

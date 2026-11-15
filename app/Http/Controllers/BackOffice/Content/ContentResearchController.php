@@ -7,7 +7,6 @@ namespace App\Http\Controllers\BackOffice\Content;
 use App\Domain\Auth\Models\User;
 use App\Domain\Content\Actions\AddManualSource;
 use App\Domain\Content\Actions\CiteSource;
-use App\Domain\Content\Actions\RequestResearch;
 use App\Domain\Content\Exceptions\ContentActionRefused;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentResearchSource;
@@ -18,17 +17,6 @@ use Illuminate\Http\Request;
 /** Research for an item (ADR-0011, phase 4): web search, manual sources, and citations. Rules live in the actions. */
 final class ContentResearchController
 {
-    public function search(Request $request, ContentItem $item, RequestResearch $research): RedirectResponse
-    {
-        $query = (string) $request->validate(['query' => ['required', 'string', 'min:3', 'max:300']])['query'];
-
-        return $this->attempt(function () use ($research, $item, $query, $request): RedirectResponse {
-            $research($item, $query, $this->actor($request));
-
-            return back()->with('success', 'Riset web dimulai. Hasilnya muncul sebagai sumber yang bisa Anda pilih.');
-        });
-    }
-
     public function addSource(Request $request, ContentItem $item, AddManualSource $add): RedirectResponse
     {
         $data = $request->validate([

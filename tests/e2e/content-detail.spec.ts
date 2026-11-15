@@ -79,12 +79,12 @@ test('a manual Draft reaches Ready from the main flow: missing alt text and a br
     await page.keyboard.press('Escape');
 });
 
-test('Riset & sumber, Riwayat versi, and Aktivitas open from the keyboard and give focus back', async ({ page }) => {
+test('Ubah rencana and Riwayat open from the keyboard and give focus back', async ({ page }) => {
     await login(page, USERS.admin);
     await openContent(page, 'Domain, hosting, dan SSL dalam satu menit');
     const menu = page.getByTestId('detail-menu');
 
-    for (const name of ['Riset & sumber', 'Riwayat versi', 'Aktivitas']) {
+    for (const name of ['Riwayat']) {
         await menu.focus();
         await page.keyboard.press('Enter');
         await expect(page.getByRole('menu')).toBeVisible();
@@ -108,7 +108,7 @@ test('unsaved Draft edits survive opening and closing the evidence sheets', asyn
 
     await page.getByLabel('Caption *').fill('Perubahan yang belum disimpan.');
     await expect(page.getByTestId('readiness-saved')).toHaveText('Ada perubahan yang belum disimpan');
-    for (const name of ['Riwayat versi', 'Riset & sumber', 'Aktivitas']) {
+    for (const name of ['Riwayat']) {
         const sheet = await openDetailSurface(page, name);
         await expect(sheet.getByRole('status')).toHaveCount(0, { timeout: 10_000 });
         await page.keyboard.press('Escape');
@@ -126,7 +126,7 @@ test.describe('when evidence cannot load', () => {
         await openContent(page, 'Domain, hosting, dan SSL dalam satu menit');
         await page.route('**/content/items/*/history', (route) => route.fulfill({ status: 500, body: 'error' }));
 
-        const history = await openDetailSurface(page, 'Riwayat versi');
+        const history = await openDetailSurface(page, 'Riwayat');
         await expect(history.getByRole('alert')).toContainText('Data tidak dapat dimuat');
         await page.unroute('**/content/items/*/history');
         await history.getByRole('button', { name: 'Coba lagi' }).click();
@@ -140,7 +140,7 @@ test('every status workspace and every sheet passes axe', async ({ page }) => {
     await login(page, USERS.admin);
 
     await openContent(page, 'Domain, hosting, dan SSL dalam satu menit');
-    for (const name of ['Ubah rencana', 'Detail kreatif', 'Riset & sumber', 'Riwayat versi', 'Aktivitas']) {
+    for (const name of ['Ubah rencana', 'Riwayat']) {
         await openDetailSurface(page, name);
         await settled(page);
         await expectNoAxeViolations(page);
@@ -157,12 +157,12 @@ test('every status workspace and every sheet passes axe', async ({ page }) => {
     await expect(page.getByRole('main').getByRole('textbox')).toHaveCount(0);
     await settled(page);
     await expectNoAxeViolations(page);
-    await page.getByRole('button', { name: 'Lihat riwayat versi' }).click();
-    await expect(page.getByRole('dialog', { name: 'Riwayat versi' })).toBeVisible();
+    await page.getByRole('button', { name: 'Lihat riwayat' }).click();
+    await expect(page.getByRole('dialog', { name: 'Riwayat' })).toBeVisible();
     await settled(page);
     await expectNoAxeViolations(page);
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('button', { name: 'Lihat riwayat versi' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Lihat riwayat' })).toBeFocused();
 });
 
 test('at 200% zoom the primary action of each workspace stays reachable, without sideways scrolling', async ({ page }) => {
@@ -187,7 +187,7 @@ test('with reduced motion the sheets appear without moving', async ({ page }) =>
     await login(page, USERS.admin);
     await openContent(page, 'Domain, hosting, dan SSL dalam satu menit');
 
-    const sheet = await openDetailSurface(page, 'Aktivitas');
+    const sheet = await openDetailSurface(page, 'Riwayat');
     const duration = await sheet.evaluate((element) => parseFloat(getComputedStyle(element).animationDuration));
     expect(duration).toBeLessThanOrEqual(0.00001);
 });

@@ -26,5 +26,13 @@ defineProps<{ admin: SettingsAdmin }>();
                 >Buka log gateway <ArrowRight class="size-4" aria-hidden="true"
             /></Link>
         </PanelCard>
+        <PanelCard title="Model AI" description="Penulis AI untuk draft konten: status, model untuk draft berikutnya, dan riwayat draft AI.">
+            <Link
+                :href="routes.settingsAi"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-text hover:underline"
+                data-testid="open-ai-model"
+                >Buka model AI <ArrowRight class="size-4" aria-hidden="true"
+            /></Link>
+        </PanelCard>
     </AppLayout>
 </template>

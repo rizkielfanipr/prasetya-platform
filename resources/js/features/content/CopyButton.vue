@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { Check, Copy } from '@lucide/vue';
+import { CheckIcon, DocumentDuplicateIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -26,7 +26,9 @@ async function copyText(): Promise<void> {
 
 <template>
     <Button type="button" variant="outline" class="h-11 gap-1.5" :disabled="text === ''" @click="copyText">
-        <Check v-if="copied" class="size-4" aria-hidden="true" /><Copy v-else class="size-4" aria-hidden="true" />{{ copied ? 'Disalin' : label }}
+        <CheckIcon v-if="copied" class="size-4 stroke-2" aria-hidden="true" /><DocumentDuplicateIcon v-else class="size-4 stroke-2" aria-hidden="true" />{{
+            copied ? 'Disalin' : label
+        }}
     </Button>
     <span class="sr-only" aria-live="polite">{{ announcement }}</span>
 </template>

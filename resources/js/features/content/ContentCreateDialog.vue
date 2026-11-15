@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { routes } from '@/lib/routes';
 import type { ContentBrandOption } from '@/types/content';
 import { useForm } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { PlusIcon } from '@heroicons/vue/24/outline';
 import { computed, ref, watch } from 'vue';
 
 /**
@@ -63,7 +63,7 @@ function submit(): void {
         @confirm="submit"
     >
         <template #trigger>
-            <Button class="gap-2"><Plus class="size-4" aria-hidden="true" />{{ label }}</Button>
+            <Button class="gap-2"><PlusIcon class="size-4 stroke-2" aria-hidden="true" />{{ label }}</Button>
         </template>
         <div class="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
             <div v-if="brands.length > 1" class="space-y-2">

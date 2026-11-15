@@ -6,7 +6,7 @@ import { copy } from '@/lib/copy';
 import { routes } from '@/lib/routes';
 import type { ContentActions, ContentItem, ContentRevision, RuleFinding } from '@/types/content';
 import { router } from '@inertiajs/vue3';
-import { CheckCircle2, Circle, XCircle } from '@lucide/vue';
+import { CheckCircleIcon, PencilSquareIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import { type Component, computed, ref, watch } from 'vue';
 
 /**
@@ -42,7 +42,7 @@ const rows = computed<Row[]>(() => {
         key,
         done,
         text: done ? yes : no,
-        icon: done ? CheckCircle2 : blocking ? XCircle : Circle,
+        icon: done ? CheckCircleIcon : blocking ? XCircleIcon : PencilSquareIcon,
         tone: done ? 'text-success' : blocking ? 'text-danger' : 'text-muted-foreground',
     });
 
@@ -95,10 +95,12 @@ function markReady(): void {
 </script>
 
 <template>
-    <aside aria-labelledby="readiness-title" class="space-y-4 rounded-xl border bg-card p-4 sm:p-5" data-testid="readiness">
+    <aside aria-labelledby="readiness-title" class="space-y-4 rounded-xl bg-tint-50 p-4 sm:p-5" data-testid="readiness">
         <div class="flex items-baseline justify-between gap-3">
-            <h2 id="readiness-title" class="text-base font-bold">Kesiapan posting</h2>
-            <p class="text-xs font-semibold text-muted-foreground tabular" data-testid="readiness-count">{{ doneCount }} dari {{ rows.length }}</p>
+            <h2 id="readiness-title" class="text-sm font-extrabold">Kesiapan posting</h2>
+            <p class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase tabular" data-testid="readiness-count">
+                {{ doneCount }} dari {{ rows.length }}
+            </p>
         </div>
         <ul class="space-y-2" aria-label="Syarat siap posting">
             <li v-for="row in rows" :key="row.key" class="flex items-start gap-2 text-sm" :data-testid="`readiness-${row.key}`" :data-done="row.done">

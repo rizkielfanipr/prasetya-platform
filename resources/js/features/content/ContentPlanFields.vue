@@ -2,22 +2,36 @@
 import FormField from '@/components/shared/FormField.vue';
 import { Input } from '@/components/ui/input';
 import type { PlanOptions } from '@/types/content';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 /**
  * Title, planned time, pillar, campaign, and topic of an item. Inactive pillars and campaigns are offered only when
- * the item already has them, matching what the server accepts.
+ * the item already has them, matching what the server accepts. With `newPillar` bound, a pillar can also be added by
+ * name: pillars are labels (ADR-0017).
  */
 const props = defineProps<{
     idPrefix: string;
     options: PlanOptions;
-    errors: Partial<Record<'title' | 'planned_at' | 'pillar' | 'campaign' | 'topic', string>>;
+    errors: Partial<Record<'title' | 'planned_at' | 'pillar' | 'new_pillar' | 'campaign' | 'topic', string>>;
+    allowNewPillar?: boolean;
 }>();
+const NEW_PILLAR = '__new__';
 const title = defineModel<string>('title', { required: true });
 const plannedAt = defineModel<string>('plannedAt', { required: true });
 const pillar = defineModel<string>('pillar', { required: true });
 const campaign = defineModel<string>('campaign', { required: true });
 const topic = defineModel<string>('topic', { required: true });
+const newPillar = defineModel<string>('newPillar', { default: '' });
+// Picking "Pilar baru…" keeps the select's value local; the form sends the name, never the marker.
+const choice = computed({
+    get: () => (adding.value ? NEW_PILLAR : pillar.value),
+    set: (value: string) => {
+        adding.value = value === NEW_PILLAR;
+        pillar.value = adding.value ? '' : value;
+        if (!adding.value) newPillar.value = '';
+    },
+});
+const adding = ref(false);
 
 const initialPillar = pillar.value;
 const initialCampaign = campaign.value;
@@ -50,10 +64,29 @@ const selectClass = 'h-11 w-full rounded-md border border-input bg-card px-3 tex
         </FormField>
         <div class="grid gap-4 sm:grid-cols-2">
             <FormField :id="`${idPrefix}-pillar`" v-slot="{ describedBy, invalid }" label="Pilar" :error="errors.pillar">
-                <select :id="`${idPrefix}-pillar`" v-model="pillar" :class="selectClass" :aria-describedby="describedBy" :aria-invalid="invalid">
+                <select :id="`${idPrefix}-pillar`" v-model="choice" :class="selectClass" :aria-describedby="describedBy" :aria-invalid="invalid">
                     <option value="">Tanpa pilar</option>
                     <option v-for="option in pillars" :key="option.id" :value="option.id">{{ option.name }}{{ option.isActive ? '' : ' (nonaktif)' }}</option>
+                    <option v-if="allowNewPillar" :value="NEW_PILLAR">Pilar baru…</option>
                 </select>
+            </FormField>
+            <FormField
+                v-if="adding"
+                :id="`${idPrefix}-new-pillar`"
+                v-slot="{ describedBy, invalid }"
+                label="Nama pilar baru"
+                :error="errors.new_pillar"
+                class="sm:col-span-2 sm:row-start-2"
+            >
+                <Input
+                    :id="`${idPrefix}-new-pillar`"
+                    v-model="newPillar"
+                    class="h-11"
+                    maxlength="80"
+                    autocomplete="off"
+                    :aria-describedby="describedBy"
+                    :aria-invalid="invalid"
+                />
             </FormField>
             <FormField :id="`${idPrefix}-campaign`" v-slot="{ describedBy, invalid }" label="Campaign" :error="errors.campaign">
                 <select :id="`${idPrefix}-campaign`" v-model="campaign" :class="selectClass" :aria-describedby="describedBy" :aria-invalid="invalid">

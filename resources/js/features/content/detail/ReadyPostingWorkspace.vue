@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import ConfirmDialog from '@/components/shared/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -7,7 +8,7 @@ import CopyButton from '@/features/content/CopyButton.vue';
 import { contentActionLabels, dueLabel } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import type { ContentActions, ContentItem, ContentRevision, RuleFinding } from '@/types/content';
-import { ChevronDown, Download, Pencil, Share2 } from '@lucide/vue';
+import { ArrowDownTrayIcon, ChevronDownIcon, PencilSquareIcon, ShareIcon } from '@heroicons/vue/24/outline';
 import { computed, onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import BrandCheckSummary from './BrandCheckSummary.vue';
@@ -67,12 +68,12 @@ async function copyOther(text: string, done: string): Promise<void> {
 </script>
 
 <template>
-    <section id="paket-posting" aria-labelledby="posting-title" class="space-y-5 rounded-xl border bg-card p-4 sm:p-5" data-testid="ready-workspace">
+    <section id="paket-posting" aria-labelledby="posting-title" class="space-y-5" data-testid="ready-workspace">
         <div class="space-y-2">
-            <h2 id="posting-title" class="text-lg font-bold">Paket posting</h2>
+            <h2 id="posting-title" class="text-sm font-extrabold">Paket posting</h2>
             <p class="text-sm" data-testid="posting-schedule">
                 <span v-if="due" class="font-semibold" :class="item.dueState === 'overdue' ? 'text-danger' : 'text-warning'" data-testid="due-banner"
-                    >{{ due }} ·
+                    >{{ due }}<SeparatorDot />
                 </span>
                 Rencana {{ formatDateTime(item.plannedAt) }}. Posting manual di Instagram, lalu tandai sudah diposting.
             </p>
@@ -81,7 +82,7 @@ async function copyOther(text: string, done: string): Promise<void> {
         <ContentSnapshot :revision="revision">
             <div class="flex flex-wrap gap-2" data-testid="posting-actions">
                 <Button v-if="revision.asset && canShare" variant="secondary" class="h-11 gap-1.5" :disabled="sharing" :aria-busy="sharing" @click="share">
-                    <Share2 class="size-4" aria-hidden="true" />Bagikan ke Instagram
+                    <ShareIcon class="size-4 stroke-2" aria-hidden="true" />Bagikan ke Instagram
                 </Button>
                 <Button
                     v-if="revision.asset"
@@ -91,12 +92,12 @@ async function copyOther(text: string, done: string): Promise<void> {
                     variant="outline"
                     class="h-11 gap-1.5"
                 >
-                    <Download class="size-4" aria-hidden="true" />Unduh gambar
+                    <ArrowDownTrayIcon class="size-4 stroke-2" aria-hidden="true" />Unduh gambar
                 </Button>
                 <CopyButton :text="captionWithTags" label="Salin caption" done="Caption dan hashtag disalin." />
                 <DropdownMenu v-if="revision.hashtags || revision.altText">
                     <DropdownMenuTrigger as-child>
-                        <Button variant="outline" class="h-11 gap-1.5">Salin lainnya<ChevronDown class="size-4" aria-hidden="true" /></Button>
+                        <Button variant="outline" class="h-11 gap-1.5">Salin lainnya<ChevronDownIcon class="size-4 stroke-2" aria-hidden="true" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
                         <DropdownMenuItem
@@ -132,7 +133,7 @@ async function copyOther(text: string, done: string): Promise<void> {
                 <p v-if="actions.markPublished" id="reason-markPublished" class="max-w-xs text-xs text-muted-foreground">{{ actions.markPublished }}</p>
             </div>
             <Button v-if="actions.edit === null" variant="ghost" class="h-11 gap-1.5" data-testid="edit-ready" @click="confirmEdit = true">
-                <Pencil class="size-4" aria-hidden="true" />Edit konten
+                <PencilSquareIcon class="size-4 stroke-2" aria-hidden="true" />Edit konten
             </Button>
         </div>
 

@@ -42,6 +42,7 @@ export interface SharedProps {
     openIssueCount: number | null;
     /** Approved Content Studio posts due today or earlier, not yet marked posted. */
     contentDueCount: number | null;
+    contentHasInsights: boolean | null;
     requestId: string;
     [key: string]: unknown;
 }

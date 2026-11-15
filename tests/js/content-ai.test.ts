@@ -82,7 +82,7 @@ describe('ContentAiAssistant', () => {
 
         expect(inertia.post).toHaveBeenCalledWith(
             '/content/items/item-1/generate',
-            { revision: revision.id, fields: ['caption', 'hashtags', 'alt_text', 'visual_direction'], instruction: null },
+            { revision: revision.id, fields: ['caption', 'hashtags', 'alt_text'], instruction: null },
             expect.anything(),
         );
     });
@@ -147,7 +147,6 @@ describe('ContentAiAssistant', () => {
         expect(options?.attributes('aria-expanded')).toBe('true');
         await wrapper.get('#ai-field-hashtags').trigger('click');
         await wrapper.get('#ai-field-alt_text').trigger('click');
-        await wrapper.get('#ai-field-visual_direction').trigger('click');
         await wrapper.get('#ai-instruction').setValue('lebih singkat');
         await aiButton(wrapper).trigger('click');
         await flushPromises();
@@ -167,14 +166,13 @@ describe('ContentAiRuns', () => {
         });
 
         expect(wrapper.get('[data-testid="ai-run-SUCCEEDED"]').text()).toContain('Caption, Hashtag');
-        expect(wrapper.get('[data-testid="ai-run-SUCCEEDED"]').text()).toContain('revisi 2 · 1500 token · $0.00120');
+        expect(wrapper.get('[data-testid="ai-run-SUCCEEDED"]').text()).toContain('revisi 2, 1500 token, $0.00120');
         expect(wrapper.get('[data-testid="ai-run-FAILED"]').text()).toContain('Provider AI sedang bermasalah (503).');
     });
 
-    it('offers a verdict on each finished draft', () => {
+    it('no longer asks for a verdict: ratings are evaluation, not daily work (ADR-0017)', () => {
         const wrapper = mount(ContentAiRuns, { props: { runs: [run({ feedback: 'NOT_USEFUL', feedbackReason: 'Terlalu formal' })] } });
 
-        expect(wrapper.text()).toContain('Dinilai kurang berguna: Terlalu formal');
-        expect(wrapper.findAll('button').some((b) => b.text().includes('Berguna'))).toBe(true);
+        expect(wrapper.findAll('button')).toHaveLength(0);
     });
 });

@@ -85,28 +85,28 @@ test('one person takes an idea to a posted post, with AI and without opening any
     await publish.getByLabel('URL posting Instagram').fill('https://www.instagram.com/p/UJI123/');
     await publish.getByRole('button', { name: 'Tandai sudah diposting' }).click();
     await expect(page.getByTestId('publication')).toContainText('Diposting');
-    await expect(page.getByTestId('detail-status')).toContainText('Sudah diposting');
+    await expect(page.getByTestId('detail-status')).toContainText('Published');
     await expect(page.getByRole('button', { name: 'Catat insight' })).toBeVisible();
 
-    const activity = await openDetailSurface(page, 'Aktivitas');
-    await expect(activity.getByRole('list', { name: 'Riwayat audit' })).toContainText('Draft AI diterapkan');
-    await expect(activity.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai siap posting');
-    await expect(activity.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai sudah diposting');
+    const history = await openDetailSurface(page, 'Riwayat');
+    await expect(history.getByRole('list', { name: 'Riwayat audit' })).toContainText('Draft AI diterapkan');
+    await expect(history.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai siap posting');
+    await expect(history.getByRole('list', { name: 'Riwayat audit' })).toContainText('Ditandai sudah diposting');
 });
 
-test('Detail kreatif keeps the optional details editable, and an error moves focus to its field', async ({ page }) => {
+test('earlier creative details stay read-only under the brief, a pillar is added by name, and an error moves focus to its field', async ({ page }) => {
     await login(page, USERS.admin);
     await openContent(page, 'Checklist sebelum meluncurkan website');
 
-    const creative = await openDetailSurface(page, 'Detail kreatif');
-    await settled(page);
-    await expectNoAxeViolations(page);
-    await creative.getByLabel('Audiens').fill('Pemilik toko roti.');
-    await creative.getByRole('button', { name: 'Simpan detail' }).click();
-    await expect(page.getByText('Revisi 1 disimpan.')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(creative).toBeHidden();
-    await expect(page.getByTestId('detail-menu')).toBeFocused();
+    // ADR-0017: objective, audience, and visual direction are carried, not edited.
+    await expect(page.getByTestId('legacy-creative')).toContainText('Arahan visual (dari revisi lama)');
+    await expect(page.getByRole('menuitem', { name: 'Detail kreatif' })).toHaveCount(0);
+
+    const plan = await openDetailSurface(page, 'Ubah rencana');
+    await plan.getByLabel('Pilar').selectOption({ label: 'Pilar baru…' });
+    await plan.getByLabel('Nama pilar baru').fill('Di balik layar');
+    await plan.getByRole('button', { name: 'Simpan rencana' }).click();
+    await expect(page.getByText('Rencana konten diperbarui.')).toBeVisible();
 
     // An error on alt text, now beside the image: the summary names it and focus lands on the field.
     await page.getByLabel('Caption *').fill('Caption baru');
@@ -131,14 +131,14 @@ test('editing Ready content asks first, makes a new revision, and returns it to 
     await expect(confirm).toContainText('mengembalikan konten ke Draft');
     await confirm.getByRole('button', { name: 'Edit konten' }).click();
     await expect(page.getByTestId('ready-edit-note')).toBeVisible();
-    await expect(page.getByTestId('detail-status')).toContainText('Siap posting');
+    await expect(page.getByTestId('detail-status')).toContainText('Ready');
 
     await page.getByLabel('Caption *').fill('Tiga tanda singkat website Anda perlu diperbarui.');
     await page.getByRole('button', { name: 'Simpan dan kembalikan ke Draft' }).click();
     await expect(page.getByText('Revisi 2 disimpan dan konten kembali ke Draft.')).toBeVisible();
     await expect(page.getByTestId('detail-status')).toContainText('Draft');
 
-    const history = await openDetailSurface(page, 'Riwayat versi');
+    const history = await openDetailSurface(page, 'Riwayat');
     await expect(history.getByTestId('revision-2')).toContainText('Masih draft');
     await expect(history.getByTestId('revision-diff')).toContainText('Tiga tanda singkat website Anda perlu diperbarui.');
     await page.keyboard.press('Escape');
@@ -159,7 +159,7 @@ test('a draft can be archived with an optional reason and becomes read-only', as
     await expect(page.getByTestId('archive-summary')).toContainText('Alasan: Digabung ke posting lain');
     await expect(page.getByRole('main').getByRole('textbox')).toHaveCount(0);
     await page.getByTestId('detail-menu').click();
-    await expect(page.getByRole('menuitem')).toHaveText(['Riset & sumber', 'Riwayat versi', 'Aktivitas']);
+    await expect(page.getByRole('menuitem')).toHaveText(['Riwayat']);
 });
 
 test('content pages have no accessibility violations', async ({ page }) => {

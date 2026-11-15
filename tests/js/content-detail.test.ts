@@ -1,5 +1,6 @@
 import BrandCheckSummary from '@/features/content/detail/BrandCheckSummary.vue';
-import ContentActivitySheet from '@/features/content/detail/ContentActivitySheet.vue';
+import ContentHistorySheet from '@/features/content/detail/ContentHistorySheet.vue';
+import ContentReferences from '@/features/content/detail/ContentReferences.vue';
 import ContentDetailHeader from '@/features/content/detail/ContentDetailHeader.vue';
 import ContentMediaEditor from '@/features/content/detail/ContentMediaEditor.vue';
 import ContentReadinessPanel from '@/features/content/detail/ContentReadinessPanel.vue';
@@ -116,6 +117,7 @@ describe('ContentDetailPage', () => {
             postedRevision: status === 'PUBLISHED' ? revision() : null,
             insights: status === 'PUBLISHED' ? [] : null,
             archive: status === 'ARCHIVED' ? { at: '2026-11-10T05:00:00Z', actor: 'Admin', reason: 'Batal' } : null,
+            references: status === 'DRAFT' ? [] : null,
         };
     };
 
@@ -176,19 +178,19 @@ describe('ContentDetailHeader', () => {
 
         expect(wrapper.get('a').attributes('href')).toBe('/content/calendar?week=2026-11-09');
         expect(wrapper.get('a').text()).toBe('Kembali ke Kalender');
-        expect(wrapper.get('[data-testid="detail-status"]').text()).toContain('Siap posting');
+        expect(wrapper.get('[data-testid="detail-status"]').text()).toContain('Ready');
         expect(wrapper.get('[data-testid="detail-due"]').text()).toBe('Terlambat 2 hari');
     });
 
     it('offers each status only what the server allows', async () => {
-        expect((await openMenu('DRAFT')).entries).toEqual(['Ubah rencana', 'Detail kreatif', 'Riset & sumber', 'Riwayat versi', 'Aktivitas', 'Arsipkan']);
+        expect((await openMenu('DRAFT')).entries).toEqual(['Ubah rencana', 'Riwayat', 'Arsipkan']);
         document.body.innerHTML = '';
-        expect((await openMenu('READY')).entries).toEqual(['Ubah rencana', 'Riset & sumber', 'Riwayat versi', 'Aktivitas', 'Kembali ke Draft', 'Arsipkan']);
+        expect((await openMenu('READY')).entries).toEqual(['Ubah rencana', 'Riwayat', 'Kembali ke Draft', 'Arsipkan']);
         document.body.innerHTML = '';
         const closed = { ...allowed, edit: 'x', editDetails: 'x', archive: 'x', returnToDraft: 'x', markReady: 'x', markPublished: 'x' };
-        expect((await openMenu('PUBLISHED', closed)).entries).toEqual(['Riset & sumber', 'Riwayat versi', 'Aktivitas']);
+        expect((await openMenu('PUBLISHED', closed)).entries).toEqual(['Riwayat']);
         document.body.innerHTML = '';
-        expect((await openMenu('ARCHIVED', closed)).entries).toEqual(['Riset & sumber', 'Riwayat versi', 'Aktivitas']);
+        expect((await openMenu('ARCHIVED', closed)).entries).toEqual(['Riwayat']);
     });
 
     it('does not offer a Ready plan change the server refuses', async () => {
@@ -334,7 +336,6 @@ describe('ContentMediaEditor', () => {
                 asset: revision().asset,
                 readonly: false,
                 errors: { image: 'Gambar harus 4:5.', alt_text: 'Wajib.' },
-                visualDirection: 'Latar polos.',
                 altText: '',
             },
         });
@@ -346,7 +347,8 @@ describe('ContentMediaEditor', () => {
         expect(wrapper.get('#content-image-error').text()).toBe('Gambar harus 4:5.');
         expect(wrapper.get('#content-alt_text').attributes('aria-invalid')).toBe('true');
         expect(wrapper.get('label[for="content-image"]').text()).toBe('Ganti gambar');
-        expect(wrapper.get('[data-testid="visual-direction"]').text()).toContain('Latar polos.');
+        // Visual direction is no longer edited or shown beside the image (ADR-0017).
+        expect(wrapper.find('[data-testid="visual-direction"]').exists()).toBe(false);
     });
 });
 
@@ -361,6 +363,7 @@ describe('DraftContentWorkspace', () => {
                 findings: [],
                 brandRulesVersion: 1,
                 ai: { unavailableReason: null, current: null },
+                references: [],
                 editingReady: false,
                 ...overrides,
             },
@@ -415,58 +418,68 @@ describe('DraftContentWorkspace', () => {
     });
 });
 
-describe('Evidence sheets', () => {
+describe('Riwayat sheet', () => {
     const json = (body: unknown, status = 200) => ({ ok: status < 400, status, type: 'basic', json: () => Promise.resolve(body) }) as Response;
+    const empty = (url: string) => (url.endsWith('/history') ? { revisions: [], readyRevisionId: null, approvedRevisionId: null, runs: [] } : { entries: [] });
+    const sheet = () => document.body.querySelector('[data-testid="history-sheet"]');
 
-    it('loads when opened, says it is loading, then shows an empty state', async () => {
-        let resolve: (value: Response) => void = () => undefined;
-        const fetchMock = vi.fn(() => new Promise<Response>((r) => (resolve = r)));
+    it('loads both halves when opened, says it is loading, then shows revisions, AI drafts, and audit', async () => {
+        const pending: ((value: Response) => void)[] = [];
+        const fetchMock = vi.fn((url: string) => new Promise<Response>((resolve) => pending.push(() => resolve(json(empty(url))))));
         vi.stubGlobal('fetch', fetchMock);
-        const wrapper = mount(ContentActivitySheet, { props: { item: item('DRAFT'), open: false }, attachTo: document.body });
+        const wrapper = mount(ContentHistorySheet, { props: { item: item('DRAFT'), open: false }, attachTo: document.body });
         expect(fetchMock).not.toHaveBeenCalled();
 
         await wrapper.setProps({ open: true });
         await nextTick();
+        expect(fetchMock).toHaveBeenCalledWith('/content/items/01ITEM00000000000000000000/history', expect.objectContaining({ redirect: 'manual' }));
         expect(fetchMock).toHaveBeenCalledWith('/content/items/01ITEM00000000000000000000/activity', expect.objectContaining({ redirect: 'manual' }));
-        expect(document.body.querySelector('[role="status"]')?.textContent).toContain('Memuat aktivitas');
-        expect(inertia.on).toHaveBeenCalledWith('success', expect.any(Function));
+        expect(document.body.querySelector('[role="status"]')?.textContent).toContain('Memuat riwayat');
 
-        resolve(json({ entries: [] }));
+        pending.forEach((resolve) => resolve(json({})));
         await flushPromises();
-        expect(document.body.querySelector('[data-testid="activity-sheet"]')?.textContent).toContain('Belum ada catatan audit');
+        expect(sheet()?.textContent).toContain('Belum ada draft AI');
+        expect(sheet()?.querySelector('[data-testid="history-audit"]')?.textContent).toContain('Belum ada catatan audit');
     });
 
-    it('shows the failure with a retry that loads again', async () => {
-        const fetchMock = vi
-            .fn()
-            .mockResolvedValueOnce(json({}, 500))
-            .mockResolvedValueOnce(json({ entries: [] }));
+    it('shows one failure with a retry that loads both again', async () => {
+        let failActivity = true;
+        const fetchMock = vi.fn((url: string) => {
+            if (url.endsWith('/activity') && failActivity) {
+                failActivity = false;
+                return Promise.resolve(json({}, 500));
+            }
+            return Promise.resolve(json(empty(url)));
+        });
         vi.stubGlobal('fetch', fetchMock);
-        mount(ContentActivitySheet, { props: { item: item('DRAFT'), open: true }, attachTo: document.body });
+        mount(ContentHistorySheet, { props: { item: item('DRAFT'), open: true }, attachTo: document.body });
         await flushPromises();
 
-        const alert = document.body.querySelector('[data-testid="activity-sheet"] [role="alert"]');
+        const alert = sheet()?.querySelector('[role="alert"]');
         expect(alert?.textContent).toContain('Data tidak dapat dimuat');
         [...(alert?.querySelectorAll('button') ?? [])].find((b) => b.textContent.trim() === 'Coba lagi')?.click();
         await flushPromises();
 
-        expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(document.body.querySelector('[data-testid="activity-sheet"]')?.textContent).toContain('Belum ada catatan audit');
+        expect(fetchMock).toHaveBeenCalledTimes(4);
+        expect(sheet()?.textContent).toContain('Belum ada catatan audit');
     });
 
     it('says the session ended when the server redirects to sign-in', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 0, type: 'opaqueredirect' }));
-        mount(ContentActivitySheet, { props: { item: item('DRAFT'), open: true }, attachTo: document.body });
+        mount(ContentHistorySheet, { props: { item: item('DRAFT'), open: true }, attachTo: document.body });
         await flushPromises();
 
-        expect(document.body.querySelector('[data-testid="activity-sheet"] [role="alert"]')?.textContent).toContain('Sesi Anda berakhir');
+        expect(sheet()?.querySelector('[role="alert"]')?.textContent).toContain('Sesi Anda berakhir');
     });
 
     it('closes with Escape and stops listening for page visits', async () => {
         const stopListening = vi.fn();
-        inertia.on.mockReturnValueOnce(stopListening);
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ entries: [] })));
-        const wrapper = mount(ContentActivitySheet, { props: { item: item('DRAFT'), open: true }, attachTo: document.body });
+        inertia.on.mockReturnValueOnce(stopListening).mockReturnValueOnce(stopListening);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn((url: string) => Promise.resolve(json(empty(url)))),
+        );
+        const wrapper = mount(ContentHistorySheet, { props: { item: item('DRAFT'), open: true }, attachTo: document.body });
         await flushPromises();
 
         document.body.querySelector('[role="dialog"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -474,6 +487,39 @@ describe('Evidence sheets', () => {
         expect(wrapper.emitted('update:open')?.at(-1)).toEqual([false]);
 
         await wrapper.setProps({ open: false });
-        expect(stopListening).toHaveBeenCalled();
+        expect(stopListening).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('ContentReferences', () => {
+    const reference = {
+        id: '01SRC',
+        url: 'https://artikel.contoh.id/tips',
+        domain: 'artikel.contoh.id',
+        title: 'Tips website',
+        summary: null,
+        trust: 'GENERAL',
+        origin: 'MANUAL',
+        relevance: null,
+        publishedOn: null,
+        fetchedAt: '2026-11-10T03:00:00Z',
+        note: 'Poin kedua',
+    } as const;
+
+    it('lists links that open in a new tab, removable on a Draft', () => {
+        const wrapper = mount(ContentReferences, { props: { item: item('DRAFT'), references: [reference], readonly: false } });
+
+        const link = wrapper.get('a[href="https://artikel.contoh.id/tips"]');
+        expect(link.attributes('target')).toBe('_blank');
+        expect(link.attributes('rel')).toBe('noopener noreferrer nofollow');
+        expect(wrapper.text()).toContain('Poin kedua');
+        expect(wrapper.find('button[aria-label="Hapus referensi Tips website"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="add-reference"]').exists()).toBe(true);
+    });
+
+    it('is read-only while the Draft cannot be edited', () => {
+        const wrapper = mount(ContentReferences, { props: { item: item('DRAFT'), references: [reference], readonly: true } });
+
+        expect(wrapper.findAll('button')).toHaveLength(0);
     });
 });

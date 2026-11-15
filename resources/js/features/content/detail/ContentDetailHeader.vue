@@ -6,7 +6,7 @@ import { detailSurfaceLabels, dueLabel } from '@/lib/content';
 import { routes } from '@/lib/routes';
 import type { ContentActions, ContentItem, DetailSurface } from '@/types/content';
 import { Link } from '@inertiajs/vue3';
-import { Archive, ArrowLeft, BookOpen, CalendarClock, Clock, History, ListChecks, MoreHorizontal, Palette, Undo2 } from '@lucide/vue';
+import { ArchiveBoxIcon, ArrowLeftIcon, ArrowUturnLeftIcon, CalendarIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
 import { type Component, computed } from 'vue';
 
 /**
@@ -14,7 +14,7 @@ import { type Component, computed } from 'vue';
  * Lainnya for the rare or destructive actions. A menu entry exists only when the server allows the action now; the
  * server still checks every request. The title, brand, and schedule are the page heading above (AppHeader).
  */
-const props = defineProps<{ item: ContentItem; actions: ContentActions; editing: boolean }>();
+const props = defineProps<{ item: ContentItem; actions: ContentActions }>();
 const emit = defineEmits<{ open: [surface: DetailSurface] }>();
 
 const calendarHref = computed(() => `${routes.contentCalendar}?week=${props.item.plannedDay}`);
@@ -26,15 +26,13 @@ interface Entry {
 }
 const entries = computed(() => {
     const { status } = props.item;
-    const draftLike = status === 'DRAFT' || props.editing;
     const routine: Entry[] = [];
-    if (props.actions.editDetails === null) routine.push({ surface: 'plan', icon: CalendarClock });
-    if (draftLike && props.actions.edit === null) routine.push({ surface: 'creative', icon: Palette });
-    routine.push({ surface: 'research', icon: BookOpen }, { surface: 'history', icon: History }, { surface: 'activity', icon: ListChecks });
+    if (props.actions.editDetails === null) routine.push({ surface: 'plan', icon: CalendarIcon });
+    routine.push({ surface: 'history', icon: ClockIcon });
 
     const lifecycle: Entry[] = [];
-    if (status === 'READY' && props.actions.returnToDraft === null) lifecycle.push({ surface: 'returnToDraft', icon: Undo2 });
-    if (props.actions.archive === null) lifecycle.push({ surface: 'archive', icon: Archive });
+    if (status === 'READY' && props.actions.returnToDraft === null) lifecycle.push({ surface: 'returnToDraft', icon: ArrowUturnLeftIcon });
+    if (props.actions.archive === null) lifecycle.push({ surface: 'archive', icon: ArchiveBoxIcon });
 
     return { routine, lifecycle };
 });
@@ -57,7 +55,7 @@ function afterMenuClosed(): void {
     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2" data-testid="detail-header">
         <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
             <Link :href="calendarHref" class="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-text hover:underline">
-                <ArrowLeft class="size-4" aria-hidden="true" />Kembali ke Kalender
+                <ArrowLeftIcon class="size-4 stroke-2" aria-hidden="true" />Kembali ke Kalender
             </Link>
             <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" data-testid="detail-status">
                 <span class="sr-only">Status:</span>
@@ -68,7 +66,7 @@ function afterMenuClosed(): void {
                     :class="item.dueState === 'overdue' ? 'text-danger' : 'text-warning'"
                     data-testid="detail-due"
                 >
-                    <Clock class="size-4" aria-hidden="true" />{{ due }}
+                    <ClockIcon class="size-4 stroke-2" aria-hidden="true" />{{ due }}
                 </span>
                 <span v-if="item.campaign" class="text-muted-foreground">Campaign {{ item.campaign.name }}</span>
             </p>
@@ -76,7 +74,9 @@ function afterMenuClosed(): void {
 
         <DropdownMenu>
             <DropdownMenuTrigger as-child>
-                <Button variant="outline" class="h-11 gap-2" data-testid="detail-menu"> <MoreHorizontal class="size-4" aria-hidden="true" />Lainnya </Button>
+                <Button variant="outline" class="h-11 gap-2" data-testid="detail-menu">
+                    <EllipsisHorizontalIcon class="size-4 stroke-2" aria-hidden="true" />Lainnya
+                </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-60" @close-auto-focus="afterMenuClosed">
                 <DropdownMenuItem v-for="entry in entries.routine" :key="entry.surface" class="min-h-11 cursor-pointer" @select="choose(entry.surface)">

@@ -1,28 +1,27 @@
 import { expect } from '@playwright/test';
 import { expectNoAxeViolations, login, test, USERS } from './support';
 
-test('the Kalender is the workspace: four sections, a status filter, a list view, and old links still land', async ({ page }) => {
+test('the Kalender is the workspace: its sections, a status filter, a list view, and old links still land', async ({ page }) => {
     await login(page, USERS.admin);
     await page
         .getByRole('navigation', { name: 'Navigasi utama' })
         .getByRole('link', { name: /Content Studio/ })
         .click();
     await expect(page).toHaveURL(/\/content\/calendar/);
-    await expect(page.getByRole('navigation', { name: 'Bagian Content Studio' }).getByRole('link')).toHaveText([
-        /Kalender/,
-        'Insight',
-        'Brand Knowledge',
-        'Pengaturan AI',
-    ]);
+    // Insight is listed once a reading exists (other tests may have recorded one); the AI model lives in Pengaturan (ADR-0017).
+    const sections = page.getByRole('navigation', { name: 'Bagian Content Studio' });
+    await expect(sections.getByRole('link', { name: /Kalender/ })).toHaveAttribute('aria-current', 'page');
+    await expect(sections.getByRole('link', { name: 'Brand', exact: true })).toBeVisible();
+    await expect(sections.getByRole('link', { name: /Pengaturan AI|Brand Knowledge/ })).toHaveCount(0);
 
     const days = page.getByRole('list', { name: 'Konten minggu ini per hari' });
     const status = page.getByRole('group', { name: 'Status konten' });
     await expect(status.getByRole('button', { name: 'Semua' })).toHaveAttribute('aria-pressed', 'true');
     await expect(days).not.toContainText('Promo lama yang dibatalkan'); // Archived: only under Filter lainnya.
 
-    await status.getByRole('button', { name: 'Siap posting' }).click();
+    await status.getByRole('button', { name: 'Ready' }).click();
     await expect(page).toHaveURL(/status=READY/);
-    await expect(status.getByRole('button', { name: 'Siap posting' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(status.getByRole('button', { name: 'Ready' })).toHaveAttribute('aria-pressed', 'true');
     await expect(days).toContainText('3 tanda website Anda perlu diperbarui');
     await expect(days).not.toContainText('Kenapa website lambat merugikan bisnis'); // Already posted.
 

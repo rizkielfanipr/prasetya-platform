@@ -1,6 +1,6 @@
 # ADR-0013: Make the content detail workspace status-driven
 
-- Status: Accepted (2026-11-14); implementation staged per the plan
+- Status: Accepted (2026-11-14); implementation staged per the plan, amended by [ADR-0017](0017-simplified-content-studio-surfaces.md)
 - Date: 2026-11-14
 - Decision owners: Prasetya Group
 - Related: [`../content-detail-workspace-simplification-plan.md`](../content-detail-workspace-simplification-plan.md), [ADR-0012](0012-simplified-content-studio-workflow.md), [ADR-0011](0011-content-studio-authority-boundary.md), [`../design.md`](../design.md), [`../data-dictionary.md`](../data-dictionary.md)

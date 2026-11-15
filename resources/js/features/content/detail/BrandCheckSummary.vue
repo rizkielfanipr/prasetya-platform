@@ -5,7 +5,7 @@ import { ruleSeverities } from '@/lib/content';
 import { routes } from '@/lib/routes';
 import type { RuleFinding } from '@/types/content';
 import { Link } from '@inertiajs/vue3';
-import { CheckCircle2, ChevronDown, Info, TriangleAlert, XCircle } from '@lucide/vue';
+import { CheckCircleIcon, ChevronDownIcon, ExclamationTriangleIcon, InformationCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import { computed, ref } from 'vue';
 
 /**
@@ -27,19 +27,20 @@ const expanded = computed(() => errors.value > 0 || open.value);
 <template>
     <section aria-labelledby="brand-check-title" class="space-y-2" data-testid="rule-findings">
         <!-- A clean or empty check is one line; the heading shows once there is something to read. -->
-        <h2 id="brand-check-title" :class="listed.length ? 'text-base font-bold' : 'sr-only'">Pemeriksaan brand</h2>
+        <h2 id="brand-check-title" :class="listed.length ? 'text-sm font-extrabold' : 'sr-only'">Pemeriksaan brand</h2>
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <p v-if="errors > 0" class="flex items-start gap-2 font-semibold text-danger" data-testid="brand-errors">
-                <XCircle class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{{ errors }} pelanggaran harus diperbaiki sebelum siap posting.
+                <XCircleIcon class="mt-0.5 size-4 shrink-0 stroke-2" aria-hidden="true" />{{ errors }} pelanggaran harus diperbaiki sebelum siap posting.
             </p>
             <p v-else-if="warnings > 0" class="flex items-start gap-2 font-semibold text-warning" data-testid="brand-warnings">
-                <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{{ warnings }} saran dari aturan brand. Tidak menghalangi siap posting.
+                <ExclamationTriangleIcon class="mt-0.5 size-4 shrink-0 stroke-2" aria-hidden="true" />{{ warnings }} saran dari aturan brand. Tidak menghalangi
+                siap posting.
             </p>
             <p v-else-if="version === null" class="flex items-start gap-2 text-muted-foreground" data-testid="brand-none">
-                <Info class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Aturan brand belum diisi, jadi konten belum diperiksa.
+                <InformationCircleIcon class="mt-0.5 size-4 shrink-0 stroke-2" aria-hidden="true" />Aturan brand belum diisi, jadi konten belum diperiksa.
             </p>
             <p v-else class="flex items-start gap-2 font-semibold text-success" data-testid="brand-clean">
-                <CheckCircle2 class="mt-0.5 size-4 shrink-0" aria-hidden="true" />Sesuai aturan brand versi {{ version }}.
+                <CheckCircleIcon class="mt-0.5 size-4 shrink-0 stroke-2" aria-hidden="true" />Sesuai aturan brand versi {{ version }}.
             </p>
             <Button
                 v-if="errors === 0 && warnings > 0"
@@ -51,7 +52,11 @@ const expanded = computed(() => errors.value > 0 || open.value);
                 @click="open = !open"
             >
                 {{ open ? 'Sembunyikan saran' : 'Lihat saran' }}
-                <ChevronDown class="size-4 transition-transform motion-reduce:transition-none" :class="{ 'rotate-180': open }" aria-hidden="true" />
+                <ChevronDownIcon
+                    class="size-4 stroke-2 transition-transform motion-reduce:transition-none"
+                    :class="{ 'rotate-180': open }"
+                    aria-hidden="true"
+                />
             </Button>
             <Link
                 v-if="errors > 0 || version === null"

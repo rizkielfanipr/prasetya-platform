@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import StatusBadge from '@/components/shared/StatusBadge.vue';
 import { copyFields, formatUsd, generationStatuses } from '@/lib/content';
 import { formatDateTime } from '@/lib/format';
 import type { GenerationRun } from '@/types/content';
-import GenerationFeedbackButtons from './GenerationFeedbackButtons.vue';
 
-/** The item's AI runs, newest first: status in words, parts, who, resulting revision, usage, and people's verdict. */
+/** The item's AI runs, newest first: status in words, parts, who, resulting revision, and usage. */
 defineProps<{ runs: GenerationRun[] }>();
 </script>
 
@@ -18,10 +18,12 @@ defineProps<{ runs: GenerationRun[] }>();
             <span class="min-w-0 flex-1">
                 {{ run.fields.map((f) => copyFields.find((c) => c.value === f)?.label ?? f).join(', ') }}
                 <span class="text-xs text-muted-foreground">
-                    · {{ run.requestedBy }} · {{ formatDateTime(run.createdAt)
-                    }}<template v-if="run.resultRevisionNumber"> · revisi {{ run.resultRevisionNumber }}</template
+                    <SeparatorDot />{{ run.requestedBy }}<SeparatorDot />{{ formatDateTime(run.createdAt)
+                    }}<template v-if="run.resultRevisionNumber"><SeparatorDot />revisi {{ run.resultRevisionNumber }}</template
                     ><template v-if="run.inputTokens + run.outputTokens > 0">
-                        · {{ run.inputTokens + run.outputTokens }} token<template v-if="run.costUsd > 0"> · {{ formatUsd(run.costUsd) }}</template></template
+                        <SeparatorDot />{{ run.inputTokens + run.outputTokens }} token<template v-if="run.costUsd > 0"
+                            ><SeparatorDot />{{ formatUsd(run.costUsd) }}</template
+                        ></template
                     >
                 </span>
                 <span v-if="run.usedReviewNote || run.instruction" class="block text-xs text-muted-foreground"
@@ -29,7 +31,6 @@ defineProps<{ runs: GenerationRun[] }>();
                     }}<template v-if="run.instruction"> Instruksi: “{{ run.instruction }}”</template></span
                 >
                 <span v-if="run.errorMessage" class="block text-xs break-words text-muted-foreground">{{ run.errorMessage }}</span>
-                <GenerationFeedbackButtons v-if="run.status === 'SUCCEEDED'" :run="run" class="mt-1" />
             </span>
         </li>
     </ol>

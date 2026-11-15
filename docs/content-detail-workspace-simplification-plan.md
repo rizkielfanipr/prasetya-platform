@@ -1,5 +1,7 @@
 # Rencana Penyederhanaan Workspace Detail Konten
 
+> Partly superseded by [ADR-0017](decisions/0017-simplified-content-studio-surfaces.md): Detail kreatif, Riset & sumber, and the separate Aktivitas sheet are gone, the rules live in the Brand document, and the AI settings moved to Pengaturan. `design.md` describes the current screens.
+
 | Field | Value |
 |---|---|
 | Status | Disetujui (ADR-0013, 2026-11-14); Fase 0–5 selesai, menunggu review |

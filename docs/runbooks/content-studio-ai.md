@@ -36,7 +36,7 @@ Personal subscriptions (Claude Pro, ChatGPT Plus, Command Code Go) do not includ
 
    There is no spending limit in the application (owner decision, 2026-11-08). **Set a monthly spending limit at the provider.** Prices are optional: `CONTENT_TEXT_PRICE_INPUT` and `CONTENT_TEXT_PRICE_OUTPUT` (USD per 1M tokens) only estimate cost in the run records; without them cost is recorded as 0.
 
-   To let people choose the model in **Pengaturan AI**, list the allowed models (prices optional, as `model:input:output`); the screen can only pick from this list:
+   To let people choose the model in **Pengaturan → Model AI** (`/settings/ai`), list the allowed models (prices optional, as `model:input:output`); the screen can only pick from this list:
 
    ```dotenv
    CONTENT_TEXT_MODELS=deepseek-v4-flash:0.02:0.02,claude-haiku-5.5:0.04:0.04,claude-sonnet-5.5:0.06:0.06
@@ -80,26 +80,20 @@ The proposed Prasetya Webworks rules, pillars, and facts (from the live site and
 php artisan content:import-brand WEBWORKS resources/content-brands/prasetya-webworks.json --actor=<username>
 ```
 
-Re-running skips unchanged rules, existing pillars, and facts already in force.
+Re-running skips unchanged rules, existing pillars, and facts already in force. Since ADR-0017 the rules live in the Brand document's `## Aturan Posting` section (use **Sisipkan aturan yang berlaku** once to move imported rules there), and imported facts no longer back a claim: prices and percentages must be written in the Brand document.
 
 ## Records
 
-`content_generation_runs` keeps who asked, which fields, provider, model, prompt version, tokens, estimated cost, latency, attempts, and a safe error message. Prompts and raw responses are not stored. **Content Studio → Pengaturan AI** shows status, the week's spend, and the last 30 runs; it never shows or accepts a key. Audit: `content.generation_requested`, `content.generation_applied`, `content.generation_failed` on the item. On an item, the Draft shows only the latest outcome in words; **Lainnya → Riwayat versi** lists its runs with model and tokens, and **Lainnya → Aktivitas** its audit (ADR-0013).
+`content_generation_runs` keeps who asked, which fields, provider, model, prompt version, tokens, estimated cost, latency, attempts, and a safe error message. Prompts and raw responses are not stored. **Pengaturan → Model AI** shows status, results per model, and the last 30 runs; it never shows or accepts a key. Audit: `content.generation_requested`, `content.generation_applied`, `content.generation_failed` on the item. On an item, the Draft shows only the latest outcome in words; **Lainnya → Riwayat** lists its revisions, its runs with model and tokens, and its audit (ADR-0013, ADR-0017).
 
-## Web research
+## Referensi
 
-Research runs on the same `content-ai` queue, one search at a time per item, with no daily or cost limit. Internal context (facts in force, running campaigns, similar posts within 90 days) shows first; web results are untrusted material, never business facts.
+Web research is no longer offered (ADR-0017); earlier runs and sources stay stored. A Draft's **Referensi** are links added by hand. `UrlPolicy` checks each one (http/https on standard ports, no credentials, no private, loopback, link-local, metadata, or internal hosts), canonicalises it without tracking parameters, and deduplicates it per brand. With no title the server reads the page through `SafePageReader` (resolved addresses must be public, the connection is pinned to them, each redirect is re-checked, HTML only, 8 s and 512 KB). References go to AI copy as untrusted background, never as business facts.
 
 ```dotenv
-CONTENT_SEARCH_PROVIDER=tavily          # none (default) | fake | tavily
-CONTENT_SEARCH_API_KEY=...              # from tavily.com; stays in .env, agents never see it
-CONTENT_SEARCH_PRICE_PER_CALL=         # optional USD per search, only for the cost record
-CONTENT_SEARCH_MAX_RESULTS=5            # per search, at most 10
-CONTENT_RESEARCH_BLOCKED_DOMAINS=       # comma-separated, dropped from results and refused as manual sources
-CONTENT_RESEARCH_ALLOWED_DOMAINS=       # when set, the only domains research may use
+CONTENT_RESEARCH_BLOCKED_DOMAINS=       # comma-separated, refused as references
+CONTENT_RESEARCH_ALLOWED_DOMAINS=       # when set, the only domains a reference may use
 ```
-
-Results are filtered by `UrlPolicy` (http/https on standard ports, no credentials, no private, loopback, link-local, metadata, or internal hosts), canonicalised without tracking parameters, deduplicated per brand, and stored with title, domain, a summary of at most 600 characters, trust (official, general, user-generated), relevance, and access time. Manual sources are always available; with no title the server reads it through `SafePageReader` (resolved addresses must be public, the connection is pinned to them, each redirect is re-checked, HTML only, 8 s and 512 KB). Cited sources go to AI copy as untrusted background (`copy-v4`).
 
 ## Brand Knowledge retrieval
 
@@ -115,7 +109,7 @@ This is retrieval/RAG, not model training. To update knowledge, edit the one sou
 
 ## Revision requests and evaluation
 
-When an item is in *Perlu revisi*, the AI panel preselects the copy parts the reviewer named and sends the reviewer's note and the writer's optional instruction with the prompt (`copy-v2`). The note never overrides the brand rules. People rate finished drafts *Berguna* or *Kurang berguna* (with a reason); **Pengaturan AI → Evaluasi draft AI** shows ratings, approvals, and cost per model and prompt version. Use it, together with `content:eval-copy`, before switching model or prompt; ratings never change a prompt by themselves.
+When an item is in *Perlu revisi*, the AI panel preselects the copy parts the reviewer named and sends the reviewer's note and the writer's optional instruction with the prompt (`copy-v2`). The note never overrides the brand rules. Rating drafts *Berguna* or *Kurang berguna* has left the UI (ADR-0017); earlier ratings stay stored. **Pengaturan → Model AI → Hasil per model** shows drafts, later marked Ready, and cost per model and prompt version. Use it, together with `content:eval-copy`, before switching model or prompt.
 
 ## Workflow simplification (ADR-0012)
 

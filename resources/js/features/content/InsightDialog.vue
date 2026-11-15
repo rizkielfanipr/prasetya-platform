@@ -7,6 +7,9 @@ import { routes } from '@/lib/routes';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
+const primaryMetrics = insightMetrics.filter((metric) => metric.primary);
+const otherMetrics = insightMetrics.filter((metric) => !metric.primary);
+
 /** Metrics copied by hand from Instagram's insights. A reading is never edited: a later one is added. */
 const props = defineProps<{ itemId: string }>();
 const open = defineModel<boolean>('open', { default: false });
@@ -40,7 +43,7 @@ function submit(): void {
     <ConfirmDialog
         v-model:open="open"
         title="Catat insight"
-        description="Salin angka dari Insight postingan di Instagram. Jangkauan wajib; yang lain opsional."
+        description="Salin angka dari Insight postingan di Instagram. Jangkauan wajib; yang lain boleh kosong."
         confirm-label="Simpan insight"
         :submitting="insightForm.processing"
         @confirm="submit"
@@ -64,7 +67,7 @@ function submit(): void {
             </FormField>
             <div class="grid grid-cols-2 gap-3">
                 <FormField
-                    v-for="metric in insightMetrics"
+                    v-for="metric in primaryMetrics"
                     :id="`insight-${metric.name}`"
                     :key="metric.name"
                     v-slot="{ describedBy, invalid }"
@@ -83,6 +86,30 @@ function submit(): void {
                     />
                 </FormField>
             </div>
+            <details class="text-sm" data-testid="insight-more" :open="otherMetrics.some((metric) => insightForm.errors[metric.name]) || undefined">
+                <summary class="min-h-11 cursor-pointer content-center font-bold text-primary-text">Angka lain</summary>
+                <div class="mt-3 grid grid-cols-2 gap-3">
+                    <FormField
+                        v-for="metric in otherMetrics"
+                        :id="`insight-${metric.name}`"
+                        :key="metric.name"
+                        v-slot="{ describedBy, invalid }"
+                        :label="metric.required ? `${metric.label} *` : metric.label"
+                        :error="insightForm.errors[metric.name]"
+                    >
+                        <Input
+                            :id="`insight-${metric.name}`"
+                            v-model="insightForm[metric.name]"
+                            type="number"
+                            min="0"
+                            inputmode="numeric"
+                            class="h-11"
+                            :aria-describedby="describedBy"
+                            :aria-invalid="invalid"
+                        />
+                    </FormField>
+                </div>
+            </details>
             <FormField id="insight-note" v-slot="{ describedBy, invalid }" label="Catatan" :error="insightForm.errors.note">
                 <Input id="insight-note" v-model="insightForm.note" class="h-11" maxlength="500" :aria-describedby="describedBy" :aria-invalid="invalid" />
             </FormField>
