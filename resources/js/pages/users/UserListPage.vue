@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppLayout from '@/components/layout/AppLayout.vue';
-import PanelCard from '@/components/layout/PanelCard.vue';
 import FilterBar, { type ActiveFilter } from '@/components/shared/FilterBar.vue';
 import SearchInput from '@/components/shared/SearchInput.vue';
 import SelectFilter from '@/components/shared/SelectFilter.vue';
@@ -62,9 +61,9 @@ function clear(): void {
             />
             <div class="md:ml-auto"><UserCreateDialog /></div>
         </FilterBar>
-        <PanelCard flush>
-            <UserTable :rows="users.data" :loading="loading" :failed="failed" :filtered="active.length > 0" @retry="apply({})" />
+        <section aria-label="Daftar pengguna">
+            <UserTable :rows="users.data" :loading="loading" :failed="failed" :filtered="active.length > 0" @retry="apply({})" @clear="clear" />
             <TablePagination :meta="users.meta" :disabled="loading" @change="apply({ page: String($event) })" />
-        </PanelCard>
+        </section>
     </AppLayout>
 </template>

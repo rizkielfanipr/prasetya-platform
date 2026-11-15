@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppLayout from '@/components/layout/AppLayout.vue';
-import PanelCard from '@/components/layout/PanelCard.vue';
 import AuditTimeline from '@/components/shared/AuditTimeline.vue';
 import StatusBadge from '@/components/shared/StatusBadge.vue';
 import UserRowActions from '@/features/users/UserRowActions.vue';
@@ -9,7 +8,7 @@ import { routes } from '@/lib/routes';
 import { userStatuses } from '@/lib/status';
 import type { AuditEntry, UserRow } from '@/types/backoffice';
 import { Link } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeftIcon } from '@heroicons/vue/24/outline';
 
 // A user and their activity (ADR-0010). The audit never carries a password, hash, or token.
 defineProps<{ user: UserRow; activity: AuditEntry[] }>();
@@ -17,36 +16,45 @@ defineProps<{ user: UserRow; activity: AuditEntry[] }>();
 
 <template>
     <AppLayout :title="user.name" :description="`@${user.username}`">
-        <Link :href="routes.users" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-text hover:underline">
-            <ArrowLeft class="size-4" aria-hidden="true" />Kembali ke pengguna
+        <Link
+            :href="routes.users"
+            class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary-text underline decoration-tint-300 underline-offset-4 hover:decoration-tint-600"
+        >
+            <ArrowLeftIcon class="size-4 stroke-2" aria-hidden="true" />Kembali ke pengguna
         </Link>
 
-        <PanelCard title="Pengguna">
-            <template #actions><UserRowActions :user="user" /></template>
-            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section aria-labelledby="user-heading" class="rounded-xl bg-tint-50 p-5 md:p-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Akun</p>
+                    <h1 id="user-heading" class="mt-1 text-2xl font-extrabold break-words">{{ user.name }}</h1>
+                    <p class="text-sign-ink mt-1 font-mono text-[14px] font-semibold">
+                        @{{ user.username }}<span v-if="user.isSelf" class="ml-2 font-sans text-[12px] text-muted-foreground">Akun Anda</span>
+                    </p>
+                </div>
+                <UserRowActions :user="user" />
+            </div>
+
+            <dl class="border-hairline mt-5 grid gap-x-6 gap-y-4 border-t pt-4 sm:grid-cols-3">
                 <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Username</dt>
-                    <dd class="mt-1 font-mono text-sm">
-                        {{ user.username }}<span v-if="user.isSelf" class="ml-1 font-sans text-xs text-muted-foreground">(Anda)</span>
-                    </dd>
+                    <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Status</dt>
+                    <dd class="mt-1.5"><StatusBadge :status="user.isActive ? userStatuses.active : userStatuses.inactive" /></dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Status</dt>
-                    <dd class="mt-1"><StatusBadge :status="user.isActive ? userStatuses.active : userStatuses.inactive" /></dd>
+                    <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Masuk terakhir</dt>
+                    <dd class="text-sign-ink mt-1.5 text-[14px]">{{ formatDateTime(user.lastLoginAt) }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Masuk terakhir</dt>
-                    <dd class="mt-1">{{ formatDateTime(user.lastLoginAt) }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-semibold text-muted-foreground">Dibuat</dt>
-                    <dd class="mt-1">{{ formatDateTime(user.createdAt) }}</dd>
+                    <dt class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Dibuat</dt>
+                    <dd class="text-sign-ink mt-1.5 text-[14px]">{{ formatDateTime(user.createdAt) }}</dd>
                 </div>
             </dl>
-        </PanelCard>
+        </section>
 
-        <PanelCard title="Aktivitas" description="Perubahan akun ini, masuk, dan keluar, terbaru di atas (maksimal 100 catatan).">
-            <AuditTimeline :entries="activity" />
-        </PanelCard>
+        <section aria-labelledby="activity-heading" class="border-t border-border pt-4">
+            <h2 id="activity-heading" class="text-[14px] font-extrabold">Aktivitas</h2>
+            <p class="mt-1 text-[13px] text-muted-foreground">Perubahan akun ini, masuk, dan keluar, terbaru di atas (maksimal 100 catatan).</p>
+            <div class="mt-4"><AuditTimeline :entries="activity" /></div>
+        </section>
     </AppLayout>
 </template>

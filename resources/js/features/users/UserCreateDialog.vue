@@ -3,7 +3,7 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { useForm } from '@inertiajs/vue3';
-import { UserPlus } from '@lucide/vue';
+import { UserPlusIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import UserFields from './UserFields.vue';
 
@@ -32,7 +32,7 @@ function submit(): void {
         @confirm="submit"
     >
         <template #trigger>
-            <Button class="gap-2"><UserPlus class="size-4" aria-hidden="true" />Tambah pengguna</Button>
+            <Button class="gap-2"><UserPlusIcon class="size-4 stroke-2" aria-hidden="true" />Tambah pengguna</Button>
         </template>
         <UserFields
             v-model:name="form.name"
