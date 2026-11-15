@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelCard from '@/components/layout/PanelCard.vue';
 import DateRangeFilter from '@/components/shared/DateRangeFilter.vue';
 import FilterBar, { type ActiveFilter } from '@/components/shared/FilterBar.vue';
 import SearchInput from '@/components/shared/SearchInput.vue';
@@ -54,7 +53,7 @@ function remove(key: string): void {
 <template>
     <FilterBar :active="active" @remove="remove" @clear="clear">
         <div class="w-full md:w-72">
-            <span aria-hidden="true" class="mb-1.5 block text-xs font-semibold text-muted-foreground">Cari</span>
+            <span aria-hidden="true" class="mb-1.5 block text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Cari</span>
             <SearchInput id="event-search" v-model="search" label="Cari invoice" placeholder="Cari invoice" />
         </div>
         <SelectFilter
@@ -66,8 +65,8 @@ function remove(key: string): void {
         />
         <DateRangeFilter :from="filters.date_from" :to="filters.date_to" id-prefix="event-date" @change="apply({ ...$event, page: null })" />
     </FilterBar>
-    <PanelCard flush>
+    <section aria-label="Event pembayaran">
         <WebhookEventTable :rows="events.data" :loading="loading" :failed="failed" @retry="apply({})" />
         <TablePagination :meta="events.meta" :disabled="loading" @change="apply({ page: String($event) })" />
-    </PanelCard>
+    </section>
 </template>
