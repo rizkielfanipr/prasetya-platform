@@ -7,7 +7,7 @@ import { formatDateTime } from '@/lib/format';
 import { routes } from '@/lib/routes';
 import type { ContentItem, ContentRevision, CopyField, ItemAi } from '@/types/content';
 import { router } from '@inertiajs/vue3';
-import { ChevronDown, Sparkles } from '@lucide/vue';
+import { ChevronDownIcon, SparklesIcon } from '@heroicons/vue/24/outline';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
@@ -105,7 +105,7 @@ async function generate(): Promise<void> {
                 :aria-describedby="ai.unavailableReason ? 'ai-unavailable' : 'ai-hint'"
                 @click="generate"
             >
-                <Sparkles class="size-4" aria-hidden="true" />{{ active ? 'AI sedang menulis…' : label }}
+                <SparklesIcon class="size-4 stroke-2" aria-hidden="true" />{{ active ? 'AI sedang menulis…' : label }}
             </Button>
             <Button
                 v-if="ai.unavailableReason === null"
@@ -116,8 +116,8 @@ async function generate(): Promise<void> {
                 :aria-expanded="optionsOpen"
                 @click="optionsOpen = !optionsOpen"
             >
-                Opsi AI<ChevronDown
-                    class="size-4 transition-transform motion-reduce:transition-none"
+                Opsi AI<ChevronDownIcon
+                    class="size-4 stroke-2 transition-transform motion-reduce:transition-none"
                     :class="{ 'rotate-180': optionsOpen }"
                     aria-hidden="true"
                 />
@@ -125,12 +125,12 @@ async function generate(): Promise<void> {
         </div>
         <p v-if="ai.unavailableReason" id="ai-unavailable" class="text-xs text-muted-foreground">{{ ai.unavailableReason }}</p>
         <p v-else id="ai-hint" class="text-xs text-muted-foreground">
-            AI menulis caption, hashtag, alt text, dan arahan visual dari brief sebagai revisi Draft baru.<template v-if="dirty">
+            AI menulis caption, hashtag, dan alt text dari brief sebagai revisi Draft baru.<template v-if="dirty">
                 Perubahan yang belum disimpan disimpan dulu.</template
             >
         </p>
         <p v-if="outcome" class="text-xs" data-testid="ai-outcome">{{ outcome }}</p>
-        <div v-show="optionsOpen && ai.unavailableReason === null" id="ai-options" class="space-y-3 rounded-lg bg-muted/50 p-3">
+        <div v-show="optionsOpen && ai.unavailableReason === null" id="ai-options" class="space-y-3 rounded-lg bg-tint-50 p-3">
             <fieldset class="space-y-2">
                 <legend class="text-sm font-semibold">Bagian yang ditulis AI</legend>
                 <div class="flex flex-wrap gap-x-5 gap-y-1">

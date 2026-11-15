@@ -1,5 +1,7 @@
 # Prompt Implementasi Penyederhanaan Content Studio
 
+> Partly superseded by [ADR-0017](decisions/0017-simplified-content-studio-surfaces.md): Detail kreatif, Riset & sumber, and the separate Aktivitas sheet are gone, the rules live in the Brand document, and the AI settings moved to Pengaturan. `design.md` describes the current screens.
+
 Salin prompt berikut ke coding agent dari repository `/Users/air/Projects/prasetya-group/prasetya-platform`. Prompt ini mengimplementasikan [ADR-0012](decisions/0012-simplified-content-studio-workflow.md) secara bertahap tanpa menghapus revision, approval lama, publication, research, AI run, atau audit.
 
 ---

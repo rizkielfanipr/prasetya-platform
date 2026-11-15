@@ -21,7 +21,7 @@ const tags = computed(() => hashtagCount(hashtags.value));
 
 <template>
     <section aria-labelledby="compose-title" class="space-y-4" data-testid="caption-area">
-        <h2 id="compose-title" class="text-base font-bold">Caption Instagram</h2>
+        <h2 id="compose-title" class="text-sm font-extrabold">Caption Instagram</h2>
         <FormField id="content-caption" label="Caption *" :error="errors.caption" :hint="captionField?.hint">
             <template #actions>
                 <span id="content-caption-count" class="text-xs text-muted-foreground tabular"
@@ -37,7 +37,7 @@ const tags = computed(() => hashtagCount(hashtags.value));
                     :readonly="readonly"
                     :aria-describedby="`${describedBy ?? ''} content-caption-count`.trim()"
                     :aria-invalid="invalid"
-                    :class="readonly ? 'bg-muted' : ''"
+                    :class="readonly ? 'bg-tint-50' : ''"
                 />
             </template>
         </FormField>
@@ -54,7 +54,7 @@ const tags = computed(() => hashtagCount(hashtags.value));
                     :readonly="readonly"
                     :aria-describedby="`${describedBy ?? ''} content-hashtags-count`.trim()"
                     :aria-invalid="invalid"
-                    :class="readonly ? 'bg-muted' : ''"
+                    :class="readonly ? 'bg-tint-50' : ''"
                 />
             </template>
         </FormField>

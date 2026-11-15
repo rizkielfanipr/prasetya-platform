@@ -5,15 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\BackOffice\Content;
 
 use App\Domain\Audit\Queries\AuditTrail;
-use App\Domain\Content\Actions\RequestResearch;
 use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
-use App\Domain\Content\Models\ContentResearchRun;
-use App\Domain\Content\Models\ContentResearchSource;
-use App\Domain\Content\Research\InternalContext;
 use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentPresenter;
-use App\Http\Presenters\ContentResearchPresenter;
 use App\Http\Presenters\TransactionPresenter;
 use Illuminate\Http\JsonResponse;
 
@@ -24,22 +19,6 @@ use Illuminate\Http\JsonResponse;
  */
 final class ContentItemEvidenceController
 {
-    public function research(ContentItem $item, RequestResearch $research, InternalContext $context): JsonResponse
-    {
-        $item->load('sources');
-        $runs = ContentResearchRun::query()->where('content_item_id', $item->id)->with('requester')->latest('id')->limit(5)->get();
-        $ids = $runs->flatMap(static fn (ContentResearchRun $run): array => $run->result_source_ids ?? [])->unique()->values()->all();
-        $sources = ContentResearchSource::query()->whereIn('id', $ids)->get();
-
-        return response()->json([
-            'unavailableReason' => $research->reason($item),
-            'cited' => $item->sources->map(static fn (ContentResearchSource $s): array => ContentResearchPresenter::source($s, $s->getRelationValue('pivot')?->getAttribute('note')))->values()->all(),
-            'runs' => $runs->map(static fn (ContentResearchRun $run): array => ContentResearchPresenter::run($run, $sources))->all(),
-            'internal' => $context->for($item),
-            'suggestedQuery' => trim($item->topic ?: $item->title),
-        ]);
-    }
-
     /** Every revision, newest first, with legacy decisions and AI provenance, plus the item's last ten AI runs. */
     public function history(ContentItem $item): JsonResponse
     {

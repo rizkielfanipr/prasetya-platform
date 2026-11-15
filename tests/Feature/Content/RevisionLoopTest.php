@@ -121,7 +121,7 @@ it('lets people rate an AI draft for evaluation, with a reason when it did not h
 
     expect($run->refresh())->feedback->toBe(GenerationFeedback::Useful)->feedback_reason->toBeNull()
         ->and(AuditLog::query()->where('action', 'content.generation_feedback')->count())->toBe(2)
-        ->and(contentPage('/content/settings')['evaluation'][0])->toMatchArray(['model' => 'deepseek-test', 'promptVersion' => 'copy-v4', 'drafts' => 1, 'useful' => 1, 'notUseful' => 0, 'approved' => 0]);
+        ->and(contentPage('/settings/ai')['evaluation'][0])->toMatchArray(['model' => 'deepseek-test', 'promptVersion' => 'copy-v4', 'drafts' => 1, 'useful' => 1, 'notUseful' => 0, 'approved' => 0]);
     $this->post($uri, ['feedback' => 'MAYBE'])->assertSessionHasErrors('feedback');
 });
 
@@ -130,10 +130,10 @@ it('counts AI drafts that went on to be marked Ready', function (): void {
     $writer = admin();
     $item = draftItem($writer);
     $this->actingAs($writer)->post("/content/items/{$item->public_id}/generate", ['revision' => revisionId($item), 'fields' => ['caption']]);
-    expect(contentPage('/content/settings')['evaluation'][0]['approved'])->toBe(0);
+    expect(contentPage('/settings/ai')['evaluation'][0]['approved'])->toBe(0);
     $this->post("/content/items/{$item->public_id}/ready", ['revision' => revisionId($item)])->assertSessionHas('success');
 
-    expect(contentPage('/content/settings')['evaluation'][0]['approved'])->toBe(1);
+    expect(contentPage('/settings/ai')['evaluation'][0]['approved'])->toBe(1);
 });
 
 it('only rates drafts that were made', function (): void {

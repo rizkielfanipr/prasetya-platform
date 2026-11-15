@@ -76,21 +76,19 @@ Route::middleware('auth')->group(function (): void {
     Route::post('content/items/{item:public_id}/publication', [ContentItemController::class, 'markPublished'])->name('content.items.publication');
     Route::get('content/assets/{asset:public_id}', ContentAssetController::class)->name('content.assets.show');
     // Evidence sheets of the detail page (ADR-0013): read-only JSON, loaded when a person opens the sheet.
-    Route::get('content/items/{item:public_id}/research', [ContentItemEvidenceController::class, 'research'])->name('content.items.research.show');
     Route::get('content/items/{item:public_id}/history', [ContentItemEvidenceController::class, 'history'])->name('content.items.history');
     Route::get('content/items/{item:public_id}/activity', [ContentItemEvidenceController::class, 'activity'])->name('content.items.activity');
 
     // AI copy drafts (ADR-0011, phase 3). Off unless configured; the result is always a draft revision.
     Route::post('content/items/{item:public_id}/generate', [ContentAiController::class, 'generate'])->middleware('throttle:20,1')->name('content.items.generate');
-    Route::get('content/settings', [ContentAiController::class, 'settings'])->name('content.settings');
-    // Research (ADR-0011, phase 4): web search, manual sources, citations. Sources are scoped to the item's brand.
-    Route::post('content/items/{item:public_id}/research', [ContentResearchController::class, 'search'])->middleware('throttle:20,1')->name('content.items.research');
+    // Pengaturan AI moved to Pengaturan → Model AI (ADR-0017).
+    Route::redirect('content/settings', '/settings/ai')->name('content.settings');
+    // Referensi (ADR-0017): links added by hand and cited by the item; web research is no longer offered.
     Route::post('content/items/{item:public_id}/sources', [ContentResearchController::class, 'addSource'])->middleware('throttle:20,1')->name('content.items.sources.store');
     // Any source of the item's brand may be cited; CiteSource checks the brand, so no implicit scoping to citations.
     Route::post('content/items/{item:public_id}/sources/{source:public_id}', [ContentResearchController::class, 'cite'])->withoutScopedBindings()->name('content.items.sources.cite');
     Route::delete('content/items/{item:public_id}/sources/{source:public_id}', [ContentResearchController::class, 'uncite'])->withoutScopedBindings()->name('content.items.sources.uncite');
     Route::post('content/generation-runs/{run:public_id}/feedback', [ContentAiController::class, 'feedback'])->name('content.generation-runs.feedback');
-    Route::put('content/settings/model', [ContentAiController::class, 'selectModel'])->name('content.settings.model');
 
     // Brand Knowledge (ADR-0011). Campaign writes remain brand-scoped although their UI lives in Calendar planning.
     Route::get('content/brands', [ContentBrandController::class, 'index'])->name('content.brands.index');
@@ -98,18 +96,17 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/', [ContentBrandController::class, 'show'])->name('show');
         Route::put('knowledge', [ContentBrandController::class, 'updateKnowledge'])->name('knowledge');
         Route::post('knowledge/assist', [ContentBrandController::class, 'assistKnowledge'])->middleware('throttle:10,1')->name('knowledge.assist');
-        Route::put('rules', [ContentBrandController::class, 'updateRules'])->name('rules');
         Route::post('pillars', [ContentBrandController::class, 'storePillar'])->name('pillars.store');
         Route::put('pillars/{pillar:public_id}', [ContentBrandController::class, 'updatePillar'])->name('pillars.update');
         Route::post('campaigns', [ContentBrandController::class, 'storeCampaign'])->name('campaigns.store');
         Route::put('campaigns/{campaign:public_id}', [ContentBrandController::class, 'updateCampaign'])->name('campaigns.update');
-        Route::post('facts', [ContentBrandController::class, 'storeFact'])->name('facts.store');
-        Route::post('facts/{fact:public_id}/retire', [ContentBrandController::class, 'retireFact'])->name('facts.retire');
     });
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/activity', SystemActivityController::class)->name('settings.activity');
     Route::get('settings/gateway-log', GatewayLogController::class)->name('settings.gateway-log');
+    Route::get('settings/ai', [ContentAiController::class, 'settings'])->name('settings.ai');
+    Route::put('settings/ai/model', [ContentAiController::class, 'selectModel'])->name('settings.ai.model');
 
     // The signed-in person's own account: the password only. Names change in Pengguna (ADR-0015).
     Route::get('account/password', [AccountController::class, 'password'])->name('account.password');

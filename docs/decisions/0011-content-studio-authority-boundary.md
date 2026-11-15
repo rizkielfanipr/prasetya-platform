@@ -1,6 +1,6 @@
 # ADR-0011: Content Studio, with AI providers and Hermes as untrusted draft producers
 
-- Status: Proposed
+- Status: Proposed, amended by [ADR-0017](0017-simplified-content-studio-surfaces.md)
 - Date: 2026-11-07
 - Decision owners: Prasetya Group
 - Related: [`../content-studio-ai-planning-plan.md`](../content-studio-ai-planning-plan.md), [ADR-0012](0012-simplified-content-studio-workflow.md), [ADR-0001](0001-modular-monolith.md), [ADR-0009](0009-single-access-users-username-login.md), [ADR-0010](0010-consolidated-transaction-workspace.md)

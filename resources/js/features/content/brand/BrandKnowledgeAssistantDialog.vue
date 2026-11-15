@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { routes } from '@/lib/routes';
 import { useForm } from '@inertiajs/vue3';
-import { CheckCircle2, LoaderCircle, Sparkles } from '@lucide/vue';
+import { ArrowPathIcon, CheckCircleIcon, SparklesIcon } from '@heroicons/vue/24/outline';
 import { computed, onBeforeUnmount, ref } from 'vue';
 
 type AnswerKey = 'overview' | 'audience' | 'offers' | 'differentiators' | 'voice' | 'visual' | 'rules' | 'operations';
@@ -160,7 +160,7 @@ onBeforeUnmount(() => {
 <template>
     <AlertDialog v-model:open="open">
         <AlertDialogTrigger as-child>
-            <Button type="button" variant="outline" class="gap-2"><Sparkles class="size-4" aria-hidden="true" />Bantuan AI</Button>
+            <Button type="button" variant="outline" class="gap-2"><SparklesIcon class="size-4 stroke-2" aria-hidden="true" />Bantuan AI</Button>
         </AlertDialogTrigger>
         <AlertDialogContent class="max-h-[calc(100vh-2rem)] overflow-hidden sm:max-w-3xl">
             <AlertDialogHeader>
@@ -173,8 +173,8 @@ onBeforeUnmount(() => {
 
             <div v-if="processState === 'processing' || processState === 'completed'" class="space-y-6 py-8" aria-live="polite" aria-atomic="true">
                 <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <LoaderCircle v-if="processState === 'processing'" class="size-7 animate-spin" aria-hidden="true" />
-                    <CheckCircle2 v-else class="size-7" aria-hidden="true" />
+                    <ArrowPathIcon v-if="processState === 'processing'" class="size-7 animate-spin stroke-2" aria-hidden="true" />
+                    <CheckCircleIcon v-else class="size-7 stroke-2" aria-hidden="true" />
                 </div>
                 <div class="space-y-2 text-center">
                     <h3 class="font-bold">{{ processState === 'processing' ? 'AI sedang mengolah jawaban' : 'Brand Knowledge berhasil disusun' }}</h3>
@@ -186,15 +186,17 @@ onBeforeUnmount(() => {
                         }}
                     </p>
                 </div>
-                <ol class="mx-auto max-w-md space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
-                    <li class="flex items-center gap-3"><CheckCircle2 class="size-5 text-success" aria-hidden="true" />Jawaban siap dan permintaan dikirim</li>
+                <ol class="mx-auto max-w-md space-y-3 rounded-lg border bg-tint-50 p-4 text-sm">
                     <li class="flex items-center gap-3">
-                        <LoaderCircle v-if="processState === 'processing'" class="size-5 animate-spin text-primary" aria-hidden="true" />
-                        <CheckCircle2 v-else class="size-5 text-success" aria-hidden="true" />
+                        <CheckCircleIcon class="size-5 stroke-2 text-success" aria-hidden="true" />Jawaban siap dan permintaan dikirim
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <ArrowPathIcon v-if="processState === 'processing'" class="size-5 animate-spin stroke-2 text-primary" aria-hidden="true" />
+                        <CheckCircleIcon v-else class="size-5 stroke-2 text-success" aria-hidden="true" />
                         AI menyusun panduan operasional
                     </li>
                     <li class="flex items-center gap-3" :class="processState === 'completed' ? '' : 'text-muted-foreground'">
-                        <CheckCircle2 v-if="processState === 'completed'" class="size-5 text-success" aria-hidden="true" />
+                        <CheckCircleIcon v-if="processState === 'completed'" class="size-5 stroke-2 text-success" aria-hidden="true" />
                         <span v-else class="size-5 rounded-full border" aria-hidden="true" />
                         Hasil dimasukkan ke Brand Knowledge
                     </li>
@@ -210,7 +212,7 @@ onBeforeUnmount(() => {
                 >
                     <strong>AI belum berhasil mengolah jawaban.</strong><br />{{ processError }} Jawaban Anda tetap tersimpan di formulir ini.
                 </div>
-                <div class="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+                <div class="rounded-lg border bg-tint-50 p-3 text-sm text-muted-foreground">
                     Jangan masukkan data pelanggan, password, API key, atau rahasia. Pertanyaan boleh dikosongkan jika belum ada jawabannya.
                 </div>
                 <div v-for="question in questions" :key="question.key" class="space-y-2">

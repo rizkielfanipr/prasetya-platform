@@ -29,12 +29,13 @@ An unmigrated screen therefore already looks close. What is left on it is its ow
 | Transaksi, Perlu Ditinjau | `/transactions?view=attention` | Migrated (four queues, ADR-0016) | `GatewayCheckDialog` still uses the stock outline button |
 | Pengaturan, Log Gateway | `/settings/gateway-log` (was Transaksi → Event Pembayaran) | Shell only; moved out of Transaksi (ADR-0016) | `PanelCard` around the webhook table; webhook table composition; diagnostics panel |
 | Detail transaksi | `/transactions/{id}` | Migrated (single page, ADR-0016) | Admin note textarea uses the stock `Button` |
-| Dashboard | `/dashboard` | Migrated | None (`MetricCard` stays for Content Studio Insight until it moves) |
+| Dashboard | `/dashboard` | Migrated | None |
 | Pengguna | `/users`, `/users/{id}` | Shell only | Lucide in row actions and create dialog; detail layout |
 | Pengaturan, Aktivitas Sistem | `/settings`, `/settings/activity` | Shell only; profile and password forms moved out (ADR-0015) | Lucide; `PanelCard` admin panels |
 | Audit Log | `/audit-log` | Shell only | Table and filters review |
 | Error pages, signed in | any | Shell only | Lucide icons; `PanelCard` around the empty state |
-| Content Studio | `/content/*` | Shell only | Lucide across 28 files; English content status labels (Draft, Ready, Published, Archived); calendar, detail, brand, insights, AI settings |
+| Content Studio: Kalender, Brand, Insight, detail | `/content/*` | Migrated (ADR-0017) | `ContentCreateDialog`, `CampaignDialog`, and `BrandKnowledgeAssistantDialog` keep stock dialog styling |
+| Pengaturan, Model AI | `/settings/ai` (was Content Studio → Pengaturan AI) | Migrated (ADR-0017) | None |
 
 "Shell only" means the screen sits in the new shell and inherits tokens and shared parts, but its own layout has not been redesigned.
 
@@ -42,7 +43,7 @@ An unmigrated screen therefore already looks close. What is left on it is its ow
 
 1. Read `DESIGN.md` and this file. The world is settled: no new direction round, no new colours, fonts, or shadows.
 2. Keep routes, props, and data contracts. A behaviour change needs its own ADR.
-3. Replace `PanelCard` boxes with flat tint fields or plain sections; nothing but overlays gets a shadow.
+3. Replace `PanelCard` boxes with flat tint fields or plain sections (`PageSection` has the same props and slots); nothing but overlays gets a shadow.
 4. Replace Lucide imports with `@heroicons/vue/24/outline` (`stroke-2`). Remove `@lucide/vue` from `package.json` once no file imports it.
 5. Use English for every status label and Indonesian for everything else; Title Case for short labels only.
 6. Check the screen at 320, 360, 768, 1280, and 1440 px: no horizontal scroll, 44 px touch targets, visible focus.

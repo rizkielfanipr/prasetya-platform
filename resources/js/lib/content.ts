@@ -1,7 +1,6 @@
 import type { StatusDefinition } from '@/lib/status';
 import { BUSINESS_TIMEZONE } from '@/lib/format';
 import type {
-    BrandTab,
     CampaignPriority,
     ContentCampaign,
     ContentAction,
@@ -13,12 +12,11 @@ import type {
     DetailSurface,
     GenerationStatus,
     PostingStep,
-    ResearchStatus,
     RevisionArea,
     RuleSeverity,
-    SourceTrust,
 } from '@/types/content';
-import { Ban, CheckCircle2, Circle, Clock, type LucideIcon, Pencil, Send, TriangleAlert, XCircle } from '@lucide/vue';
+import { CheckCircleIcon, ClockIcon, ExclamationTriangleIcon, NoSymbolIcon, PaperAirplaneIcon, PencilSquareIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import type { Component } from 'vue';
 
 /** Each line of a textarea as one list entry; blank lines dropped. */
 export function linesToList(text: string): string[] {
@@ -28,12 +26,12 @@ export function linesToList(text: string): string[] {
         .filter((line) => line !== '');
 }
 
-/** Content item statuses (ADR-0012, data-dictionary.md), always shown in words. */
+/** Content item statuses (ADR-0012, data-dictionary.md), always shown as English words like the payment statuses (DESIGN.md). */
 export const contentStatuses: Record<ContentStatus, StatusDefinition> = {
-    DRAFT: { label: 'Draft', tone: 'neutral', icon: Circle },
-    READY: { label: 'Siap posting', tone: 'info', icon: CheckCircle2 },
-    PUBLISHED: { label: 'Sudah diposting', tone: 'success', icon: Send },
-    ARCHIVED: { label: 'Diarsipkan', tone: 'neutral', icon: Ban },
+    DRAFT: { label: 'Draft', tone: 'neutral', icon: PencilSquareIcon },
+    READY: { label: 'Ready', tone: 'info', icon: CheckCircleIcon },
+    PUBLISHED: { label: 'Published', tone: 'success', icon: PaperAirplaneIcon },
+    ARCHIVED: { label: 'Archived', tone: 'neutral', icon: NoSymbolIcon },
 };
 
 export const contentStatusOrder: readonly ContentStatus[] = ['DRAFT', 'READY', 'PUBLISHED', 'ARCHIVED'];
@@ -42,15 +40,15 @@ export const contentStatusOrder: readonly ContentStatus[] = ['DRAFT', 'READY', '
 export const contentQuickStatuses: readonly { value: Exclude<ContentStatus, 'ARCHIVED'> | null; label: string }[] = [
     { value: null, label: 'Semua' },
     { value: 'DRAFT', label: 'Draft' },
-    { value: 'READY', label: 'Siap posting' },
-    { value: 'PUBLISHED', label: 'Sudah diposting' },
+    { value: 'READY', label: 'Ready' },
+    { value: 'PUBLISHED', label: 'Published' },
 ];
 
 /** Decisions of the retired editorial workflow (ADR-0011), shown read-only in revision history. */
-export const contentDecisions: Record<ContentDecision, { label: string; icon: LucideIcon }> = {
-    APPROVED: { label: 'Disetujui', icon: CheckCircle2 },
-    REVISION_REQUESTED: { label: 'Revisi diminta', icon: Pencil },
-    REJECTED: { label: 'Ditolak', icon: Ban },
+export const contentDecisions: Record<ContentDecision, { label: string; icon: Component }> = {
+    APPROVED: { label: 'Disetujui', icon: CheckCircleIcon },
+    REVISION_REQUESTED: { label: 'Revisi diminta', icon: PencilSquareIcon },
+    REJECTED: { label: 'Ditolak', icon: NoSymbolIcon },
 };
 
 export const contentActionLabels: Record<ContentAction, string> = {
@@ -70,16 +68,16 @@ export const postingSteps: readonly { value: PostingStep; label: string }[] = [
     { value: 'account', label: 'Diposting dari akun brand yang benar' },
 ];
 
-/** The approved Instagram metrics, in form order. Reach is required. */
+/** The approved Instagram metrics, in form order. Reach is required; the form shows the primary five first (ADR-0017). */
 export const insightMetrics = [
-    { key: 'reach', name: 'reach', label: 'Jangkauan', required: true },
-    { key: 'views', name: 'views', label: 'Tayangan', required: false },
-    { key: 'likes', name: 'likes', label: 'Suka', required: false },
-    { key: 'comments', name: 'comments', label: 'Komentar', required: false },
-    { key: 'saves', name: 'saves', label: 'Simpan', required: false },
-    { key: 'shares', name: 'shares', label: 'Bagikan', required: false },
-    { key: 'profileVisits', name: 'profile_visits', label: 'Kunjungan profil', required: false },
-    { key: 'follows', name: 'follows', label: 'Pengikut baru', required: false },
+    { key: 'reach', name: 'reach', label: 'Jangkauan', required: true, primary: true },
+    { key: 'likes', name: 'likes', label: 'Suka', required: false, primary: true },
+    { key: 'comments', name: 'comments', label: 'Komentar', required: false, primary: true },
+    { key: 'saves', name: 'saves', label: 'Simpan', required: false, primary: true },
+    { key: 'shares', name: 'shares', label: 'Bagikan', required: false, primary: true },
+    { key: 'views', name: 'views', label: 'Tayangan', required: false, primary: false },
+    { key: 'profileVisits', name: 'profile_visits', label: 'Kunjungan profil', required: false, primary: false },
+    { key: 'follows', name: 'follows', label: 'Pengikut baru', required: false, primary: false },
 ] as const;
 
 /** 0.0917 → "9,2%"; null → "—". */
@@ -95,26 +93,12 @@ export function dueLabel(state: 'overdue' | 'today' | 'upcoming' | null, daysLat
     return null;
 }
 
-/** Content Studio sections (ADR-0012): Konten and Siap posting are Kalender views and filters. */
+/** Content Studio sections (ADR-0017). Insight is listed once a reading exists; the AI model lives in Pengaturan. */
 export const contentSections = [
     { value: 'calendar', label: 'Kalender' },
     { value: 'insights', label: 'Insight' },
-    { value: 'brands', label: 'Brand Knowledge' },
-    { value: 'settings', label: 'Pengaturan AI' },
+    { value: 'brands', label: 'Brand' },
 ] as const;
-
-export const sourceTrusts: Record<SourceTrust, StatusDefinition> = {
-    OFFICIAL: { label: 'Resmi', tone: 'success', icon: CheckCircle2 },
-    GENERAL: { label: 'Umum', tone: 'neutral', icon: Circle },
-    USER_GENERATED: { label: 'Konten pengguna', tone: 'warning', icon: TriangleAlert },
-};
-
-export const researchStatuses: Record<ResearchStatus, StatusDefinition> = {
-    QUEUED: { label: 'Menunggu antrean', tone: 'info', icon: Clock },
-    RUNNING: { label: 'Sedang mencari', tone: 'info', icon: Clock },
-    SUCCEEDED: { label: 'Selesai', tone: 'success', icon: CheckCircle2 },
-    FAILED: { label: 'Gagal', tone: 'danger', icon: XCircle },
-};
 
 export const revisionAreas: readonly { value: RevisionArea; label: string }[] = [
     { value: 'caption', label: 'Caption' },
@@ -132,15 +116,14 @@ export const copyFields: readonly { value: CopyField; label: string }[] = [
     { value: 'caption', label: 'Caption' },
     { value: 'hashtags', label: 'Hashtag' },
     { value: 'alt_text', label: 'Alt text' },
-    { value: 'visual_direction', label: 'Arahan visual' },
 ];
 
 export const generationStatuses: Record<GenerationStatus, StatusDefinition> = {
-    QUEUED: { label: 'Menunggu antrean', tone: 'info', icon: Clock },
-    RUNNING: { label: 'AI sedang menulis', tone: 'info', icon: Clock },
-    SUCCEEDED: { label: 'Draft dibuat', tone: 'success', icon: CheckCircle2 },
-    FAILED: { label: 'Gagal', tone: 'danger', icon: XCircle },
-    DISCARDED: { label: 'Tidak diterapkan', tone: 'neutral', icon: Ban },
+    QUEUED: { label: 'Menunggu antrean', tone: 'info', icon: ClockIcon },
+    RUNNING: { label: 'AI sedang menulis', tone: 'info', icon: ClockIcon },
+    SUCCEEDED: { label: 'Draft dibuat', tone: 'success', icon: CheckCircleIcon },
+    FAILED: { label: 'Gagal', tone: 'danger', icon: XCircleIcon },
+    DISCARDED: { label: 'Tidak diterapkan', tone: 'neutral', icon: NoSymbolIcon },
 };
 
 /** $0.00123 for small AI costs; cents are not enough. */
@@ -148,38 +131,19 @@ export function formatUsd(amount: number): string {
     return `$${amount < 0.01 && amount > 0 ? amount.toFixed(5) : amount.toFixed(2)}`;
 }
 
-export const brandTabs: readonly { value: BrandTab; label: string }[] = [
-    { value: 'rules', label: 'Panduan Brand' },
-    { value: 'pillars', label: 'Strategi Konten' },
-    { value: 'facts', label: 'Knowledge Base' },
-    { value: 'activity', label: 'Aktivitas' },
-];
-
-export const contentFactCategories = {
-    GENERAL: 'Umum',
-    SERVICE: 'Layanan',
-    PRICE: 'Harga',
-    PROCESS: 'Proses kerja',
-    ADVANTAGE: 'Keunggulan',
-    FAQ: 'FAQ',
-    PROMO: 'Promo',
-    POLICY: 'Kebijakan',
-    EVIDENCE: 'Bukti atau pencapaian',
-} as const;
-
 /** A campaign's state from its period in WIB (ADR-0012), always in words; a manual switch-off from the old workflow wins. */
 export const campaignPeriods: Record<ContentCampaign['period'] | 'off', StatusDefinition> = {
-    running: { label: 'Berjalan', tone: 'success', icon: CheckCircle2 },
-    upcoming: { label: 'Akan datang', tone: 'info', icon: Clock },
-    ended: { label: 'Selesai', tone: 'neutral', icon: Circle },
-    off: { label: 'Nonaktif (manual)', tone: 'neutral', icon: Ban },
+    running: { label: 'Berjalan', tone: 'success', icon: CheckCircleIcon },
+    upcoming: { label: 'Akan datang', tone: 'info', icon: ClockIcon },
+    ended: { label: 'Selesai', tone: 'neutral', icon: PencilSquareIcon },
+    off: { label: 'Nonaktif (manual)', tone: 'neutral', icon: NoSymbolIcon },
 };
 
 export const campaignPriorities: Record<CampaignPriority, string> = { HIGH: 'Tinggi', NORMAL: 'Normal', LOW: 'Rendah' };
 
 export const ruleSeverities: Record<RuleSeverity, StatusDefinition> = {
-    ERROR: { label: 'Pelanggaran', tone: 'danger', icon: XCircle },
-    WARNING: { label: 'Peringatan', tone: 'warning', icon: TriangleAlert },
+    ERROR: { label: 'Pelanggaran', tone: 'danger', icon: XCircleIcon },
+    WARNING: { label: 'Peringatan', tone: 'warning', icon: ExclamationTriangleIcon },
 };
 
 /** The list rules of a brand, in form order. Each line of the textarea is one entry. */
@@ -277,15 +241,12 @@ export function contentField(name: string): (typeof contentFields)[number] | und
 /** The detail page's secondary surfaces (ADR-0013), named in the header menu and in their sheets and dialogs. */
 export const detailSurfaceLabels: Record<DetailSurface, string> = {
     plan: 'Ubah rencana',
-    creative: 'Detail kreatif',
-    research: 'Riset & sumber',
-    history: 'Riwayat versi',
-    activity: 'Aktivitas',
+    history: 'Riwayat',
     returnToDraft: 'Kembali ke Draft',
     archive: 'Arsipkan',
 };
 
-export const imageRequirements = 'JPEG, PNG, atau WebP · rasio 4:5 · minimal 1080×1350 piksel · maksimal 8 MB';
+export const imageRequirements = 'JPEG, PNG, atau WebP; rasio 4:5; minimal 1080×1350 piksel; maksimal 8 MB';
 
 export function hashtagCount(value: string | null | undefined): number {
     return value ? (value.match(/#[^\s#]+/gu) ?? []).length : 0;

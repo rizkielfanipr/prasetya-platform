@@ -7,13 +7,12 @@ namespace App\Domain\Content\Support;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Enums\RuleSeverity;
 use App\Domain\Content\Models\ContentBrandProfile;
-use App\Domain\Content\Models\ContentFact;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Models\ContentRevision;
 use App\Support\BusinessTime;
 
 /**
- * Checks a revision against its brand's current rules, approved facts, pillar, campaign, and topic spacing. Pure
+ * Checks a revision against its brand's current rules, its Brand Knowledge, pillar, campaign, and topic spacing. Pure
  * rules over stored data: no AI, no network, and the same input always gives the same findings (ADR-0011, phase 2).
  *
  * Errors block submission for review. Warnings are shown to the writer and the reviewer, who decide.
@@ -100,26 +99,16 @@ final class ContentRuleValidator
     }
 
     /**
-     * Statements of the facts content of this item may rely on: brand-wide or of its campaign, not retired, and not
-     * expired on the planned business day.
+     * What content of this item may state as fact: the current Brand Knowledge, chunk by chunk. Structured facts are
+     * retired into that document and no longer count (ADR-0017), so a price changed there cannot pass on a stale row.
      *
      * @return list<string>
      */
     public function usableFacts(ContentItem $item): array
     {
-        $day = $item->planned_at->setTimezone(BusinessTime::zone())->toDateString();
         $item->loadMissing('brand.currentKnowledge.chunks');
 
-        $facts = ContentFact::query()
-            ->where('content_brand_id', $item->content_brand_id)
-            ->where(fn ($q) => $q->whereNull('content_campaign_id')->orWhere('content_campaign_id', $item->content_campaign_id))
-            ->usableOn($day)
-            ->orderBy('id')
-            ->pluck('statement')
-            ->values()
-            ->all();
-
-        return [...$facts, ...($item->brand->currentKnowledge?->chunks->pluck('content')->all() ?? [])];
+        return array_values($item->brand->currentKnowledge?->chunks->pluck('content')->all() ?? []);
     }
 
     /**
@@ -135,7 +124,7 @@ final class ContentRuleValidator
     }
 
     /**
-     * Prices and percentages must come from an approved fact. A price that no fact states is an error; a percentage
+     * Prices and percentages must be written in Brand Knowledge. A price it does not state is an error; a percentage
      * is a warning, because "100% responsif" is not always a business claim.
      *
      * @param  list<string>  $facts
@@ -155,7 +144,7 @@ final class ContentRuleValidator
         foreach ($claims as $claim) {
             if (! str_contains($statements, $this->compact($claim))) {
                 $isPrice = stripos($claim, 'rp') === 0;
-                $message = "\"{$claim}\" tidak ada di fakta yang disetujui untuk tanggal ini.";
+                $message = "\"{$claim}\" tidak tertulis di Brand Knowledge.";
                 $findings[] = $isPrice ? $this->error('unapproved_price', $message, 'caption') : $this->warning('unapproved_number', $message, 'caption');
             }
         }

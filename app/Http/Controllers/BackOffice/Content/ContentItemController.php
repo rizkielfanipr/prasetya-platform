@@ -13,6 +13,7 @@ use App\Domain\Content\Actions\MarkContentReady;
 use App\Domain\Content\Actions\RequestCopyGeneration;
 use App\Domain\Content\Actions\ReturnContentToDraft;
 use App\Domain\Content\Actions\SaveContentRevision;
+use App\Domain\Content\Actions\SavePillar;
 use App\Domain\Content\Actions\UpdateContentDetails;
 use App\Domain\Content\ContentAvailability;
 use App\Domain\Content\Enums\ContentStatus;
@@ -21,11 +22,15 @@ use App\Domain\Content\Exceptions\InvalidContentImage;
 use App\Domain\Content\Models\ContentBrand;
 use App\Domain\Content\Models\ContentGenerationRun;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Content\Models\ContentPillar;
+use App\Domain\Content\Models\ContentResearchSource;
 use App\Domain\Content\Models\ContentRevision;
+use App\Domain\Content\Support\ContentPlan;
 use App\Domain\Content\Support\ContentRuleValidator;
 use App\Http\Presenters\ContentAiPresenter;
 use App\Http\Presenters\ContentBrandPresenter;
 use App\Http\Presenters\ContentPresenter;
+use App\Http\Presenters\ContentResearchPresenter;
 use App\Http\Requests\BackOffice\Content\MarkContentPublishedRequest;
 use App\Http\Requests\BackOffice\Content\SaveContentRevisionRequest;
 use App\Http\Requests\BackOffice\Content\StoreContentItemRequest;
@@ -87,6 +92,9 @@ final class ContentItemController
         if ($editable) {
             $item->load(['brand.pillars', 'brand.campaigns']);
         }
+        if ($status === ContentStatus::Draft) {
+            $item->load('sources');
+        }
 
         return Inertia::render('content/ContentDetailPage', [
             'item' => ContentPresenter::item($item),
@@ -104,6 +112,10 @@ final class ContentItemController
                 ? $item->insights()->with('recordedBy')->limit(20)->get()->map(ContentPresenter::insight(...))->all()
                 : null,
             'archive' => $status === ContentStatus::Archived ? $this->archiveEvidence($trail, $item) : null,
+            // Referensi (ADR-0017): the links this Draft cites, editable in the Draft editor only.
+            'references' => $status === ContentStatus::Draft
+                ? $item->sources->map(static fn (ContentResearchSource $s): array => ContentResearchPresenter::source($s, $s->getRelationValue('pivot')?->getAttribute('note')))->values()->all()
+                : null,
         ]);
     }
 
@@ -125,10 +137,18 @@ final class ContentItemController
         });
     }
 
-    public function details(UpdateContentDetailsRequest $request, ContentItem $item, UpdateContentDetails $update): RedirectResponse
+    public function details(UpdateContentDetailsRequest $request, ContentItem $item, UpdateContentDetails $update, SavePillar $savePillar): RedirectResponse
     {
-        return $this->attempt(function () use ($update, $item, $request): RedirectResponse {
-            $update($item, $request->plan(), $this->actor($request));
+        return $this->attempt(function () use ($update, $item, $request, $savePillar): RedirectResponse {
+            $plan = $request->plan();
+            $name = trim((string) $request->validated('new_pillar'));
+            if ($name !== '') {
+                // A label named again is the same label; a new one starts without a target share.
+                $pillar = ContentPillar::query()->where('content_brand_id', $item->content_brand_id)->whereRaw('lower(name) = ?', [mb_strtolower($name)])->first()
+                    ?? $savePillar($item->brand, null, $name, null, 0, true, $this->actor($request));
+                $plan = new ContentPlan($plan->title, $plan->plannedAt, $pillar, $plan->campaign, $plan->topic);
+            }
+            $update($item, $plan, $this->actor($request));
 
             return back()->with('success', 'Rencana konten diperbarui.');
         });

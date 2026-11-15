@@ -1,20 +1,24 @@
 import { expect } from '@playwright/test';
 import { expectNoAxeViolations, login, test, USERS } from './support';
 
-test('one free-text Brand Knowledge document is versioned and chunked', async ({ page }) => {
+test('one Brand document is versioned and chunked, and its Aturan Posting section sets the rules', async ({ page }) => {
     await login(page, USERS.admin);
 
     await page.goto('/content/brands');
-    await expect(page.getByRole('link', { name: 'Brand Knowledge' })).toHaveAttribute('aria-current', 'page');
-    await expect(page.getByText('Panduan mengisi Brand Knowledge')).toBeVisible();
-    await expect(page.getByText('AI mencari bagian yang relevan')).toBeVisible();
-    const knowledge = page.getByLabel('Brand Knowledge *');
+    await expect(page.getByRole('link', { name: 'Brand' })).toHaveAttribute('aria-current', 'page');
+    const rules = page.getByTestId('posting-rules');
+    await expect(rules).toContainText('Aturan versi 1 berlaku, tetapi belum tertulis di dokumen ini.');
+    const knowledge = page.getByLabel('Dokumen brand *');
     await knowledge.fill('Tentang brand\nKami membantu pemilik UMKM membuat website yang mudah dikelola.\n\nHarga\nPaket website mulai Rp3.500.000.');
-    await page.getByRole('button', { name: 'Simpan dan proses knowledge' }).click();
+    // The rules in force move into the document unchanged.
+    await rules.getByTestId('insert-rules').click();
+    await expect(knowledge).toHaveValue(/## Aturan Posting\n\n\[BATAS\]\nCaption minimal:\nCaption maksimal: 600/);
+    await expect(rules).toContainText('Aturan ada di bagian ## Aturan Posting dokumen ini');
+    await page.getByRole('button', { name: 'Simpan dokumen' }).click();
     await expect(page.getByText('Brand Knowledge disimpan sebagai versi 1.')).toBeVisible();
-    await expect(page.getByText(/versi 1 · 2 bagian pencarian/)).toBeVisible();
     await page.reload();
-    await expect(page.getByLabel('Brand Knowledge *')).toHaveValue(/Paket website mulai Rp3\.500\.000\./);
+    await expect(page.getByLabel('Dokumen brand *')).toHaveValue(/Paket website mulai Rp3\.500\.000\./);
+    await expect(page.getByTestId('posting-rules')).toContainText('Yang berlaku sekarang: versi 1');
 });
 
 test('AI interview proposes editable knowledge without saving a new version', async ({ page }) => {
@@ -35,8 +39,7 @@ test('AI interview proposes editable knowledge without saving a new version', as
     await expect(page.getByRole('heading', { name: 'Susun Brand Knowledge dengan AI' })).toBeVisible();
     await expect(page.getByText('Usulan AI sudah masuk ke editor. Periksa dan simpan jika sudah sesuai.')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Susun Brand Knowledge dengan AI' })).not.toBeVisible();
-    await expect(page.getByLabel('Brand Knowledge *')).toHaveValue(/Kami mendampingi UMKM membangun website/);
-    await expect(page.getByText(/versi 1 · 2 bagian pencarian/)).toBeVisible();
+    await expect(page.getByLabel('Dokumen brand *')).toHaveValue(/Kami mendampingi UMKM membangun website/);
 });
 
 test('the legacy campaign tab opens campaign planning on the calendar', async ({ page }) => {

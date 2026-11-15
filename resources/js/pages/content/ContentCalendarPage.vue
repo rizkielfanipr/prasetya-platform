@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
-import PanelCard from '@/components/layout/PanelCard.vue';
+import PageSection from '@/components/layout/PageSection.vue';
 import EmptyState from '@/components/shared/EmptyState.vue';
 import ErrorState from '@/components/shared/ErrorState.vue';
 import FilterBar, { type ActiveFilter } from '@/components/shared/FilterBar.vue';
@@ -33,7 +34,16 @@ import type {
     PostingReminders,
 } from '@/types/content';
 import { Link } from '@inertiajs/vue3';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, List, Pencil, Plus, SlidersHorizontal } from '@lucide/vue';
+import {
+    AdjustmentsHorizontalIcon,
+    CalendarDaysIcon,
+    ChevronDownIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ListBulletIcon,
+    PencilSquareIcon,
+    PlusIcon,
+} from '@heroicons/vue/24/outline';
 import { computed, ref, watch } from 'vue';
 
 /**
@@ -90,10 +100,11 @@ const moreOpen = ref(others.value.some((filter) => filter.key !== 'search'));
 const week = computed(() => props.week);
 const isCurrentWeek = computed(() => (week.value ? week.value.days.includes(week.value.today) : true));
 const range = computed(() => (week.value ? `${formatDate(`${week.value.start}T00:00:00+07:00`)} – ${formatDate(`${week.value.end}T00:00:00+07:00`)}` : ''));
-const navClass = buttonVariants({ variant: 'outline', size: 'sm' });
+const navClass = `${buttonVariants({ variant: 'outline' })} h-11 min-w-11 border-input`;
+// The view switch is the same segmented control as the status filter (DESIGN.md).
 const viewClass = (active: boolean) =>
-    `inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none ${
-        active ? 'bg-secondary font-semibold text-foreground' : 'font-medium text-muted-foreground hover:bg-accent hover:text-foreground'
+    `inline-flex items-center gap-1.5 px-4 text-sm font-bold whitespace-nowrap transition-colors duration-150 not-first:border-l not-first:border-input motion-reduce:transition-none ${
+        active ? 'bg-primary-strong text-primary-foreground' : 'text-sidebar-foreground hover:bg-tint-100'
     }`;
 const day = (date: string) => formatDate(`${date}T00:00:00+07:00`);
 
@@ -130,27 +141,27 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
         <ContentReminders v-if="reminders.total > 0" :reminders="reminders" :all-href="readyListHref" />
 
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <nav aria-label="Tampilan kalender" class="inline-flex gap-1 rounded-lg border bg-card p-1">
+            <nav aria-label="Tampilan kalender" class="inline-flex h-11 overflow-hidden rounded-md border border-input bg-card">
                 <Link
                     :href="routes.contentCalendar"
                     :data="weekQuery(week?.start ?? filters.week)"
                     :class="viewClass(filters.view === 'week')"
                     :aria-current="filters.view === 'week' ? 'page' : undefined"
-                    ><CalendarDays class="size-4" aria-hidden="true" />Minggu</Link
+                    ><CalendarDaysIcon class="size-4 stroke-2" aria-hidden="true" />Minggu</Link
                 >
                 <Link
                     :href="routes.contentCalendar"
                     :data="listQuery"
                     :class="viewClass(filters.view === 'list')"
                     :aria-current="filters.view === 'list' ? 'page' : undefined"
-                    ><List class="size-4" aria-hidden="true" />Daftar</Link
+                    ><ListBulletIcon class="size-4 stroke-2" aria-hidden="true" />Daftar</Link
                 >
             </nav>
             <div class="flex flex-wrap items-center gap-2">
                 <Link
                     :href="routes.contentCalendar"
                     :data="query({ manage_campaigns: manageCampaigns ? null : '1' })"
-                    :class="buttonVariants({ variant: 'outline' })"
+                    :class="`${buttonVariants({ variant: 'outline' })} h-11 border-input`"
                     preserve-scroll
                     >{{ manageCampaigns ? 'Tutup campaign' : 'Kelola campaign' }}</Link
                 >
@@ -158,29 +169,29 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
             </div>
         </div>
 
-        <PanelCard v-if="manageCampaigns" title="Campaign" description="Program sementara dengan tujuan dan periode yang menjadi konteks jadwal konten.">
+        <PageSection v-if="manageCampaigns" title="Campaign" description="Program sementara dengan tujuan dan periode yang menjadi konteks jadwal konten.">
             <div class="space-y-5">
                 <section v-for="brand in brands" :key="brand.id" class="space-y-3" :aria-labelledby="`campaign-brand-${brand.id}`">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h3 :id="`campaign-brand-${brand.id}`" class="font-semibold">{{ brand.name }}</h3>
-                        <Button size="sm" class="gap-1.5" @click="openCampaign(brand.id, null)">
-                            <Plus class="size-3.5" aria-hidden="true" />Tambah campaign
+                        <h3 :id="`campaign-brand-${brand.id}`" class="text-[13px] font-extrabold">{{ brand.name }}</h3>
+                        <Button class="h-11 gap-1.5" @click="openCampaign(brand.id, null)">
+                            <PlusIcon class="size-3.5 stroke-2" aria-hidden="true" />Tambah campaign
                         </Button>
                     </div>
                     <EmptyState v-if="brand.campaigns.length === 0" title="Belum ada campaign" />
-                    <ul v-else class="divide-y rounded-lg border">
+                    <ul v-else class="divide-y divide-border">
                         <li
                             v-for="campaign in brand.campaigns"
                             :key="campaign.id"
-                            class="flex flex-wrap items-center justify-between gap-3 p-4"
+                            class="flex flex-wrap items-center justify-between gap-3 py-3"
                             :data-testid="`campaign-row-${campaign.name}`"
                         >
                             <div class="min-w-0 flex-1">
-                                <p class="font-semibold">{{ campaign.name }}</p>
+                                <p class="text-sm font-bold">{{ campaign.name }}</p>
                                 <p class="text-sm text-muted-foreground">
                                     {{ day(campaign.startsOn) }} – {{ day(campaign.endsOn)
                                     }}<template v-if="campaign.priority !== 'NORMAL'">
-                                        · prioritas {{ campaignPriorities[campaign.priority].toLowerCase() }}</template
+                                        <SeparatorDot />prioritas {{ campaignPriorities[campaign.priority].toLowerCase() }}</template
                                     >
                                 </p>
                                 <p v-if="campaign.objective" class="text-sm break-words">{{ campaign.objective }}</p>
@@ -188,19 +199,18 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
                             <StatusBadge :status="campaignPeriods[campaign.isActive ? campaign.period : 'off']" />
                             <Button
                                 variant="outline"
-                                size="sm"
-                                class="gap-1.5"
+                                class="h-11 gap-1.5 border-input"
                                 :aria-label="`Ubah campaign ${campaign.name}`"
                                 @click="openCampaign(brand.id, campaign)"
                             >
-                                <Pencil class="size-3.5" aria-hidden="true" />Ubah
+                                <PencilSquareIcon class="size-3.5 stroke-2" aria-hidden="true" />Ubah
                             </Button>
                         </li>
                     </ul>
                 </section>
             </div>
             <CampaignDialog v-if="campaignBrand" v-model:open="campaignOpen" :brand-id="campaignBrand" :campaign="editingCampaign" />
-        </PanelCard>
+        </PageSection>
 
         <div class="space-y-3">
             <div class="flex flex-wrap items-center gap-3">
@@ -208,9 +218,19 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
                 <div v-if="filters.view === 'list'" class="w-full md:w-72">
                     <SearchInput id="content-search" v-model="search" label="Cari judul konten" placeholder="Cari judul" />
                 </div>
-                <Button variant="outline" class="gap-1.5" aria-controls="content-more-filters" :aria-expanded="moreOpen" @click="moreOpen = !moreOpen">
-                    <SlidersHorizontal class="size-4" aria-hidden="true" />Filter lainnya
-                    <ChevronDown class="size-4 transition-transform motion-reduce:transition-none" :class="{ 'rotate-180': moreOpen }" aria-hidden="true" />
+                <Button
+                    variant="outline"
+                    class="h-11 gap-1.5 border-input"
+                    aria-controls="content-more-filters"
+                    :aria-expanded="moreOpen"
+                    @click="moreOpen = !moreOpen"
+                >
+                    <AdjustmentsHorizontalIcon class="size-4 stroke-2" aria-hidden="true" />Filter lainnya
+                    <ChevronDownIcon
+                        class="size-4 stroke-2 transition-transform motion-reduce:transition-none"
+                        :class="{ 'rotate-180': moreOpen }"
+                        aria-hidden="true"
+                    />
                 </Button>
             </div>
             <FilterBar v-show="moreOpen || others.length > 0" id="content-more-filters" :active="others" @remove="remove" @clear="clear">
@@ -220,7 +240,7 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
 
         <ErrorState v-if="failed" retryable @retry="apply({})" />
         <template v-else-if="filters.view === 'list' && list">
-            <PanelCard flush>
+            <PageSection flush>
                 <ContentTable
                     :rows="list.data"
                     :loading="loading"
@@ -232,16 +252,16 @@ function openCampaign(brandId: string, campaign: ContentCampaign | null): void {
                     @sort="sortBy"
                 />
                 <TablePagination :meta="list.meta" :disabled="loading" @change="apply({ page: String($event) })" />
-            </PanelCard>
+            </PageSection>
         </template>
         <template v-else-if="week && items">
             <div class="flex flex-wrap items-center gap-2">
                 <Link :href="routes.contentCalendar" :data="weekQuery(week.previous)" :class="navClass" aria-label="Minggu sebelumnya" preserve-scroll
-                    ><ChevronLeft class="size-4" aria-hidden="true"
+                    ><ChevronLeftIcon class="size-4 stroke-2" aria-hidden="true"
                 /></Link>
-                <h2 class="min-w-52 text-center text-base font-semibold" aria-live="polite">{{ range }}</h2>
+                <h2 class="min-w-52 text-center text-sm font-extrabold tabular" aria-live="polite">{{ range }}</h2>
                 <Link :href="routes.contentCalendar" :data="weekQuery(week.next)" :class="navClass" aria-label="Minggu berikutnya" preserve-scroll
-                    ><ChevronRight class="size-4" aria-hidden="true"
+                    ><ChevronRightIcon class="size-4 stroke-2" aria-hidden="true"
                 /></Link>
                 <Link v-if="!isCurrentWeek" :href="routes.contentCalendar" :data="weekQuery(week.today)" :class="navClass">Minggu ini</Link>
             </div>

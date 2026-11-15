@@ -8,17 +8,14 @@ defineEmits<{ change: [status: ContentStatus | null] }>();
 </script>
 
 <template>
-    <div role="group" aria-label="Status konten" class="inline-flex max-w-full flex-wrap gap-1 rounded-lg border bg-card p-1">
+    <!-- The same segmented control as the Dashboard's brand filter (DESIGN.md). -->
+    <div role="group" aria-label="Status konten" class="inline-flex h-11 max-w-full overflow-x-auto rounded-md border border-input bg-card">
         <button
             v-for="option in contentQuickStatuses"
             :key="option.label"
             type="button"
-            class="h-9 rounded-md px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none"
-            :class="
-                status === option.value
-                    ? 'bg-primary-strong font-semibold text-primary-foreground'
-                    : 'font-medium text-muted-foreground hover:bg-accent hover:text-foreground'
-            "
+            class="shrink-0 px-4 text-sm font-bold whitespace-nowrap transition-colors duration-150 not-first:border-l not-first:border-input motion-reduce:transition-none"
+            :class="status === option.value ? 'bg-primary-strong text-primary-foreground' : 'text-sidebar-foreground hover:bg-tint-100'"
             :aria-pressed="status === option.value"
             @click="$emit('change', option.value)"
         >

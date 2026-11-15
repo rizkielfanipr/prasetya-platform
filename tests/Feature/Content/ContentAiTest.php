@@ -77,15 +77,15 @@ it('is off by default and the manual workflow is untouched', function (): void {
 
 it('names what a real provider still needs, without showing a secret', function (): void {
     useAi(overrides: ['api_key' => null, 'model' => null]);
-    expect(contentPage('/content/settings')['status']['unavailableReason'])->toBe('Provider AI belum lengkap dikonfigurasi: CONTENT_TEXT_API_KEY, CONTENT_TEXT_MODEL atau CONTENT_TEXT_MODELS.');
+    expect(contentPage('/settings/ai')['status']['unavailableReason'])->toBe('Provider AI belum lengkap dikonfigurasi: CONTENT_TEXT_API_KEY, CONTENT_TEXT_MODEL atau CONTENT_TEXT_MODELS.');
 
     // Prices are optional: there is no spending limit in the application.
     useAi(overrides: ['price_input_per_million' => 0, 'price_output_per_million' => 0]);
-    expect(contentPage('/content/settings')['status']['unavailableReason'])->toBeNull();
+    expect(contentPage('/settings/ai')['status']['unavailableReason'])->toBeNull();
 
     useAi();
-    $this->actingAs(admin())->get('/content/settings')->assertInertia(fn (AssertableInertia $page) => $page->component('content/ContentAiSettingsPage')->where('status.unavailableReason', null));
-    expect($this->get('/content/settings')->getContent())->not->toContain(AI_KEY);
+    $this->actingAs(admin())->get('/settings/ai')->assertInertia(fn (AssertableInertia $page) => $page->component('settings/AiModelPage')->where('status.unavailableReason', null));
+    expect($this->get('/settings/ai')->getContent())->not->toContain(AI_KEY);
 });
 
 it('drafts copy as a new revision, keeps the old one, and records usage and cost', function (): void {
@@ -144,20 +144,20 @@ it('only drafts for Draft content', function (string $state): void {
     expect(ContentGenerationRun::query()->count())->toBe(0);
 })->with(['ready', 'published']);
 
-it('retrieves Brand Knowledge with legacy rules and facts, but never customer or order data', function (): void {
+it('sends Brand Knowledge and the rules, never a retired fact, customer, or order data', function (): void {
     useAi();
     Http::fake(['*' => Http::response(chatResponse(goodCopy()))]);
     $order = Order::factory()->create(['customer_name' => 'Pelanggan Rahasia', 'customer_email' => 'rahasia@example.test']);
     brandRules(['forbidden_terms' => ['termurah'], 'allowed_ctas' => ['DM kami']]);
-    app(AddContentFact::class)(webworks(), null, 'Landing page mulai Rp 1.500.000', 'Daftar harga', null, admin());
-    app(SaveBrandKnowledge::class)(webworks(), "Proses kerja\nKickoff dilakukan setelah data lengkap diterima.", admin());
+    app(AddContentFact::class)(webworks(), null, 'Fakta lama Rp 1.500.000', 'Daftar harga', null, admin());
+    app(SaveBrandKnowledge::class)(webworks(), "Proses kerja\nKickoff dilakukan setelah data lengkap diterima.\n\nHarga\nLanding page mulai Rp 1.750.000.", admin());
 
     generate(draftItem());
 
     Http::assertSent(function (Request $request) use ($order): bool {
         $body = json_encode($request->data());
 
-        return str_contains($body, 'termurah') && str_contains($body, 'DM kami') && str_contains($body, 'Rp 1.500.000')
+        return str_contains($body, 'termurah') && str_contains($body, 'DM kami') && str_contains($body, 'Rp 1.750.000') && ! str_contains($body, 'Fakta lama')
             && str_contains($body, 'Kickoff dilakukan setelah data lengkap diterima.')
             && ! str_contains($body, 'Pelanggan Rahasia') && ! str_contains($body, 'rahasia@example.test') && ! str_contains($body, $order->invoice_number);
     });
@@ -381,12 +381,12 @@ it('lets a user choose among the server\'s allowed models, with optional prices 
     Http::fake(['*' => Http::response(chatResponse(goodCopy()))]);
     $this->actingAs(admin());
 
-    expect(collect(contentPage('/content/settings')['status']['models'])->pluck('name')->all())->toBe(['deepseek-test', 'claude-haiku-test']);
+    expect(collect(contentPage('/settings/ai')['status']['models'])->pluck('name')->all())->toBe(['deepseek-test', 'claude-haiku-test']);
 
-    $this->put('/content/settings/model', ['model' => 'gpt-not-allowed'])->assertSessionHas('error', 'Model ini tidak ada di daftar model yang diizinkan server.');
-    $this->put('/content/settings/model', ['model' => 'claude-haiku-test'])->assertSessionHas('success');
+    $this->put('/settings/ai/model', ['model' => 'gpt-not-allowed'])->assertSessionHas('error', 'Model ini tidak ada di daftar model yang diizinkan server.');
+    $this->put('/settings/ai/model', ['model' => 'claude-haiku-test'])->assertSessionHas('success');
 
-    expect(contentPage('/content/settings')['status'])->toMatchArray(['model' => 'claude-haiku-test'])
+    expect(contentPage('/settings/ai')['status'])->toMatchArray(['model' => 'claude-haiku-test'])
         ->and(AuditLog::query()->where('action', 'content.ai_model_selected')->sole()->new_state)->toBe(['model' => 'claude-haiku-test']);
 
     generate(draftItem());
@@ -398,17 +398,17 @@ it('lets a user choose among the server\'s allowed models, with optional prices 
 it('accepts models listed without prices', function (): void {
     useAi(overrides: ['models' => 'deepseek-test, claude-haiku-test']);
 
-    expect(collect(contentPage('/content/settings')['status']['models'])->pluck('name')->all())->toBe(['deepseek-test', 'claude-haiku-test'])
-        ->and(contentPage('/content/settings')['status']['unavailableReason'])->toBeNull();
+    expect(collect(contentPage('/settings/ai')['status']['models'])->pluck('name')->all())->toBe(['deepseek-test', 'claude-haiku-test'])
+        ->and(contentPage('/settings/ai')['status']['unavailableReason'])->toBeNull();
 });
 
 it('falls back to the configured model when the chosen one is no longer allowed', function (): void {
     useAi(overrides: ['models' => 'deepseek-test:0.5:2,old-model:1:1']);
-    $this->actingAs(admin())->put('/content/settings/model', ['model' => 'old-model']);
+    $this->actingAs(admin())->put('/settings/ai/model', ['model' => 'old-model']);
 
     useAi(overrides: ['models' => 'deepseek-test:0.5:2']);
 
-    expect(contentPage('/content/settings')['status']['model'])->toBe('deepseek-test');
+    expect(contentPage('/settings/ai')['status']['model'])->toBe('deepseek-test');
 });
 
 it('evaluates another allowed model without changing the chosen one', function (): void {
@@ -425,5 +425,5 @@ it('evaluates another allowed model without changing the chosen one', function (
 it('offers no model choice for the fake provider', function (): void {
     useAi('fake', ['price_input_per_million' => 0, 'price_output_per_million' => 0]);
 
-    expect(contentPage('/content/settings')['status']['models'])->toBe([]);
+    expect(contentPage('/settings/ai')['status']['models'])->toBe([]);
 });

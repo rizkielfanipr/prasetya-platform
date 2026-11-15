@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import SeparatorDot from '@/components/shared/SeparatorDot.vue';
 import FormField from '@/components/shared/FormField.vue';
 import { Textarea } from '@/components/ui/textarea';
 import { contentField, formatFileSize, imageRequirements } from '@/lib/content';
 import { formatNumber } from '@/lib/format';
 import type { ContentAsset } from '@/types/content';
-import { ImageUp } from '@lucide/vue';
+import { ArrowUpTrayIcon } from '@heroicons/vue/24/outline';
 import { computed, ref, watch } from 'vue';
 
 /**
@@ -16,8 +17,6 @@ const props = defineProps<{
     asset: ContentAsset | null;
     readonly: boolean;
     errors: { image?: string; alt_text?: string };
-    /** The saved revision's visual direction, shown as a reference while the image is made. */
-    visualDirection: string | null;
 }>();
 const file = defineModel<File | null>('image', { default: null });
 const altText = defineModel<string>('altText', { required: true });
@@ -63,9 +62,9 @@ const imageDescribedBy = computed(() =>
 
 <template>
     <section aria-labelledby="media-title" class="space-y-4" data-testid="media-area">
-        <h2 id="media-title" class="text-base font-bold">Media dan alt text</h2>
+        <h2 id="media-title" class="text-sm font-extrabold">Media dan alt text</h2>
         <div class="grid gap-5 sm:grid-cols-[11rem_minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)]">
-            <div class="mx-auto aspect-[4/5] w-full max-w-56 overflow-hidden rounded-lg border bg-muted sm:max-w-none">
+            <div class="mx-auto aspect-[4/5] w-full max-w-56 overflow-hidden rounded-lg border bg-tint-50 sm:max-w-none">
                 <img v-if="preview" :src="preview" alt="Pratinjau gambar yang akan diunggah" width="1080" height="1350" class="size-full object-cover" />
                 <img
                     v-else-if="asset"
@@ -95,7 +94,7 @@ const imageDescribedBy = computed(() =>
                             :readonly="readonly"
                             :aria-describedby="`${describedBy ?? ''} content-alt_text-count`.trim()"
                             :aria-invalid="invalid"
-                            :class="readonly ? 'bg-muted' : ''"
+                            :class="readonly ? 'bg-tint-50' : ''"
                         />
                     </template>
                 </FormField>
@@ -118,11 +117,11 @@ const imageDescribedBy = computed(() =>
                                 for="content-image"
                                 class="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-md border bg-background px-4 text-sm font-medium peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-accent"
                             >
-                                <ImageUp class="size-4" aria-hidden="true" />{{ asset ? 'Ganti gambar' : 'Unggah gambar' }}
+                                <ArrowUpTrayIcon class="size-4 stroke-2" aria-hidden="true" />{{ asset ? 'Ganti gambar' : 'Unggah gambar' }}
                             </label>
                         </template>
                         <p v-if="asset && !preview" class="text-xs text-muted-foreground" data-testid="media-meta">
-                            {{ asset.width }}×{{ asset.height }} · {{ formatFileSize(asset.sizeBytes) }} ·
+                            {{ asset.width }}×{{ asset.height }}<SeparatorDot />{{ formatFileSize(asset.sizeBytes) }}<SeparatorDot />
                             {{ asset.mimeType.replace('image/', '').toUpperCase() }}
                         </p>
                     </div>
@@ -130,11 +129,6 @@ const imageDescribedBy = computed(() =>
                     <p v-if="!readonly" id="content-image-hint" class="text-xs text-muted-foreground">{{ imageRequirements }}</p>
                     <p v-if="errors.image" id="content-image-error" role="alert" class="text-xs font-medium text-danger">{{ errors.image }}</p>
                     <p v-if="!readonly" id="content-image-warning" class="text-xs font-medium text-warning" aria-live="polite">{{ warning }}</p>
-                </div>
-
-                <div v-if="visualDirection" class="space-y-1 text-sm" data-testid="visual-direction">
-                    <p class="text-xs font-semibold text-muted-foreground">Arahan visual <span class="font-normal">· ubah di Lainnya → Detail kreatif</span></p>
-                    <p class="line-clamp-3 break-words whitespace-pre-line">{{ visualDirection }}</p>
                 </div>
             </div>
         </div>

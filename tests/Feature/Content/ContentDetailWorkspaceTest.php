@@ -17,10 +17,11 @@ beforeEach(fn () => contentSetUp());
 
 const EVIDENCE = ['revisions', 'activity', 'research', 'runs'];
 
-it('sends a Draft its editor, brand check, and AI, but no evidence', function (): void {
+it('sends a Draft its editor, brand check, AI, and references, but no evidence', function (): void {
     $props = contentPage('/content/items/'.draftItem()->public_id);
 
-    expect($props)->toHaveKeys(['item', 'revision', 'actions', 'limits', 'findings', 'brandRulesVersion', 'planOptions', 'ai'])
+    expect($props)->toHaveKeys(['item', 'revision', 'actions', 'limits', 'findings', 'brandRulesVersion', 'planOptions', 'ai', 'references'])
+        ->and($props['references'])->toBe([])
         ->and($props['ai'])->toHaveKeys(['unavailableReason', 'current'])
         ->and($props['ai'])->not->toHaveKey('runs')
         ->and($props['postedRevision'])->toBeNull()
@@ -98,11 +99,11 @@ it('loads the revision history with legacy markers, AI provenance, and runs on d
         ->and($history['runs'])->toBe([]);
 });
 
-it('loads the item audit newest first, and research with its internal context, on demand', function (): void {
+it('loads the item audit newest first on demand; the research sheet is retired (ADR-0017)', function (): void {
     $item = readyItem();
 
-    expect(collect(contentEvidence($item, 'activity')['entries'])->pluck('action')->all())->toBe(['content.marked_ready', 'content.revised', 'content.created'])
-        ->and(contentEvidence($item, 'research'))->toHaveKeys(['unavailableReason', 'cited', 'runs', 'internal', 'suggestedQuery']);
+    expect(collect(contentEvidence($item, 'activity')['entries'])->pluck('action')->all())->toBe(['content.marked_ready', 'content.revised', 'content.created']);
+    $this->getJson("/content/items/{$item->public_id}/research")->assertNotFound();
 });
 
 it('keeps the evidence of one item out of another', function (): void {
@@ -110,8 +111,8 @@ it('keeps the evidence of one item out of another', function (): void {
     $other = draftItem(title: 'Konten lain');
     app(AddManualSource::class)($other, 'https://artikel.contoh.id/lain', 'Sumber konten lain', null, 'Untuk konten lain', admin());
 
-    expect(contentEvidence($other, 'research')['cited'])->toHaveCount(1)
-        ->and(contentEvidence($mine, 'research')['cited'])->toBe([])
+    expect(contentPage("/content/items/{$other->public_id}")['references'])->toHaveCount(1)
+        ->and(contentPage("/content/items/{$mine->public_id}")['references'])->toBe([])
         ->and(collect(contentEvidence($mine, 'activity')['entries'])->pluck('entityId')->unique()->all())->toBe([$mine->public_id])
         ->and(collect(contentEvidence($mine, 'history')['revisions'])->pluck('id')->all())->toBe([revisionId($mine)]);
 });
@@ -127,13 +128,13 @@ it('refuses evidence to guests, deactivated users, and guessed ids', function (s
     $inactive->forceFill(['is_active' => false])->save();
     $this->actingAs($inactive)->getJson("/content/items/{$item->public_id}/{$sheet}")->assertRedirect('/login');
     $this->assertGuest();
-})->with(['research', 'history', 'activity']);
+})->with(['history', 'activity']);
 
 it('changes nothing when evidence is read', function (): void {
     $item = readyItem();
     $before = [AuditLog::query()->count(), ContentRevision::query()->count(), $item->refresh()->updated_at?->toIso8601String(), $item->status];
 
-    foreach (['research', 'history', 'activity'] as $sheet) {
+    foreach (['history', 'activity'] as $sheet) {
         contentEvidence($item, $sheet);
     }
 

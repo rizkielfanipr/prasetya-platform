@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Auth\Models\User;
+use App\Domain\Content\Models\ContentInsightSnapshot;
 use App\Domain\Content\Support\PostingQueue;
 use App\Domain\Payments\Queries\ReconciliationReport;
 use App\Support\RequestContext;
@@ -39,6 +40,8 @@ final class HandleInertiaRequests extends Middleware
                 : null,
             // Approved posts due today or earlier and not yet marked posted (Content Studio reminder).
             'contentDueCount' => fn () => $user instanceof User ? app(PostingQueue::class)->dueCount() : null,
+            // Content Studio lists Insight once a reading exists (ADR-0017).
+            'contentHasInsights' => fn () => $user instanceof User ? ContentInsightSnapshot::query()->exists() : null,
             'requestId' => fn () => app(RequestContext::class)->requestId(),
         ];
     }

@@ -77,7 +77,7 @@ function submit(): void {
                     :aria-invalid="invalid"
                 />
             </FormField>
-            <div v-if="legacyInactive" class="space-y-2 rounded-lg bg-muted p-3" data-testid="campaign-legacy-inactive">
+            <div v-if="legacyInactive" class="space-y-2 rounded-lg bg-tint-50 p-3" data-testid="campaign-legacy-inactive">
                 <p class="text-sm">Campaign ini dinonaktifkan manual di alur lama, sehingga tidak ditawarkan walau periodenya berjalan.</p>
                 <div class="flex items-center gap-2">
                     <Checkbox id="campaign-active" :model-value="form.is_active" @update:model-value="form.is_active = $event === true" />

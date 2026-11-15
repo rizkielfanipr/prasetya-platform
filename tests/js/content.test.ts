@@ -87,8 +87,8 @@ describe('content helpers', () => {
 
     it('labels every status', () => {
         expect(Object.keys(contentStatuses)).toEqual(['DRAFT', 'READY', 'PUBLISHED', 'ARCHIVED']);
-        expect(contentStatuses.READY.label).toBe('Siap posting');
-        expect(contentStatuses.ARCHIVED.label).toBe('Diarsipkan');
+        expect(contentStatuses.READY.label).toBe('Ready');
+        expect(contentStatuses.ARCHIVED.label).toBe('Archived');
     });
 });
 
@@ -111,7 +111,7 @@ describe('ContentWeekView', () => {
         expect(wrapper.findAll('[data-day]')).toHaveLength(7);
         expect(wrapper.get('[data-day="2026-11-09"]').text()).toContain('Kenapa website lambat');
         expect(wrapper.get('[data-day="2026-11-15"]').text()).toContain('Hari Minggu');
-        expect(wrapper.get('[data-day="2026-11-15"]').text()).toContain('Siap posting');
+        expect(wrapper.get('[data-day="2026-11-15"]').text()).toContain('Ready');
         expect(wrapper.get('[data-day="2026-11-10"]').text()).toContain('Hari ini');
         expect(wrapper.get('[data-day="2026-11-11"]').text()).toContain('Belum ada konten');
         expect(wrapper.get('[data-day="2026-11-09"]').text()).toContain('10:00 WIB');
@@ -158,7 +158,7 @@ describe('ContentStatusFilter', () => {
         const wrapper = mount(ContentStatusFilter, { props: { status: 'READY' } });
         const buttons = wrapper.findAll('button');
 
-        expect(buttons.map((button) => button.text())).toEqual(['Semua', 'Draft', 'Siap posting', 'Sudah diposting']);
+        expect(buttons.map((button) => button.text())).toEqual(['Semua', 'Draft', 'Ready', 'Published']);
         expect(buttons.map((button) => button.attributes('aria-pressed'))).toEqual(['false', 'false', 'true', 'false']);
         await buttons[0]?.trigger('click');
         expect(wrapper.emitted('change')?.[0]).toEqual([null]);
@@ -177,7 +177,7 @@ describe('ContentReminders', () => {
         expect(wrapper.text()).toContain('Perlu diposting (3)');
         expect(wrapper.text()).toContain('Terlambat 2 hari');
         expect(wrapper.text()).toContain('belum ada gambar');
-        expect(wrapper.text()).toContain('2 lainnya ada di daftar Siap posting.');
+        expect(wrapper.text()).toContain('2 lainnya ada di daftar Ready.');
         expect(wrapper.findAll('a').map((link) => link.attributes('href'))).toContain('/content/items/01ITEM00000000000000000000#paket-posting');
     });
 });

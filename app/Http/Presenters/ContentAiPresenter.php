@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Presenters;
 
-use App\Domain\Content\Actions\RequestResearch;
 use App\Domain\Content\Ai\CopyBudget;
 use App\Domain\Content\Ai\CopyModel;
 use App\Domain\Content\Ai\CopyModels;
 use App\Domain\Content\Contracts\CopyGenerator;
 use App\Domain\Content\Enums\GenerationStatus;
 use App\Domain\Content\Models\ContentGenerationRun;
-use App\Domain\Content\Models\ContentResearchRun;
-use App\Support\BusinessTime;
-use Carbon\Carbon;
 
 /** AI generation runs and status for the screen. Never a key, a prompt, or a raw provider response. */
 final class ContentAiPresenter
@@ -98,12 +94,6 @@ final class ContentAiPresenter
             'maxOutputTokens' => (int) config('content.ai.copy.max_output_tokens'),
             'maxAttempts' => (int) config('content.ai.copy.max_attempts'),
             'timeoutSeconds' => (int) config('content.ai.copy.timeout_seconds'),
-            'search' => [
-                'provider' => (string) config('content.ai.search.provider'),
-                'unavailableReason' => app(RequestResearch::class)->unavailableReason(),
-                'maxResults' => (int) config('content.ai.search.max_results'),
-                'callsThisWeek' => (int) ContentResearchRun::query()->where('started_at', '>=', now(BusinessTime::zone())->startOfWeek(Carbon::MONDAY)->startOfDay()->utc())->sum('search_calls'),
-            ],
             'circuitOpenUntil' => $until !== null && $until->isFuture() ? $until->toIso8601ZuluString() : null,
         ];
     }

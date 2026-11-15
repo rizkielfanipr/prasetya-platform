@@ -83,7 +83,7 @@ final class ContentAiController
 
     public function settings(CopyGenerator $generator, CopyBudget $budget, CopyModels $models): Response
     {
-        return Inertia::render('content/ContentAiSettingsPage', [
+        return Inertia::render('settings/AiModelPage', [
             'status' => ContentAiPresenter::status($generator, $budget, $models),
             'evaluation' => ContentAiPresenter::evaluation(),
             'runs' => ContentGenerationRun::query()->with(['item', 'requester', 'resultRevision'])->latest('id')->limit(30)->get()
