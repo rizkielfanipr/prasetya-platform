@@ -23,11 +23,10 @@ defineProps<{ user: UserRow; activity: AuditEntry[] }>();
             <ArrowLeftIcon class="size-4 stroke-2" aria-hidden="true" />Kembali ke pengguna
         </Link>
 
-        <section aria-labelledby="user-heading" class="rounded-xl bg-tint-50 p-5 md:p-6">
+        <section aria-label="Detail akun" class="rounded-xl bg-tint-50 p-5 md:p-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div class="min-w-0">
                     <p class="text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Akun</p>
-                    <h1 id="user-heading" class="mt-1 text-2xl font-extrabold break-words">{{ user.name }}</h1>
                     <p class="text-sign-ink mt-1 font-mono text-[14px] font-semibold">
                         @{{ user.username }}<span v-if="user.isSelf" class="ml-2 font-sans text-[12px] text-muted-foreground">Akun Anda</span>
                     </p>
