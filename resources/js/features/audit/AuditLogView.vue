@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelCard from '@/components/layout/PanelCard.vue';
 import DateRangeFilter from '@/components/shared/DateRangeFilter.vue';
 import FilterBar, { type ActiveFilter } from '@/components/shared/FilterBar.vue';
 import SearchInput from '@/components/shared/SearchInput.vue';
@@ -51,7 +50,7 @@ function clear(): void {
 <template>
     <FilterBar :active="active" @remove="remove" @clear="clear">
         <div class="w-full md:w-72">
-            <span aria-hidden="true" class="mb-1.5 block text-xs font-semibold text-muted-foreground">Cari</span>
+            <span aria-hidden="true" class="mb-1.5 block text-[11px] font-extrabold tracking-[0.07em] text-muted-foreground uppercase">Cari</span>
             <SearchInput id="audit-search" v-model="search" label="Cari aksi, pelaku, atau target" placeholder="Cari aksi, pelaku, atau target" />
         </div>
         <!-- "Sistem" (the default) leaves out transactions and user management, which have their own pages. -->
@@ -66,8 +65,8 @@ function clear(): void {
         />
         <DateRangeFilter :from="filters.date_from" :to="filters.date_to" id-prefix="audit-date" @change="apply({ ...$event, page: null })" />
     </FilterBar>
-    <PanelCard flush>
+    <section aria-label="Catatan audit">
         <AuditLogTable :rows="logs.data" :loading="loading" :failed="failed" @retry="apply({})" />
         <TablePagination :meta="logs.meta" :disabled="loading" @change="apply({ page: String($event) })" />
-    </PanelCard>
+    </section>
 </template>

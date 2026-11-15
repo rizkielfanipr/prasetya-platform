@@ -6,7 +6,7 @@ import ContentRevisionHistory from '@/features/content/ContentRevisionHistory.vu
 import { routes } from '@/lib/routes';
 import type { ContentItem, ItemActivity, ItemHistory } from '@/types/content';
 import { computed } from 'vue';
-import DetailSheet from './DetailSheet.vue';
+import DetailSheet from '@/components/shared/DetailSheet.vue';
 
 /**
  * Riwayat (ADR-0017): one sheet for the item's story, loaded when opened. Revisions first (the Ready marker, legacy

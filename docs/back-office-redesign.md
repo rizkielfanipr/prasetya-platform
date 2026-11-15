@@ -27,12 +27,12 @@ An unmigrated screen therefore already looks close. What is left on it is its ow
 | Ganti Kata Sandi | `/account/password` | Migrated (new, ADR-0015) | None |
 | Transaksi, Semua | `/transactions` | Migrated (pilot) | None |
 | Transaksi, Perlu Ditinjau | `/transactions?view=attention` | Migrated (four queues, ADR-0016) | `GatewayCheckDialog` still uses the stock outline button |
-| Pengaturan, Log Gateway | `/settings/gateway-log` (was Transaksi → Event Pembayaran) | Shell only; moved out of Transaksi (ADR-0016) | `PanelCard` around the webhook table; webhook table composition; diagnostics panel |
+| Pengaturan, Log Gateway | `/settings/gateway-log` (was Transaksi → Event Pembayaran) | Migrated; moved out of Transaksi (ADR-0016) | `SelectFilter` and `DateRangeFilter` keep the stock select trigger |
 | Detail transaksi | `/transactions/{id}` | Migrated (single page, ADR-0016) | Admin note textarea uses the stock `Button` |
 | Dashboard | `/dashboard` | Migrated | None |
 | Pengguna | `/users`, `/users/{id}` | Migrated | `UserFields`/`UserEditDialog`/`UserPasswordDialog` still use the stock `Input` |
-| Pengaturan, Aktivitas Sistem | `/settings`, `/settings/activity` | Shell only; profile and password forms moved out (ADR-0015) | Lucide; `PanelCard` admin panels |
-| Audit Log | `/audit-log` | Shell only | Table and filters review |
+| Pengaturan, Aktivitas Sistem | `/settings`, `/settings/activity` | Migrated; profile and password forms moved out (ADR-0015) | `SelectFilter` and `DateRangeFilter` keep the stock select trigger |
+| Audit Log | `/audit-log` | Migrated (shares Aktivitas Sistem's table) | `SelectFilter` and `DateRangeFilter` keep the stock select trigger |
 | Error pages, signed in | any | Shell only | Lucide icons; `PanelCard` around the empty state |
 | Content Studio: Kalender, Brand, Insight, detail | `/content/*` | Migrated (ADR-0017) | `ContentCreateDialog`, `CampaignDialog`, and `BrandKnowledgeAssistantDialog` keep stock dialog styling |
 | Pengaturan, Model AI | `/settings/ai` (was Content Studio → Pengaturan AI) | Migrated (ADR-0017) | None |
@@ -63,6 +63,9 @@ An unmigrated screen therefore already looks close. What is left on it is its ow
 | 2026-11-14 | Profile and settings separated: no self-service profile; names change in Pengguna; own password on Ganti Kata Sandi from the account menu | [ADR-0015](decisions/0015-account-password-page.md) |
 | 2026-11-14 | Dashboard layout "Rute sebagai Tulang Punggung" chosen from three structures: the payment route at page scale leads, Pending as the hub | `DESIGN.md` Dashboard, `.impeccable/surfaces/` |
 | 2026-11-14 | Indonesian messages for Laravel's built-in validation rules (raw keys such as `validation.current_password` no longer leak) | `lang/id/validation.php` |
+| 2026-11-15 | Pengaturan is a hub, not a card wall: a `tint-50` status field answers "is the platform wired up", then a hairline list holds the destinations (Aktivitas Sistem, Log Gateway, Model AI) | `SettingsPage.vue` |
+| 2026-11-15 | Long audit and webhook rows keep five to seven scanning columns; before/after states, ids, signatures, and raw diagnostics open in a sheet | `AuditLogTable.vue`, `WebhookEventTable.vue`, `DetailSheet.vue` |
+| 2026-11-15 | `DetailSheet` moved to `components/shared` because Pengaturan and Content Studio both use it | `resources/js/components/shared/DetailSheet.vue` |
 
 ## Known gaps
 
@@ -73,3 +76,4 @@ These are recorded rather than fixed, so they are not mistaken for intended desi
 - The `link` button variant uses `text-primary` (`#FF5100` as text, 3.27:1). Nothing uses it yet; switch it to `text-primary-text` before first use.
 - Stock overlays (select, dropdown, sheet) use `shadow-md` and `shadow-lg` instead of `--shadow-overlay`.
 - `ContentBrandPage.vue` has a thick accent border on a rounded element, from the old look.
+- Truncated ids no longer rely on a `title` tooltip: the full value lives in the row's sheet. `SelectFilter` and `DateRangeFilter` still render the stock select trigger.

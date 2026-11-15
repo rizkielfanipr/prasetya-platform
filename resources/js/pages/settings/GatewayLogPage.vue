@@ -15,7 +15,10 @@ defineProps<{ filters: PaymentEventFilters; events: Paginated<WebhookEventRow> }
         title="Log Gateway"
         description="Setiap notifikasi webhook dari gateway, termasuk yang ditolak, duplikat, atau untuk invoice yang tidak dikenal. Untuk menelusuri masalah, bukan untuk dicek harian."
     >
-        <Link :href="routes.settings" class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-text hover:underline">
+        <Link
+            :href="routes.settings"
+            class="focus-visible:outline-line-orange inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary-text underline decoration-tint-300 underline-offset-4 hover:decoration-tint-600 focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
             <ArrowLeftIcon class="size-4 stroke-2" aria-hidden="true" />Kembali ke pengaturan
         </Link>
         <GatewayLogView :filters="filters" :events="events" :path="routes.gatewayLog()" />

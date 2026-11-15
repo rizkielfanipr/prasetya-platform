@@ -19,12 +19,13 @@ test("open a user's activity from the user list", async ({ page }) => {
 
 test('open Aktivitas Sistem from Pengaturan and widen it to every entry', async ({ page }) => {
     await page.goto('/settings');
-    await page.getByRole('link', { name: 'Buka aktivitas sistem' }).click();
+    await page.getByRole('link', { name: 'Aktivitas Sistem' }).click();
     await expect(page).toHaveURL(/\/settings\/activity/);
 
     const table = page.getByRole('table', { name: 'Audit log' });
-    await expect(table).toContainText('auth.login');
-    await expect(table).not.toContainText('payment.gateway_checked');
+    await expect(table).toContainText('Masuk');
+    // Actions read as labels; the raw code lives in the row's detail sheet.
+    await expect(table).not.toContainText('Status diperiksa ke gateway');
 
     await page.getByLabel('Lingkup').click();
     await page.getByRole('option', { name: 'Semua audit' }).click();
