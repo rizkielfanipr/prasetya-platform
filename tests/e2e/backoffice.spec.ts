@@ -75,35 +75,33 @@ test('transaction search is one navigation step from any page', async ({ page })
     await expect(page.locator('#global-search')).toHaveCount(0);
 });
 
-test('open transaction detail: payment and order status are separate', async ({ page }) => {
+test('open transaction detail: one page with the route head, attempts, one Riwayat, and notes', async ({ page }) => {
     await page.goto('/transactions?payment_status=PAID');
     await page.getByRole('table', { name: 'Daftar transaksi' }).locator('tbody a').first().click();
     await expect(page).toHaveURL(/\/transactions\/01/);
 
-    await expect(page.getByText('Status pembayaran', { exact: true })).toBeVisible();
-    await expect(page.getByText('Status pesanan', { exact: true })).toBeVisible();
+    // ADR-0016: no tabs. The head carries the payment route; the order status is a fact beside it.
+    await expect(page.getByRole('tab')).toHaveCount(0);
+    await expect(page.getByTestId('transaction-head')).toContainText('Paid');
+    await expect(page.getByTestId('transaction-head')).toContainText('Pesanan Confirmed');
+    await expect(page.getByRole('heading', { name: 'Percobaan 1' })).toBeVisible();
 
-    await page.getByRole('tab', { name: /Pembayaran/ }).click();
-    await expect(page.getByText('Percobaan 1')).toBeVisible();
-    await page
-        .getByText(/^Kejadian/)
-        .first()
-        .click();
-    await expect(page.getByText(/Status berubah: Pending → Paid/).first()).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Riwayat webhook' })).toBeVisible();
-
-    await page.getByRole('tab', { name: 'Aktivitas' }).click();
-    await expect(page.getByRole('list', { name: 'Aktivitas transaksi' })).toContainText('Pembayaran tercatat lunas');
+    const history = page.getByRole('list', { name: 'Riwayat transaksi' });
+    await expect(history).toContainText('Status berubah: Pending → Paid');
+    await expect(history).toContainText('Pembayaran tercatat lunas');
+    await expect(history.getByRole('link', { name: 'Diagnostik di Log Gateway' }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Riwayat webhook' })).toHaveCount(0);
     await expect(page.locator('body')).not.toContainText('fake-key-not-real');
 
-    await page.getByRole('tab', { name: 'Ringkasan' }).click();
     await page.getByLabel('Tambah catatan').fill('Catatan dari browser test');
     await page.getByRole('button', { name: 'Simpan' }).click();
-    await expect(page.getByText('Catatan dari browser test')).toBeVisible();
+    // The note shows in the notes list and as a Riwayat entry.
+    await expect(page.getByRole('region', { name: 'Catatan Admin' }).getByText('Catatan dari browser test')).toBeVisible();
+    await expect(history).toContainText('Catatan dari browser test');
 });
 
-test('inspect payment events with sanitised diagnostics', async ({ page }) => {
-    await page.goto('/transactions?view=events');
+test('inspect the Log Gateway with sanitised diagnostics', async ({ page }) => {
+    await page.goto('/settings/gateway-log');
     await expect(page.getByRole('table', { name: 'Event pembayaran dari gateway' })).toBeVisible();
 
     await page.locator('#filter-status').click();
@@ -111,7 +109,7 @@ test('inspect payment events with sanitised diagnostics', async ({ page }) => {
     await expect(page).toHaveURL(/status=REJECTED/);
     await expect(page.getByText('Tanda tangan tidak valid').first()).toBeVisible();
 
-    await page.goto('/transactions?view=events&status=PROCESSED');
+    await page.goto('/settings/gateway-log?status=PROCESSED');
     await page.getByText('Lihat', { exact: true }).first().click();
     await expect(page.locator('pre').first()).toContainText('merchantOrderId');
     await expect(page.locator('body')).not.toContainText('fake-key-not-real');
@@ -119,9 +117,9 @@ test('inspect payment events with sanitised diagnostics', async ({ page }) => {
 
 test('view a reconciliation issue and run an audited gateway check', async ({ page }) => {
     await page.goto('/transactions?view=attention');
-    await page.getByTestId('group-amount_mismatch').click();
-    await expect(page).toHaveURL(/group=amount_mismatch/);
-    const firstRow = page.getByRole('table', { name: 'Isu rekonsiliasi' }).locator('tbody tr').first();
+    await page.getByTestId('queue-amount_mismatch').click();
+    await expect(page).toHaveURL(/queue=amount_mismatch/);
+    const firstRow = page.getByRole('table', { name: 'Jumlah tidak cocok' }).locator('tbody tr').first();
     await expect(firstRow).toContainText('Jumlah tidak cocok');
 
     const trigger = firstRow.getByRole('button', { name: 'Cek status' });
@@ -151,7 +149,7 @@ test('settings show gateway status without credentials', async ({ page }) => {
     await expect(page.getByRole('table', { name: 'Pengguna admin' })).toHaveCount(0);
 });
 
-for (const path of ['/dashboard', '/transactions', '/transactions?view=events', '/transactions?view=attention', '/users', '/settings', '/settings/activity']) {
+for (const path of ['/dashboard', '/transactions', '/transactions?view=attention', '/users', '/settings', '/settings/activity', '/settings/gateway-log']) {
     test(`no accessibility violations on ${path}`, async ({ page }) => {
         await page.goto(path);
         await page.waitForLoadState('networkidle');

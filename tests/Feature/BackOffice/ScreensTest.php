@@ -121,8 +121,8 @@ it('shows a complete sanitised transaction detail', function (): void {
         ->where('transaction.orderStatus', 'CONFIRMED')
         ->has('transaction.payments.0.events')
         ->has('transaction.statusHistory')
-        ->has('webhooks', 1)
-        ->where('activity', fn ($activity): bool => collect($activity)->where('source', 'audit')->count() === 1));
+        ->missing('webhooks')
+        ->where('activity', fn ($activity): bool => collect($activity)->where('source', 'webhook')->count() === 1 && collect($activity)->where('source', 'audit')->count() === 1));
 
     expect($response->getContent())->not->toContain('411111')->not->toContain('fake-key-not-real');
 });
@@ -140,16 +140,15 @@ it('lists payment events with verification and duplicate state', function (): vo
     sendNotification($body);
     sendNotification($body, secret: 'bad');
 
-    $this->actingAs(admin())->get('/transactions?view=events')->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('transactions/TransactionWorkspacePage')
-        ->where('view', 'events')
+    $this->actingAs(admin())->get('/settings/gateway-log')->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('settings/GatewayLogPage')
         ->where('events.meta.total', 3)
         ->where('events.data.0.signatureValid', false)
         ->where('events.data.0.diagnostics', null)
         ->where('events.data.1.isDuplicate', true));
 
-    $this->get('/transactions?view=events&status=DUPLICATE')->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 1));
-    $this->get("/transactions?view=events&search={$payment->gateway_invoice_number}")->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 2));
+    $this->get('/settings/gateway-log?status=DUPLICATE')->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 1));
+    $this->get("/settings/gateway-log?search={$payment->gateway_invoice_number}")->assertInertia(fn (AssertableInertia $page) => $page->where('events.meta.total', 2));
 });
 
 it('finds orders with no attempt only after the threshold', function (): void {
@@ -206,11 +205,12 @@ it('never changes data when viewed', function (): void {
     sendNotification(notificationBody($cancelled->gateway_invoice_number, $cancelled->amount));
     $auditCount = AuditLog::query()->count();
 
-    $this->actingAs(admin())->get('/transactions?view=attention&group=paid_inconsistent')->assertInertia(fn (AssertableInertia $page) => $page
+    $this->actingAs(admin())->get('/transactions?view=attention&queue=system')->assertInertia(fn (AssertableInertia $page) => $page
         ->component('transactions/TransactionWorkspacePage')
         ->where('view', 'attention')
-        ->where('group', 'paid_inconsistent')
-        ->has('issues.data', 1));
+        ->where('queue', 'system')
+        ->where('sections.0.group', 'paid_inconsistent')
+        ->has('sections.0.issues.data', 1));
 
     expect($cancelled->order->refresh()->status)->toBe(OrderStatus::Cancelled)
         ->and(AuditLog::query()->count())->toBe($auditCount);

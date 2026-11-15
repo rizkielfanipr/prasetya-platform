@@ -1,7 +1,6 @@
 import TransactionActivityTimeline from '@/features/transactions/TransactionActivityTimeline.vue';
 import TransactionIssuesPanel from '@/features/transactions/TransactionIssuesPanel.vue';
 import { describeActivity } from '@/lib/activity';
-import { transactionDetailTabs } from '@/lib/transaction-tabs';
 import type { TransactionActivityEntry, TransactionIssue } from '@/types/backoffice';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
@@ -68,15 +67,6 @@ describe('describeActivity', () => {
     });
 });
 
-describe('transaction detail tabs', () => {
-    it('reads the tab from the URL and falls back to the summary', () => {
-        expect(transactionDetailTabs.fromUrl('/transactions/01abc?tab=payments')).toBe('payments');
-        expect(transactionDetailTabs.fromUrl('/transactions/01abc?tab=activity')).toBe('activity');
-        expect(transactionDetailTabs.fromUrl('/transactions/01abc?tab=../../etc')).toBe('summary');
-        expect(transactionDetailTabs.fromUrl('/transactions/01abc')).toBe('summary');
-    });
-});
-
 describe('TransactionActivityTimeline', () => {
     it('keeps the server order and writes the source next to each entry', () => {
         const wrapper = mount(TransactionActivityTimeline, {
@@ -130,6 +120,15 @@ describe('TransactionIssuesPanel', () => {
         });
 
         expect(wrapper.findAll('.check')).toHaveLength(1);
+    });
+
+    it('never repeats Cek status on information: the attempt already offers it', () => {
+        const wrapper = mount(TransactionIssuesPanel, {
+            props: { issues: [issue('pending_too_long', false, '01pay')] },
+            global: { stubs: { GatewayCheckDialog: { template: '<button class="check" />', props: ['paymentId', 'invoice'] } } },
+        });
+
+        expect(wrapper.findAll('.check')).toHaveLength(0);
     });
 
     it('renders nothing without issues', () => {

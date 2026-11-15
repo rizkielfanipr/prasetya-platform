@@ -19,7 +19,8 @@ final class TransactionFilterRequest extends FormRequest
         return [
             'search' => ['nullable', 'string', 'max:100'],
             'brand' => ['nullable', Rule::enum(ApplicationCode::class)],
-            'payment_status' => ['nullable', Rule::enum(PaymentStatus::class)],
+            // NONE: orders without any payment attempt, the customers who did not check out (ADR-0016).
+            'payment_status' => ['nullable', Rule::in([...array_column(PaymentStatus::cases(), 'value'), 'NONE'])],
             'order_status' => ['nullable', Rule::enum(OrderStatus::class)],
             'payment_method' => ['nullable', 'string', 'max:64'],
             'package' => ['nullable', 'string', 'max:64'],

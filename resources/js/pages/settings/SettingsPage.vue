@@ -18,5 +18,13 @@ defineProps<{ admin: SettingsAdmin }>();
                 >Buka aktivitas sistem <ArrowRight class="size-4" aria-hidden="true"
             /></Link>
         </PanelCard>
+        <PanelCard title="Log gateway" description="Setiap notifikasi webhook dari gateway, untuk menelusuri masalah pembayaran.">
+            <Link
+                :href="routes.gatewayLog()"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-text hover:underline"
+                data-testid="open-gateway-log"
+                >Buka log gateway <ArrowRight class="size-4" aria-hidden="true"
+            /></Link>
+        </PanelCard>
     </AppLayout>
 </template>

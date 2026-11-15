@@ -31,7 +31,7 @@ it('lists only the open reconciliation issues of this transaction', function ():
     $issues = detailProps($mine)['reconciliationIssues'];
 
     expect($issues)->toHaveCount(1)
-        ->and($issues[0])->toMatchArray(['group' => 'orders_without_attempt', 'orderId' => $mine->public_id, 'needsAction' => true])
+        ->and($issues[0])->toMatchArray(['group' => 'orders_without_attempt', 'orderId' => $mine->public_id, 'needsAction' => false])
         ->and(collect($issues)->pluck('orderId')->all())->not->toContain($other->public_id)
         ->and(collect($issues)->pluck('invoice')->all())->not->toContain('PW-209901-000001');
 });
@@ -44,7 +44,9 @@ it('flags a payment pending too long and offers a check on it', function (): voi
 
     expect($pending)->not->toBeNull()
         ->and($pending['checkablePaymentId'])->toBe($payment->public_id)
-        ->and($issues->firstWhere('group', 'orders_without_success'))->not->toBeNull();
+        // ADR-0016: the waiting order needs action; its open payment is information, so the case counts once.
+        ->and($pending['needsAction'])->toBeFalse()
+        ->and($issues->firstWhere('group', 'orders_without_success')['needsAction'] ?? null)->toBeTrue();
 });
 
 it('shows a duplicate delivery as information, not as an issue needing action', function (): void {
@@ -159,6 +161,6 @@ it('shows an empty payment section for an order that never reached checkout', fu
     $props = detailProps($order);
 
     expect($props['transaction']['payments'])->toBe([])
-        ->and($props['webhooks'])->toBe([])
+        ->and($props)->not->toHaveKey('webhooks')
         ->and(collect($props['activity'])->whereIn('source', ['payment_event', 'webhook'])->all())->toBe([]);
 });

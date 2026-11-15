@@ -3,9 +3,8 @@ import EmptyState from '@/components/shared/EmptyState.vue';
 import ErrorState from '@/components/shared/ErrorState.vue';
 import LoadingState from '@/components/shared/LoadingState.vue';
 import MetricCard from '@/components/shared/MetricCard.vue';
-import PaymentTimeline from '@/components/shared/PaymentTimeline.vue';
 import TablePagination from '@/components/shared/TablePagination.vue';
-import type { AuditEntry, PaymentEventEntry } from '@/types/backoffice';
+import type { AuditEntry } from '@/types/backoffice';
 import { Clock } from '@lucide/vue';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
@@ -66,28 +65,6 @@ describe('TablePagination', () => {
 });
 
 describe('timelines', () => {
-    const event: PaymentEventEntry = {
-        id: 1,
-        type: 'STATUS_CHANGED',
-        source: 'GATEWAY_NOTIFICATION',
-        from: 'PENDING',
-        to: 'PAID',
-        at: '2026-11-01T03:00:00Z',
-        detail: 'Kanal: QRIS',
-    };
-
-    it('describes a payment transition in words', () => {
-        const wrapper = mount(PaymentTimeline, { props: { events: [event] } });
-
-        expect(wrapper.text()).toContain('Status berubah: Pending → Paid');
-        expect(wrapper.text()).toContain('Notifikasi gateway');
-        expect(wrapper.text()).toContain('Kanal: QRIS');
-    });
-
-    it('has an empty state', () => {
-        expect(mount(PaymentTimeline, { props: { events: [] } }).text()).toContain('Belum ada kejadian');
-    });
-
     it('shows audit actor, change, and reason', () => {
         const entry: AuditEntry = {
             id: 1,

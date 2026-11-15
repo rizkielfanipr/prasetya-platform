@@ -188,7 +188,8 @@ export interface DashboardFilters {
 export interface TransactionFilters {
     search: string | null;
     brand: Brand | null;
-    payment_status: PaymentStatus | null;
+    /** NONE: orders without any payment attempt (ADR-0016). */
+    payment_status: PaymentStatus | 'NONE' | null;
     order_status: OrderStatus | null;
     payment_method: string | null;
     package: string | null;
@@ -274,7 +275,16 @@ export interface PaymentEventFilters {
 }
 
 /** Views of the Transaksi workspace (ADR-0010), in the URL as ?view=. */
-export type TransactionWorkspaceView = 'all' | 'attention' | 'events';
+export type TransactionWorkspaceView = 'all' | 'attention';
+
+/** The review queues of Perlu Ditinjau (ADR-0016); each holds fixed reconciliation groups on the server. */
+export type AttentionQueue = 'unmatched' | 'amount_mismatch' | 'waiting' | 'system';
+
+export interface AttentionSection {
+    group: ReconciliationGroup;
+    pageName: string;
+    issues: Paginated<ReconciliationIssue>;
+}
 
 export interface UserFilters {
     search: string | null;

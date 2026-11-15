@@ -15,14 +15,11 @@ test('a colleague sees every menu item, the evidence, and the settings panels', 
 
     await page.goto('/transactions?payment_status=PAID');
     await page.getByRole('table', { name: 'Daftar transaksi' }).locator('tbody a').first().click();
-    await page.getByRole('tab', { name: /Pembayaran/ }).click();
-    await expect(page.getByRole('heading', { name: 'Riwayat webhook' })).toBeVisible();
-    await page.getByRole('tab', { name: 'Aktivitas' }).click();
-    await expect(page.getByRole('list', { name: 'Aktivitas transaksi' })).toBeVisible();
+    await expect(page.getByRole('list', { name: 'Riwayat transaksi' })).toContainText('Webhook');
 
     await page.goto('/reconciliation?group=amount_mismatch');
     await expect(page).toHaveURL(
-        (url) => url.pathname === '/transactions' && url.searchParams.get('view') === 'attention' && url.searchParams.get('group') === 'amount_mismatch',
+        (url) => url.pathname === '/transactions' && url.searchParams.get('view') === 'attention' && url.searchParams.get('queue') === 'amount_mismatch',
     );
     await expect(page.getByTestId('workspace-attention')).toHaveAttribute('aria-current', 'page');
 

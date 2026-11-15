@@ -1,4 +1,4 @@
-import type { OrderStatus, PaymentStatus, ReconciliationGroup, WebhookStatus } from '@/types/backoffice';
+import type { AttentionQueue, OrderStatus, PaymentStatus, ReconciliationGroup, WebhookStatus } from '@/types/backoffice';
 import {
     ArrowPathIcon,
     CheckCircleIcon,
@@ -164,4 +164,26 @@ export const reconciliationGroups: Record<ReconciliationGroup, { label: string; 
         description: 'Dibayar tetapi pesanan belum terkonfirmasi, terkonfirmasi tanpa bayar, atau dibayar lebih dari sekali.',
     },
     invalid_transitions: { label: 'Transisi tidak valid', description: 'Bukti gateway meminta perubahan status yang tidak diizinkan atau belum didukung.' },
+};
+
+/** Perlu Ditinjau's queues in display order (ADR-0016). Which groups each holds is decided on the server. */
+export const attentionQueues: Record<AttentionQueue, { label: string; description: string }> = {
+    unmatched: {
+        label: 'Uang tanpa pesanan',
+        description:
+            'Gateway melaporkan pembayaran terverifikasi untuk invoice yang tidak dikenal platform. Cocokkan dengan pelanggan sebelum menindaklanjuti.',
+    },
+    amount_mismatch: {
+        label: 'Jumlah tidak cocok',
+        description: 'Pembayaran terverifikasi dengan jumlah berbeda dari tagihan. Status tidak diubah sampai Anda memeriksanya.',
+    },
+    waiting: {
+        label: 'Menunggu terlalu lama',
+        description:
+            'Pesanan sudah dicoba dibayar, tetapi belum ada yang berhasil setelah ambang waktu. Cek status ke gateway bila pelanggan mengaku sudah bayar.',
+    },
+    system: {
+        label: 'Anomali sistem',
+        description: 'Seharusnya selalu kosong. Isi di sini menandakan kesalahan sistem atau kunci gateway yang salah, bukan pekerjaan harian.',
+    },
 };

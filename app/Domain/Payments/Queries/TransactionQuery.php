@@ -57,7 +57,9 @@ final class TransactionQuery
             $query->where('status', $filters['order_status']);
         }
 
-        if (filled($filters['payment_status'] ?? null)) {
+        if (($filters['payment_status'] ?? null) === 'NONE') {
+            $query->whereDoesntHave('payments');
+        } elseif (filled($filters['payment_status'] ?? null)) {
             $query->whereHas('latestPayment', fn (Builder $q) => $q->where('status', $filters['payment_status']));
         }
 

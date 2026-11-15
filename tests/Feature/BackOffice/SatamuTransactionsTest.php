@@ -88,10 +88,10 @@ it('shows Satamu details, attempts, and sanitised evidence on a transaction', fu
         ->where('transaction.paymentStatus', 'PAID')
         ->where('transaction.orderStatus', 'CONFIRMED')
         ->where('transaction.payments.0.attempt', 1)
-        ->has('webhooks', 1)
-        ->where('webhooks.0.status', 'PROCESSED'));
+        ->where('activity', fn ($activity): bool => collect($activity)->where('source', 'webhook')->pluck('data.status')->all() === ['PROCESSED']));
 
-    $webhooks = (string) json_encode($response->viewData('page')['props']['webhooks']);
+    // Webhooks reach the detail only as sanitised timeline entries (ADR-0016).
+    $webhooks = (string) json_encode($response->viewData('page')['props']['activity']);
 
     $signature = DuitkuSignature::sign('fake-key-not-real', 'FAKE-MERCHANT', (string) $payment->amount, $payment->gateway_invoice_number);
 

@@ -6,7 +6,7 @@ import SelectFilter from '@/components/shared/SelectFilter.vue';
 import { Input } from '@/components/ui/input';
 import { brandCodes, brands } from '@/lib/brands';
 import { paymentMethodLabel } from '@/lib/payment-methods';
-import { orderStatuses, paymentStatuses } from '@/lib/status';
+import { noPaymentLabel, orderStatuses, paymentStatuses } from '@/lib/status';
 import type { Brand, OrderStatus, PaymentStatus, TransactionFilterOptions, TransactionFilters } from '@/types/backoffice';
 import { AdjustmentsHorizontalIcon, ChevronDownIcon } from '@heroicons/vue/24/outline';
 import { computed, ref, watch } from 'vue';
@@ -30,7 +30,11 @@ watch(
 );
 
 const brandOptions = brandCodes.map((value) => ({ value, label: brands[value].label }));
-const paymentOptions = (Object.keys(paymentStatuses) as PaymentStatus[]).map((value) => ({ value, label: paymentStatuses[value].label }));
+// No Payment: orders without any attempt, the customers who did not check out (ADR-0016).
+const paymentOptions = [
+    ...(Object.keys(paymentStatuses) as PaymentStatus[]).map((value) => ({ value, label: paymentStatuses[value].label })),
+    { value: 'NONE', label: noPaymentLabel },
+];
 const orderOptions = (Object.keys(orderStatuses) as OrderStatus[]).map((value) => ({ value, label: orderStatuses[value].label }));
 const plain = (values: string[]) => values.map((value) => ({ value, label: value }));
 const methodOptions = computed(() => props.options.paymentMethods.map((value) => ({ value, label: paymentMethodLabel(value) ?? value })));
@@ -52,7 +56,9 @@ const active = computed<ActiveFilter[]>(() => {
     return [
         f.search ? { key: 'search', label: `Cari: ${f.search}` } : null,
         f.brand ? { key: 'brand', label: `Brand: ${brands[f.brand].label}` } : null,
-        f.payment_status ? { key: 'payment_status', label: `Pembayaran: ${paymentStatuses[f.payment_status].label}` } : null,
+        f.payment_status
+            ? { key: 'payment_status', label: `Pembayaran: ${f.payment_status === 'NONE' ? noPaymentLabel : paymentStatuses[f.payment_status].label}` }
+            : null,
         f.order_status ? { key: 'order_status', label: `Pesanan: ${orderStatuses[f.order_status].label}` } : null,
         f.payment_method ? { key: 'payment_method', label: `Metode: ${paymentMethodLabel(f.payment_method)}` } : null,
         f.package ? { key: 'package', label: `Paket: ${packageLabel(f.package)}` } : null,
