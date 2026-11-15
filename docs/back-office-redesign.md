@@ -30,7 +30,7 @@ An unmigrated screen therefore already looks close. What is left on it is its ow
 | Pengaturan, Log Gateway | `/settings/gateway-log` (was Transaksi → Event Pembayaran) | Shell only; moved out of Transaksi (ADR-0016) | `PanelCard` around the webhook table; webhook table composition; diagnostics panel |
 | Detail transaksi | `/transactions/{id}` | Migrated (single page, ADR-0016) | Admin note textarea uses the stock `Button` |
 | Dashboard | `/dashboard` | Migrated | None |
-| Pengguna | `/users`, `/users/{id}` | Shell only | Lucide in row actions and create dialog; detail layout |
+| Pengguna | `/users`, `/users/{id}` | Migrated | `UserFields`/`UserEditDialog`/`UserPasswordDialog` still use the stock `Input` |
 | Pengaturan, Aktivitas Sistem | `/settings`, `/settings/activity` | Shell only; profile and password forms moved out (ADR-0015) | Lucide; `PanelCard` admin panels |
 | Audit Log | `/audit-log` | Shell only | Table and filters review |
 | Error pages, signed in | any | Shell only | Lucide icons; `PanelCard` around the empty state |

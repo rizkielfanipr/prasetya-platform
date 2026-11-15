@@ -10,40 +10,65 @@ import { Link } from '@inertiajs/vue3';
 import UserRowActions from './UserRowActions.vue';
 
 defineProps<{ rows: UserRow[]; loading: boolean; failed: boolean; filtered: boolean }>();
-defineEmits<{ retry: [] }>();
+defineEmits<{ retry: []; clear: [] }>();
 
+// The name is the row's only link and its anchor; username rides under it in mono, so "Dibuat" folds into
+// "Terakhir masuk" and one column drops out (DESIGN.md Data Table).
 const columns: DataTableColumn[] = [
-    { key: 'name', label: 'Nama' },
-    { key: 'username', label: 'Username' },
+    { key: 'name', label: 'Pengguna' },
     { key: 'status', label: 'Status' },
-    { key: 'lastLogin', label: 'Masuk terakhir' },
-    { key: 'created', label: 'Dibuat' },
+    { key: 'lastLoginAt', label: 'Terakhir masuk' },
     { key: 'actions', label: 'Aksi', srOnlyLabel: true, align: 'right' },
 ];
 </script>
 
 <template>
-    <DataTable caption="Daftar pengguna" :columns="columns" :rows="rows" :row-key="(row) => row.id" :loading="loading" :failed="failed" @retry="$emit('retry')">
+    <DataTable
+        caption="Daftar pengguna"
+        :columns="columns"
+        :rows="rows"
+        :row-key="(row: UserRow) => row.id"
+        :loading="loading"
+        :failed="failed"
+        stack-on-mobile
+        @retry="$emit('retry')"
+    >
         <template #cell-name="{ row }">
-            <Link :href="routes.user(row.id)" class="whitespace-nowrap hover:underline">{{ row.name }}</Link>
-            <span v-if="row.isSelf" class="ml-1 text-xs font-normal text-muted-foreground">(Anda)</span>
+            <div class="min-w-0">
+                <Link
+                    :href="routes.user(row.id)"
+                    class="focus-visible:outline-line-orange font-bold text-primary-text underline decoration-tint-300 underline-offset-4 hover:decoration-tint-600 focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                    {{ row.name }}
+                </Link>
+                <p class="font-mono text-[13px] font-semibold text-muted-foreground">@{{ row.username }}</p>
+            </div>
         </template>
-        <template #cell-username="{ row }"
-            ><span class="font-mono text-xs">{{ row.username }}</span></template
-        >
-        <template #cell-status="{ row }"><StatusBadge :status="row.isActive ? userStatuses.active : userStatuses.inactive" /></template>
-        <template #cell-lastLogin="{ row }"
-            ><span class="whitespace-nowrap">{{ formatDateTime(row.lastLoginAt) }}</span></template
-        >
-        <template #cell-created="{ row }"
-            ><span class="whitespace-nowrap">{{ formatDateTime(row.createdAt) }}</span></template
-        >
-        <template #cell-actions="{ row }"><UserRowActions :user="row" /></template>
+
+        <template #cell-status="{ row }">
+            <div class="flex flex-wrap items-center gap-2">
+                <StatusBadge :status="row.isActive ? userStatuses.active : userStatuses.inactive" />
+                <span v-if="row.isSelf" class="text-[12px] font-semibold text-muted-foreground">Akun Anda</span>
+            </div>
+        </template>
+
+        <template #cell-lastLoginAt="{ row }">
+            <span class="text-[13px] whitespace-nowrap text-muted-foreground">{{ formatDateTime(row.lastLoginAt) }}</span>
+        </template>
+
+        <template #cell-actions="{ row }">
+            <div class="flex justify-end"><UserRowActions :user="row" /></div>
+        </template>
+
         <template #empty>
             <EmptyState
                 :title="filtered ? 'Tidak ada pengguna yang cocok' : 'Belum ada pengguna'"
                 :description="filtered ? 'Coba ubah atau hapus filter.' : 'Tambahkan pengguna dengan tombol di atas.'"
-            />
+            >
+                <button v-if="filtered" type="button" class="text-sm font-bold text-primary-text underline underline-offset-4" @click="$emit('clear')">
+                    Hapus semua filter
+                </button>
+            </EmptyState>
         </template>
     </DataTable>
 </template>
